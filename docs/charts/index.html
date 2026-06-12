@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dstory — Vizzu chart reference</title>
+<meta name="description" content="Every Vizzu chart shape as a copy-paste JSON snippet for dstory's kind:vizzu scenes — 4 geometries x 2 coordinate systems x 7 channels.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14110f; --bg-elev: #1d1916; --ink: #f2ece2; --ink-soft: #b8af9f;
+    --ink-faint: #7a7265; --accent: #ff5c1f; --accent-2: #e8b34b; --rule: #332d27;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.6 "Inter Tight", system-ui, sans-serif;
+         -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 52rem; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; }
+  .crumb { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; }
+  .crumb a { color: var(--ink-soft); }
+  h1 { font-family: "Fraunces", Georgia, serif; font-size: 2.6rem; line-height: 1.05;
+       letter-spacing: -0.015em; margin: 1rem 0; }
+  h2 { font-family: "Fraunces", Georgia, serif; font-size: 1.7rem; margin: 3rem 0 0.75rem; }
+  h2::before { content: "§ "; color: var(--accent); font-size: 1rem; vertical-align: 0.2em; }
+  h3 { font-weight: 600; font-size: 1.05rem; margin: 2rem 0 0.5rem; color: var(--accent-2); }
+  p, li { color: var(--ink-soft); }
+  strong { color: var(--ink); }
+  em { color: var(--ink-faint); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 3rem 0; }
+  pre { background: var(--bg-elev); border: 1px solid var(--rule); border-radius: 6px;
+        padding: 0.9rem 1.1rem; overflow-x: auto; font-size: 0.8rem; line-height: 1.55; }
+  code { font-family: "JetBrains Mono", monospace; }
+  p code, li code, td code { background: var(--bg-elev); border: 1px solid var(--rule);
+        border-radius: 3px; padding: 0.08rem 0.35rem; font-size: 0.82em; color: var(--ink); }
+  pre code { background: none; border: 0; padding: 0; color: var(--ink); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin: 1rem 0; }
+  th, td { text-align: left; padding: 0.5rem 0.9rem 0.5rem 0; border-bottom: 1px solid var(--rule);
+           color: var(--ink-soft); }
+  th { color: var(--ink); }
+  ol li, ul li { margin: 0.3rem 0; }
+  footer { border-top: 1px solid var(--rule); margin-top: 4rem; padding-top: 1.5rem;
+           font-family: "JetBrains Mono", monospace; font-size: 0.78rem; color: var(--ink-faint); }
+  footer a { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="crumb"><a href="../index.html">dstory docs</a> / chart reference ·
+     <a href="../morphs/index.html">see it morph live →</a></p>
+<h1>Vizzu Chart Gallery</h1>
+<p>Every Vizzu chart type as a copy-paste JSON snippet that drops into a <code>kind: "vizzu"</code> scene's <code>frames[]</code> array. Vizzu has no fixed "chart types" — these are all combinations of <strong>4 geometries × 2 coordinate systems × 7 channels</strong>. Memorizing the four moves below unlocks the full range; the rest is recombination.</p>
+<h2>The four geometries</h2>
+<ul>
+<li><strong><code>rectangle</code></strong> — bars, columns, treemaps, marimekkos, heatmaps, pies (with polar)</li>
+<li><strong><code>circle</code></strong> — scatter, bubble, dot plots</li>
+<li><strong><code>line</code></strong> — line charts, slope charts, radar (with polar)</li>
+<li><strong><code>area</code></strong> — area, stacked area, streamgraph</li>
+</ul>
+<h2>The two coordinate systems</h2>
+<ul>
+<li><strong><code>cartesian</code></strong> (default) — flat x/y plane</li>
+<li><strong><code>polar</code></strong> — wraps the x-axis into a circle. Bars become wedges, lines become radial.</li>
+</ul>
+<h2>The seven channels</h2>
+<ul>
+<li><strong><code>x</code></strong>, <strong><code>y</code></strong> — position axes</li>
+<li><strong><code>color</code></strong> — hue (usually a dimension)</li>
+<li><strong><code>size</code></strong> — area / radius (usually a measure)</li>
+<li><strong><code>lightness</code></strong> — shade variation within a hue</li>
+<li><strong><code>label</code></strong> — inline text on each element</li>
+<li><strong><code>noop</code></strong> — included in groupby without encoding</li>
+</ul>
+<h2>Channel value forms</h2>
+<ul>
+<li>String: <code>"x": "Year"</code> (one field, default)</li>
+<li>Object: <code>"x": {"set": "Year", "aggregator": "sum"}</code> (with options like <code>aggregator</code>, <code>range</code>, <code>align</code>, <code>split</code>)</li>
+<li>Array (list): <code>"y": ["Region", "Pop"]</code> (multi-level grouping or stacking)</li>
+</ul>
+<h2>Two Vizzu 0.18 gotchas (both produce broken charts, only one errors)</h2>
+<ol>
+<li><strong>Stacking is explicit.</strong> <code>color</code> alone does NOT stack marks — without the
+   dimension in the axis channel, all marks start at zero and overdraw each
+   other (a "pie" becomes overlapping arcs; a "stacked" area shows only the
+   tallest series). Composition charts need <code>[dimension, measure]</code> on the
+   stacking axis: <code>"y": ["Region", "Sales"]</code>.</li>
+<li><strong><code>align</code> and <code>split</code> live on the axis channel, not the config root.</strong>
+   A root-level <code>"align"</code> is rejected with <code>align/...: invalid config
+   parameter</code> — and in a dstory scene that kills the whole frame sequence.
+   Write <code>"y": {"set": [...], "align": "center"}</code>.</li>
+</ol>
+<hr />
+<h2>Rectangle geometry</h2>
+<h3>Bar / Column</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: &quot;Sales&quot;}, &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<p><em>(column chart — vertical bars)</em></p>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Sales&quot;, &quot;y&quot;: &quot;Region&quot;}, &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<p><em>(bar chart — horizontal bars)</em></p>
+<h3>Stacked column</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;color&quot;: &quot;Region&quot;}, &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<p><em>(the dimension must be IN the y set to stack — color alone only tints the
+overdrawn bars)</em></p>
+<h3>Grouped column (side-by-side, not stacked)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: [&quot;Year&quot;, &quot;Region&quot;], &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;}, &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<p><em>(use array for <code>x</code> to break Region out from the stack into adjacent groups)</em></p>
+<h3>Percentage (100%) stacked column</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: {&quot;set&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;range&quot;: {&quot;max&quot;: &quot;100%&quot;}}, &quot;color&quot;: &quot;Region&quot;},
+ &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<h3>Heatmap</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Day&quot;, &quot;y&quot;: &quot;Hour&quot;, &quot;color&quot;: &quot;Visits&quot;}, &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<p><em>(both axes are dimensions; color encodes the measure)</em></p>
+<h3>Treemap</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;size&quot;: &quot;Pop&quot;, &quot;color&quot;: &quot;Region&quot;, &quot;label&quot;: &quot;Region&quot;}, &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<p><em>(no x/y — pure area-packing layout, color groups, label shows region name)</em></p>
+<h3>Stacked treemap (nested grouping)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;size&quot;: &quot;Pop&quot;, &quot;color&quot;: [&quot;Region&quot;, &quot;Country&quot;], &quot;label&quot;: &quot;Country&quot;},
+ &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<h3>Marimekko (Mekko)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: {&quot;set&quot;: &quot;Region&quot;, &quot;range&quot;: {&quot;max&quot;: &quot;100%&quot;}},
+              &quot;y&quot;: {&quot;set&quot;: &quot;Sales&quot;,  &quot;range&quot;: {&quot;max&quot;: &quot;100%&quot;}},
+              &quot;color&quot;: &quot;Product&quot;},
+ &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<p><em>(width-weighted columns where each column's height is also a stretched stack)</em></p>
+<h3>Waterfall</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Step&quot;, &quot;y&quot;: [&quot;Step&quot;, &quot;Delta&quot;], &quot;color&quot;: &quot;Step&quot;},
+ &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<p><em>(use signed <code>Delta</code> values; stacking y by the step dimension produces the
+classic floating-bar lift)</em></p>
+<h3>Lollipop</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Region&quot;, &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;},
+ &quot;geometry&quot;: &quot;rectangle&quot;,
+ &quot;style&quot;: {&quot;plot&quot;: {&quot;marker&quot;: {&quot;rectangleSpacing&quot;: &quot;90%&quot;}}}}
+</code></pre>
+<p><em>(narrow bars — by squeezing rectangle width to ~10%)</em></p>
+<hr />
+<h2>Rectangle + polar (<code>coordSystem: "polar"</code>)</h2>
+<h3>Pie chart</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;color&quot;: &quot;Region&quot;}, &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}
+</code></pre>
+<p><em>(wedges stack along x and curl into a circle — <code>"x": "Sales"</code> alone overdraws
+five arcs all starting at angle zero)</em></p>
+<h3>Donut chart</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;color&quot;: &quot;Region&quot;},
+ &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;polar&quot;,
+ &quot;style&quot;: {&quot;plot&quot;: {&quot;marker&quot;: {&quot;angularPadding&quot;: &quot;1deg&quot;},
+                    &quot;yAxis&quot;: {&quot;label&quot;: {&quot;position&quot;: &quot;axis&quot;}}}}}
+</code></pre>
+<p><em>(pie with a hole — control via the inner radius style. See Vizzu donut docs.)</em></p>
+<h3>Variable-Radius Pie / Coxcomb / Nightingale Rose</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Region&quot;, &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;},
+ &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}
+</code></pre>
+<p><em>(when both x and y are set with polar, you get radial bars where each wedge has a different radius)</em></p>
+<h3>Polar bar (radial bar)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Region&quot;, &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;},
+ &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}
+</code></pre>
+<h3>Polar stacked column</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;color&quot;: &quot;Region&quot;},
+ &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}
+</code></pre>
+<hr />
+<h2>Circle geometry</h2>
+<h3>Scatter</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;GDP&quot;, &quot;y&quot;: &quot;Lifespan&quot;}, &quot;geometry&quot;: &quot;circle&quot;}
+</code></pre>
+<h3>Bubble plot (scatter + size encoding)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;GDP&quot;, &quot;y&quot;: &quot;Lifespan&quot;, &quot;size&quot;: &quot;Population&quot;, &quot;color&quot;: &quot;Continent&quot;},
+ &quot;geometry&quot;: &quot;circle&quot;}
+</code></pre>
+<h3>Bubble chart (no axes — packing layout)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;size&quot;: &quot;Pop&quot;, &quot;color&quot;: &quot;Region&quot;, &quot;label&quot;: &quot;City&quot;}, &quot;geometry&quot;: &quot;circle&quot;}
+</code></pre>
+<h3>Stacked bubble (nested groups)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;size&quot;: &quot;Pop&quot;, &quot;color&quot;: [&quot;Region&quot;, &quot;Country&quot;]}, &quot;geometry&quot;: &quot;circle&quot;}
+</code></pre>
+<h3>Dot plot</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Region&quot;, &quot;y&quot;: &quot;Sales&quot;}, &quot;geometry&quot;: &quot;circle&quot;}
+</code></pre>
+<p><em>(one axis as dimension, dots positioned by the measure)</em></p>
+<h3>Polar scatter / Star plot</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Variable&quot;, &quot;y&quot;: &quot;Value&quot;, &quot;color&quot;: &quot;Series&quot;},
+ &quot;geometry&quot;: &quot;circle&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}
+</code></pre>
+<hr />
+<h2>Line geometry</h2>
+<h3>Line chart (multi-series)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;}, &quot;geometry&quot;: &quot;line&quot;}
+</code></pre>
+<h3>Single-series line</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: &quot;Sales&quot;}, &quot;geometry&quot;: &quot;line&quot;}
+</code></pre>
+<h3>Radar / Spider chart</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Skill&quot;, &quot;y&quot;: &quot;Score&quot;, &quot;color&quot;: &quot;Player&quot;},
+ &quot;geometry&quot;: &quot;line&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}
+</code></pre>
+<p><em>(line + polar with categorical x = the classic radar)</em></p>
+<h3>Slope chart (two-time-point comparison)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: &quot;Rank&quot;, &quot;color&quot;: &quot;City&quot;},
+ &quot;geometry&quot;: &quot;line&quot;}
+</code></pre>
+<p><em>(use a dataset with only 2 years; reverse y-scale for rank-1-on-top)</em></p>
+<hr />
+<h2>Area geometry</h2>
+<h3>Area chart</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: &quot;Sales&quot;}, &quot;geometry&quot;: &quot;area&quot;}
+</code></pre>
+<h3>Stacked area</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;color&quot;: &quot;Region&quot;}, &quot;geometry&quot;: &quot;area&quot;}
+</code></pre>
+<p><em>(without the dimension in y, the areas overlap and only the tallest series
+is visible)</em></p>
+<h3>Percentage stacked area</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: {&quot;set&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;range&quot;: {&quot;max&quot;: &quot;100%&quot;}}, &quot;color&quot;: &quot;Region&quot;},
+ &quot;geometry&quot;: &quot;area&quot;}
+</code></pre>
+<h3>Streamgraph (center-aligned stacked area)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: {&quot;set&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;align&quot;: &quot;center&quot;}, &quot;color&quot;: &quot;Region&quot;},
+ &quot;geometry&quot;: &quot;area&quot;}
+</code></pre>
+<p><em>(both gotchas at once: the stack needs the dimension in the y set, and
+<code>align</code> belongs on the channel, not the config root)</em></p>
+<h3>Polar area (rosette)</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Month&quot;, &quot;y&quot;: &quot;Rainfall&quot;, &quot;color&quot;: &quot;Month&quot;},
+ &quot;geometry&quot;: &quot;area&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}
+</code></pre>
+<hr />
+<h2>Distribution / special</h2>
+<h3>Histogram</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Value&quot;, &quot;y&quot;: {&quot;set&quot;: &quot;count()&quot;}}, &quot;geometry&quot;: &quot;rectangle&quot;}
+</code></pre>
+<p><em>(use Vizzu's <code>count()</code> aggregator OR pre-bin in your data prep)</em></p>
+<h3>Violin</h3>
+<pre><code class="language-json">{&quot;channels&quot;: {&quot;x&quot;: &quot;Group&quot;, &quot;y&quot;: {&quot;set&quot;: [&quot;Group&quot;, &quot;Value&quot;], &quot;align&quot;: &quot;center&quot;, &quot;split&quot;: true}, &quot;color&quot;: &quot;Group&quot;},
+ &quot;geometry&quot;: &quot;area&quot;}
+</code></pre>
+<p><em>(channel-level <code>split: true</code> separates the groups; <code>align: "center"</code> mirrors
+each distribution around the axis — the dimension must be in the y set for
+either to apply)</em></p>
+<hr />
+<h2>What Vizzu canNOT do (use other dstory scene kinds)</h2>
+<table>
+<thead>
+<tr>
+<th>Want</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sankey / alluvial</td>
+<td><code>kind: "sankey"</code> (d3-sankey)</td>
+</tr>
+<tr>
+<td>Geographic map</td>
+<td><code>kind: "map"</code> (Leaflet)</td>
+</tr>
+<tr>
+<td>Force-directed network</td>
+<td><code>kind: "network"</code> (d3-force)</td>
+</tr>
+<tr>
+<td>3D / WebGL</td>
+<td>hand-write with Three.js in a <code>kind: "simple"</code> scene</td>
+</tr>
+<tr>
+<td>Sunburst</td>
+<td>best approximation: nested donut</td>
+</tr>
+<tr>
+<td>Word cloud</td>
+<td>hand-write with d3-cloud</td>
+</tr>
+<tr>
+<td>Box plot</td>
+<td>violin (above) is the closest preset</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>The morph trick (Vizzu's actual superpower)</h2>
+<p>Don't pick one chart per scene — pick <strong>a sequence that morphs between qualitatively different shapes</strong>. The reader stays oriented because the data is constant; only the lens changes. Examples that work:</p>
+<p><strong>Bar → polar bar → pie → bubble → treemap</strong> (same total per region, 5 different visual logics):</p>
+<pre><code class="language-json">&quot;frames&quot;: [
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Region&quot;, &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;},
+              &quot;geometry&quot;: &quot;rectangle&quot;}},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Region&quot;, &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;},
+              &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;color&quot;: &quot;Region&quot;},
+              &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;size&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;},
+              &quot;geometry&quot;: &quot;circle&quot;}},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;size&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;, &quot;label&quot;: &quot;Region&quot;},
+              &quot;geometry&quot;: &quot;rectangle&quot;}}
+]
+</code></pre>
+<p><strong>Stacked column → streamgraph → ribbon line</strong> (same time series, three temporal logics):</p>
+<pre><code class="language-json">&quot;frames&quot;: [
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: {&quot;set&quot;: &quot;Sales&quot;, &quot;align&quot;: &quot;none&quot;}, &quot;color&quot;: &quot;Cat&quot;},
+              &quot;geometry&quot;: &quot;rectangle&quot;}},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: {&quot;set&quot;: &quot;Sales&quot;, &quot;align&quot;: &quot;center&quot;}, &quot;color&quot;: &quot;Cat&quot;},
+              &quot;geometry&quot;: &quot;area&quot;}},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Year&quot;, &quot;y&quot;: {&quot;set&quot;: &quot;Sales&quot;, &quot;align&quot;: &quot;none&quot;}, &quot;color&quot;: &quot;Cat&quot;},
+              &quot;geometry&quot;: &quot;line&quot;}}
+]
+</code></pre>
+<p><em>(reset <code>align</code> explicitly in the line frame — configs merge differentially, so
+the streamgraph's <code>center</code> would otherwise leak into every later frame)</em></p>
+<p><strong>Scatter → dot plot → bubble</strong> (same observations, three encoding emphases):</p>
+<pre><code class="language-json">&quot;frames&quot;: [
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;GDP&quot;, &quot;y&quot;: &quot;Lifespan&quot;, &quot;color&quot;: &quot;Continent&quot;},
+              &quot;geometry&quot;: &quot;circle&quot;}},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Continent&quot;, &quot;y&quot;: &quot;Lifespan&quot;, &quot;color&quot;: &quot;Continent&quot;},
+              &quot;geometry&quot;: &quot;circle&quot;}},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;size&quot;: &quot;Pop&quot;, &quot;color&quot;: &quot;Continent&quot;},
+              &quot;geometry&quot;: &quot;circle&quot;}}
+]
+</code></pre>
+<h2>Anti-patterns</h2>
+<ul>
+<li><strong>bar → area → line</strong>: three cousins of the same chart. Easy to author, low surprise. Use only as part of a richer 5-frame morph, not as a 3-frame sequence on its own.</li>
+<li><strong>6+ frames in one scene</strong>: morph fatigue. Cap at 5; use a second <code>vizzu</code> scene for more.</li>
+<li><strong>Continuous-only morphs that the reader can't decode</strong>: changing from <code>circle</code> to <code>rectangle</code> while ALSO changing every channel breaks visual continuity. Hold at least one channel constant between frames.</li>
+<li><strong>Polar with &gt; 8 categories</strong>: the wedges become unreadable. Stick to ≤ 7 colors per polar chart.</li>
+</ul>
+  <footer>
+    This page is generated from the reference shipped inside the package
+    (<code>src/dstory/references/vizzu-chart-gallery.md</code>) ·
+    <a href="../index.html">docs</a> ·
+    <a href="../morphs/index.html">morph showcase</a> ·
+    <a href="../gallery/index.html">cookbook gallery</a>
+  </footer>
+</div>
+</body>
+</html>

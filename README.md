@@ -5,7 +5,8 @@
 **[📖 Documentation](https://dkedar7.github.io/dstory/)** ·
 **[▶ Live demo: *Ctrl-Alt-Reinvent — Microsoft, 1975–2025*](https://dkedar7.github.io/dstory/demo/)** — a 40-scene data essay built with dstory ·
 **[▶ Cookbook gallery](https://dkedar7.github.io/dstory/gallery/)** — the chart recipes, rendered ·
-**[▶ Theme showcase](https://dkedar7.github.io/dstory/themes/)** — same story, eight personalities
+**[▶ Theme showcase](https://dkedar7.github.io/dstory/themes/)** — same story, eight personalities ·
+**[▶ Morph showcase](https://dkedar7.github.io/dstory/morphs/)** — bars curl into pies, live, zero JS
 
 `dstory` is the deterministic infrastructure for data stories: a one-call builder, a single-file bundler, a 5-dimension vetter (renders / data fidelity / editorial integrity / visual / a11y), a brand system for your colors and typography, and pydantic schemas that surface authoring bugs at build time instead of delivery time.
 

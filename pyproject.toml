@@ -68,4 +68,5 @@ dev = [
     # greenlet >=3.2 wheels fail to load on some Windows setups (DLL error);
     # pin to 3.1.x so the Playwright-driven e2e tests keep working there.
     "greenlet<3.2; sys_platform == 'win32'",
+    "markdown>=3.10.2",
 ]

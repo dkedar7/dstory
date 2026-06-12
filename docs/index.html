@@ -116,9 +116,11 @@
     <div class="group">Reference</div>
     <a class="item" href="#cli-ref">CLI reference</a>
     <a class="item" href="#api-ref">Python API</a>
+    <a class="item" href="charts/index.html">Vizzu chart reference</a>
     <a class="item" href="#compare">vs. other tools</a>
     <div class="group">Examples</div>
     <a class="item" href="demo/index.html">▶ Demo story</a>
+    <a class="item" href="morphs/index.html">▶ Morph showcase</a>
     <a class="item" href="gallery/index.html">▶ Cookbook gallery</a>
     <a class="item" href="themes/index.html">▶ Theme showcase</a>
     <div class="group">Project</div>
@@ -153,8 +155,11 @@ playwright install chromium</code></pre>
 
 <h2 id="quickstart">Quickstart: notebook, zero JavaScript</h2>
 <p>One cell, DataFrame to shippable HTML. <code>kind: "vizzu"</code> scenes are fully
-declarative — frames animate between any chart configuration (bar → line →
-stacked → polar…, 40+ types). No scene JS file exists for this story at all.</p>
+declarative — frames animate between any chart configuration, and the space is
+much bigger than bar→line: bars curl into pies, scatters pack into treemaps,
+lines wrap into radars. <strong><a href="morphs/index.html">Watch the morph
+showcase</a></strong> (13 frames, zero JavaScript), then grab configs from the
+<a href="charts/index.html">chart reference</a>.</p>
 <pre><code><span class="c-kw">import</span> pandas <span class="c-kw">as</span> pd
 <span class="c-kw">from</span> dstory <span class="c-kw">import</span> build
 <span class="c-kw">from</span> dstory.prep <span class="c-kw">import</span> to_long
@@ -229,7 +234,7 @@ dstory scene my-story scene-growth --from line-reveal <span class="c-com"># copy
   <tr><th>Kind</th><th>What it is</th></tr>
   <tr><td><code>simple</code></td><td>Single chart-driven moment — headline, commentary, chart mount, source line.</td></tr>
   <tr><td><code>scrolly</code></td><td>Sticky chart + stepping text; the chart morphs on each step (your D3 logic via <code>onStep</code>).</td></tr>
-  <tr><td><code>vizzu</code></td><td>Animated data pivots declared as <code>frames[]</code> — no JS needed. 40+ chart types.</td></tr>
+  <tr><td><code>vizzu</code></td><td>Animated data pivots declared as <code>frames[]</code> — no JS needed. 40+ shapes, any-to-any morphs: <a href="morphs/index.html">live showcase</a> · <a href="charts/index.html">chart reference</a>.</td></tr>
   <tr><td><code>bleed</code></td><td>Full-viewport cinematic moment.</td></tr>
   <tr><td><code>pinned</code></td><td>Central object pinned for one scroll-section, transformed by scroll progress (<code>onProgress</code>).</td></tr>
   <tr><td><code>custom</code></td><td>Chrome-free; the renderer owns the entire <code>&lt;section&gt;</code>. Kinetic typography, embedded interactives, anything.</td></tr>
