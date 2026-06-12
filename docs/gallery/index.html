@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dstory cookbook gallery</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; padding: 3rem 1.5rem; background: #faf7f2; color: #1a1a1a;
+         font: 16px/1.55 system-ui, sans-serif; }
+  header { max-width: 72rem; margin: 0 auto 3rem; }
+  h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+  header p { color: #555; max-width: 52ch; }
+  .grid { max-width: 72rem; margin: 0 auto; display: grid; gap: 2rem;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .card { margin: 0; background: #fff; border: 1px solid #e4ded4; border-radius: 6px;
+          overflow: hidden; }
+  .card img { width: 100%; height: 240px; object-fit: contain; display: block;
+              background: #14110f; padding: 0.75rem; box-sizing: border-box; }
+  figcaption { padding: 1rem 1.25rem 1.25rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 0.35rem; }
+  .kind { font-size: 0.75rem; font-weight: 400; color: #777; border: 1px solid #ddd;
+          border-radius: 999px; padding: 0.1rem 0.5rem; vertical-align: middle; }
+  figcaption p { margin: 0 0 0.75rem; color: #555; font-size: 0.9rem; }
+  code { display: block; font-size: 0.78rem; background: #f3efe8; padding: 0.5rem 0.6rem;
+         border-radius: 4px; overflow-x: auto; }
+  footer { max-width: 72rem; margin: 3rem auto 0; color: #777; font-size: 0.85rem; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<header>
+  <h1>dstory cookbook</h1>
+  <p>Complete, themed scene renderers you copy into your project and own.
+     Each recipe documents its dataset columns and config options in the
+     file header. Rendered here with the <em>editorial-noir</em> theme.</p>
+</header>
+<div class="grid">
+    <figure class="card">
+      <a href="annotated-scatter.png"><img src="annotated-scatter.png" alt="An x/y scatter where the points that matter are named and the rest fade back." loading="lazy"></a>
+      <figcaption>
+        <h2>annotated-scatter <span class="kind">simple</span></h2>
+        <p>An x/y scatter where the points that matter are named and the rest fade back.</p>
+        <code>dstory scene my-story scene-x --from annotated-scatter</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="bar-steps.png"><img src="bar-steps.png" alt="A sticky bar chart where each scroll step spotlights a different bar." loading="lazy"></a>
+      <figcaption>
+        <h2>bar-steps <span class="kind">scrolly</span></h2>
+        <p>A sticky bar chart where each scroll step spotlights a different bar.</p>
+        <code>dstory scene my-story scene-x --from bar-steps</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="beeswarm.png"><img src="beeswarm.png" alt="Every data point visible — a distribution along one axis, optionally colored by group." loading="lazy"></a>
+      <figcaption>
+        <h2>beeswarm <span class="kind">simple</span></h2>
+        <p>Every data point visible — a distribution along one axis, optionally colored by group.</p>
+        <code>dstory scene my-story scene-x --from beeswarm</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="bump-chart.png"><img src="bump-chart.png" alt="Rank over time — who overtook whom, with end labels and a highlight set." loading="lazy"></a>
+      <figcaption>
+        <h2>bump-chart <span class="kind">simple</span></h2>
+        <p>Rank over time — who overtook whom, with end labels and a highlight set.</p>
+        <code>dstory scene my-story scene-x --from bump-chart</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="dot-timeline.png"><img src="dot-timeline.png" alt="Events on a time axis with alternating stems — the shape of a history at a glance." loading="lazy"></a>
+      <figcaption>
+        <h2>dot-timeline <span class="kind">simple</span></h2>
+        <p>Events on a time axis with alternating stems — the shape of a history at a glance.</p>
+        <code>dstory scene my-story scene-x --from dot-timeline</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="line-reveal.png"><img src="line-reveal.png" alt="A line chart that draws itself in, with direct end-labeling and an optional annotation." loading="lazy"></a>
+      <figcaption>
+        <h2>line-reveal <span class="kind">simple</span></h2>
+        <p>A line chart that draws itself in, with direct end-labeling and an optional annotation.</p>
+        <code>dstory scene my-story scene-x --from line-reveal</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="range-dots.png"><img src="range-dots.png" alt="Dumbbell rows — a before→after range per category, sorted by change." loading="lazy"></a>
+      <figcaption>
+        <h2>range-dots <span class="kind">simple</span></h2>
+        <p>Dumbbell rows — a before→after range per category, sorted by change.</p>
+        <code>dstory scene my-story scene-x --from range-dots</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="slope-chart.png"><img src="slope-chart.png" alt="Two-period comparison — what rose, what fell, and by how much, with direct labels." loading="lazy"></a>
+      <figcaption>
+        <h2>slope-chart <span class="kind">simple</span></h2>
+        <p>Two-period comparison — what rose, what fell, and by how much, with direct labels.</p>
+        <code>dstory scene my-story scene-x --from slope-chart</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="small-multiples.png"><img src="small-multiples.png" alt="One mini line chart per series, shared scales — comparison without spaghetti." loading="lazy"></a>
+      <figcaption>
+        <h2>small-multiples <span class="kind">simple</span></h2>
+        <p>One mini line chart per series, shared scales — comparison without spaghetti.</p>
+        <code>dstory scene my-story scene-x --from small-multiples</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="waffle.png"><img src="waffle.png" alt="Part-of-whole as a 10×10 grid — percentages people can count." loading="lazy"></a>
+      <figcaption>
+        <h2>waffle <span class="kind">simple</span></h2>
+        <p>Part-of-whole as a 10×10 grid — percentages people can count.</p>
+        <code>dstory scene my-story scene-x --from waffle</code>
+      </figcaption>
+    </figure>
+</div>
+<footer>
+  Generated by <code style="display:inline;padding:0.1rem 0.3rem">scripts/build_gallery.py</code> ·
+  <a href="../index.html">docs</a> ·
+  <a href="../themes/index.html">themes</a> ·
+  <a href="../demo/index.html">demo story</a> ·
+  <a href="https://github.com/dkedar7/dstory">dkedar7/dstory</a>
+</footer>
+</body>
+</html>

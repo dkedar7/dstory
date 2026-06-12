@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dstory themes</title>
+<style>
+  body { margin: 0; padding: 3rem 1.5rem; background: #faf7f2; color: #1a1a1a;
+         font: 16px/1.55 system-ui, sans-serif; }
+  header { max-width: 72rem; margin: 0 auto 3rem; }
+  h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+  header p { color: #555; max-width: 56ch; }
+  .grid { max-width: 72rem; margin: 0 auto; display: grid; gap: 2rem;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .card { margin: 0; background: #fff; border: 1px solid #e4ded4; border-radius: 6px;
+          overflow: hidden; }
+  .card img { width: 100%; height: 280px; object-fit: cover; object-position: top;
+              display: block; }
+  figcaption { padding: 1rem 1.25rem 1.25rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 0.35rem; display: flex; align-items: center; gap: 0.5rem; }
+  .chip { width: 14px; height: 14px; border-radius: 4px; display: inline-block;
+          border: 1px solid rgba(0,0,0,0.15); }
+  figcaption p { margin: 0 0 0.75rem; color: #555; font-size: 0.9rem; min-height: 2.7em; }
+  code { display: block; font-size: 0.78rem; background: #f3efe8; padding: 0.5rem 0.6rem;
+         border-radius: 4px; overflow-x: auto; }
+  footer { max-width: 72rem; margin: 3rem auto 0; color: #777; font-size: 0.85rem; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<header>
+  <h1>dstory themes</h1>
+  <p>The same one-scene story rendered in each of the 8 bundled brand presets.
+     A brand is a TOML file — extend any preset with your own colors and
+     typography without touching source code.</p>
+</header>
+<div class="grid">
+    <figure class="card">
+      <a href="brutalist.png"><img src="brutalist.png" alt="The preview story rendered in the brutalist theme" loading="lazy"></a>
+      <figcaption>
+        <h2><span class="chip" style="background:#FFFF00"></span>brutalist</h2>
+        <p>Raw, unapologetic, monospace-heavy. For tech criticism, contrarian takes, design culture.</p>
+        <code>dstory init my-story --theme brutalist</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="data-fi.png"><img src="data-fi.png" alt="The preview story rendered in the data-fi theme" loading="lazy"></a>
+      <figcaption>
+        <h2><span class="chip" style="background:#A78BFA"></span>data-fi</h2>
+        <p>Futurist, cinematic, chart-as-art. For hero data visualizations and science-fiction-tinged storytelling.</p>
+        <code>dstory init my-story --theme data-fi</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="editorial-noir.png"><img src="editorial-noir.png" alt="The preview story rendered in the editorial-noir theme" loading="lazy"></a>
+      <figcaption>
+        <h2><span class="chip" style="background:#E25822"></span>editorial-noir</h2>
+        <p>Urgent, somber, magazine-cover serious. For long-form investigations and stories about loss, risk, or consequence.</p>
+        <code>dstory init my-story --theme editorial-noir</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="minimal-light.png"><img src="minimal-light.png" alt="The preview story rendered in the minimal-light theme" loading="lazy"></a>
+      <figcaption>
+        <h2><span class="chip" style="background:#1E40AF"></span>minimal-light</h2>
+        <p>Restrained, gallery, lots of whitespace. For design-conscious general audiences with a museum tone.</p>
+        <code>dstory init my-story --theme minimal-light</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="playful-pastel.png"><img src="playful-pastel.png" alt="The preview story rendered in the playful-pastel theme" loading="lazy"></a>
+      <figcaption>
+        <h2><span class="chip" style="background:#FB7185"></span>playful-pastel</h2>
+        <p>Friendly, illustrative, kid- and student-friendly. For educational explainers, optimistic stories.</p>
+        <code>dstory init my-story --theme playful-pastel</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="scientific-bright.png"><img src="scientific-bright.png" alt="The preview story rendered in the scientific-bright theme" loading="lazy"></a>
+      <figcaption>
+        <h2><span class="chip" style="background:#0046E0"></span>scientific-bright</h2>
+        <p>Rigorous, optimistic, paper-like. For research, methodology-first stories, and peer audiences.</p>
+        <code>dstory init my-story --theme scientific-bright</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="tech-glow.png"><img src="tech-glow.png" alt="The preview story rendered in the tech-glow theme" loading="lazy"></a>
+      <figcaption>
+        <h2><span class="chip" style="background:#5EEAD4"></span>tech-glow</h2>
+        <p>Dense, dark, terminal-influenced. For developer audiences, ML/data infrastructure stories.</p>
+        <code>dstory init my-story --theme tech-glow</code>
+      </figcaption>
+    </figure>
+    <figure class="card">
+      <a href="warm-print.png"><img src="warm-print.png" alt="The preview story rendered in the warm-print theme" loading="lazy"></a>
+      <figcaption>
+        <h2><span class="chip" style="background:#8C2A2A"></span>warm-print</h2>
+        <p>Print-magazine warmth, ledger feel. For economics, labor stories, longform reporting.</p>
+        <code>dstory init my-story --theme warm-print</code>
+      </figcaption>
+    </figure>
+</div>
+<footer>
+  Generated by <code style="display:inline;padding:0.1rem 0.3rem">scripts/build_theme_gallery.py</code> ·
+  <a href="../index.html">docs</a> ·
+  <a href="../gallery/index.html">cookbook gallery</a> ·
+  <a href="../demo/index.html">demo story</a>
+</footer>
+</body>
+</html>
