@@ -1,0 +1,66 @@
+[project]
+name = "dstory"
+version = "0.3.1"
+description = "Build interactive scrollytelling and slide-deck data stories from Python — bundle, vet, theme, and ship a single self-contained HTML file."
+readme = "README.md"
+authors = [
+    { name = "Kedar Dabhadkar", email = "kedar.dabhadkar@gmail.com" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.10"
+keywords = ["scrollytelling", "data-storytelling", "d3", "vizzu", "data-visualization", "interactive"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+dependencies = [
+    "pydantic>=2.5",
+    "click>=8.1",
+    "tomli>=2.0; python_version<'3.11'",
+    "rich>=13.0",
+    "playwright>=1.59.0",
+]
+
+[project.optional-dependencies]
+vet  = ["playwright>=1.40"]
+prep = ["pandas>=2.0", "numpy>=1.24"]
+all  = ["playwright>=1.40", "pandas>=2.0", "numpy>=1.24"]
+
+[project.scripts]
+dstory = "dstory.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/dkedar7/dstory"
+Issues   = "https://github.com/dkedar7/dstory/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = [
+    "src/dstory/**/*.py",
+    "src/dstory/templates/**",
+    "src/dstory/themes/**",
+    "src/dstory/references/**",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dstory"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts   = "-q"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]

@@ -1,0 +1,46 @@
+[brand]
+name = "Scientific Bright"
+description = "Rigorous, optimistic, paper-like. For research, methodology-first stories, and peer audiences."
+
+[colors]
+bg         = "#F8F5EE"
+bg_elev    = "#FFFFFF"
+bg_deep    = "#14233D"
+ink        = "#14233D"
+ink_soft   = "#44556B"
+ink_faint  = "#8390A1"
+ink_invert = "#F8F5EE"
+accent     = "#0046E0"
+accent_2   = "#E84A2F"
+alert      = "#C42121"
+rule       = "#D8D2C2"
+frame      = "#B8B2A2"
+
+[colors.categorical]
+palette = ["#0046E0", "#E84A2F", "#00897B", "#B7791F", "#6A1B9A", "#2E7D32", "#455A64"]
+
+[colors.ramp_sequential]
+low  = "#E8EEF8"
+high = "#0046E0"
+
+[colors.ramp_diverging]
+neg = "#C42121"
+mid = "#F1EBE0"
+pos = "#0046E0"
+
+[typography]
+display      = "'Spectral', Georgia, serif"
+body         = "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif"
+mono         = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+google_fonts = ["Spectral:wght@400;700", "IBM+Plex+Sans:wght@400;500", "JetBrains+Mono:wght@400;500"]
+
+[motion]
+base_ms    = 400
+hero_ms    = 1000
+easing_out = "cubic-bezier(0.22, 1, 0.36, 1)"
+easing_in  = "cubic-bezier(0.55, 0, 0.7, 0.5)"
+
+[atmosphere]
+grain_opacity     = 0.02
+vignette_strength = 0.0
+noise_mix         = 0.0

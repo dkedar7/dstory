@@ -1,0 +1,46 @@
+[brand]
+name = "Data-Fi"
+description = "Futurist, cinematic, chart-as-art. For hero data visualizations and science-fiction-tinged storytelling."
+
+[colors]
+bg         = "#0A0E1A"
+bg_elev    = "#131A2E"
+bg_deep    = "#050818"
+ink        = "#E8E9F2"
+ink_soft   = "#A0A4B8"
+ink_faint  = "#5A607A"
+ink_invert = "#E8E9F2"
+accent     = "#A78BFA"
+accent_2   = "#34D399"
+alert      = "#F472B6"
+rule       = "#21253A"
+frame      = "#353A55"
+
+[colors.categorical]
+palette = ["#A78BFA", "#34D399", "#60A5FA", "#FBBF24", "#F472B6", "#5EEAD4", "#FB923C"]
+
+[colors.ramp_sequential]
+low  = "#1A1B30"
+high = "#A78BFA"
+
+[colors.ramp_diverging]
+neg = "#F472B6"
+mid = "#2A2D45"
+pos = "#34D399"
+
+[typography]
+display      = "'Newsreader', Georgia, serif"
+body         = "'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif"
+mono         = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+google_fonts = ["Newsreader:wght@400;700", "Inter+Tight:wght@400;500;600", "JetBrains+Mono:wght@400;500"]
+
+[motion]
+base_ms    = 500
+hero_ms    = 1500
+easing_out = "cubic-bezier(0.16, 1, 0.3, 1)"
+easing_in  = "cubic-bezier(0.7, 0, 0.84, 0)"
+
+[atmosphere]
+grain_opacity     = 0.04
+vignette_strength = 0.25
+noise_mix         = 0.0

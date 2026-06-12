@@ -1,0 +1,46 @@
+[brand]
+name = "Brutalist"
+description = "Raw, unapologetic, monospace-heavy. For tech criticism, contrarian takes, design culture."
+
+[colors]
+bg         = "#F4F4F1"
+bg_elev    = "#FFFFFF"
+bg_deep    = "#000000"
+ink        = "#000000"
+ink_soft   = "#2C2C2C"
+ink_faint  = "#6B6B6B"
+ink_invert = "#FFFF00"
+accent     = "#FFFF00"
+accent_2   = "#FF00FF"
+alert      = "#FF0000"
+rule       = "#000000"
+frame      = "#000000"
+
+[colors.categorical]
+palette = ["#000000", "#FFFF00", "#FF00FF", "#00FFFF", "#FF0000", "#00FF00", "#FF8800"]
+
+[colors.ramp_sequential]
+low  = "#F4F4F1"
+high = "#000000"
+
+[colors.ramp_diverging]
+neg = "#FF00FF"
+mid = "#F4F4F1"
+pos = "#000000"
+
+[typography]
+display      = "'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif"
+body         = "'JetBrains Mono', ui-monospace, monospace"
+mono         = "'JetBrains Mono', ui-monospace, monospace"
+google_fonts = ["Space+Grotesk:wght@400;700", "JetBrains+Mono:wght@400;500"]
+
+[motion]
+base_ms    = 200
+hero_ms    = 600
+easing_out = "steps(8, end)"
+easing_in  = "steps(8, start)"
+
+[atmosphere]
+grain_opacity     = 0.0
+vignette_strength = 0.0
+noise_mix         = 0.0

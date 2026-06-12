@@ -1,0 +1,46 @@
+[brand]
+name = "Minimal Light"
+description = "Restrained, gallery, lots of whitespace. For design-conscious general audiences with a museum tone."
+
+[colors]
+bg         = "#FBFBF9"
+bg_elev    = "#FFFFFF"
+bg_deep    = "#1A1A1A"
+ink        = "#1A1A1A"
+ink_soft   = "#4A4A4A"
+ink_faint  = "#8A8A8A"
+ink_invert = "#FBFBF9"
+accent     = "#1E40AF"
+accent_2   = "#B45309"
+alert      = "#B91C1C"
+rule       = "#E5E5E0"
+frame      = "#C5C5C0"
+
+[colors.categorical]
+palette = ["#1E40AF", "#B45309", "#047857", "#6D28D9", "#BE185D", "#525252", "#0E7490"]
+
+[colors.ramp_sequential]
+low  = "#F0F0EE"
+high = "#1E40AF"
+
+[colors.ramp_diverging]
+neg = "#B91C1C"
+mid = "#F0F0EE"
+pos = "#1E40AF"
+
+[typography]
+display      = "'Newsreader', Georgia, serif"
+body         = "'Manrope', -apple-system, BlinkMacSystemFont, sans-serif"
+mono         = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+google_fonts = ["Newsreader:wght@400;700", "Manrope:wght@400;500;600", "JetBrains+Mono:wght@400;500"]
+
+[motion]
+base_ms    = 500
+hero_ms    = 1300
+easing_out = "cubic-bezier(0.22, 1, 0.36, 1)"
+easing_in  = "cubic-bezier(0.55, 0, 0.7, 0.5)"
+
+[atmosphere]
+grain_opacity     = 0.0
+vignette_strength = 0.0
+noise_mix         = 0.0

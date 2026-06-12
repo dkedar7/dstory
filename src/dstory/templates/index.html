@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en" data-theme="editorial-noir" data-audience="general-public">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Untitled Story</title>
+
+  <!-- Google Fonts (theme-dependent; theme.css picks the families) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Inter+Tight:wght@400;500;600&family=Spectral:wght@400;700&family=IBM+Plex+Sans:wght@400;500&family=Newsreader:wght@400;700&family=Manrope:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&family=Hanken+Grotesk:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;500&family=Editorial+New&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="story.css">
+</head>
+<body>
+
+  <!-- Hero scene -->
+  <header class="hero" data-scene="hero">
+    <div class="hero__bg" aria-hidden="true"></div>
+    <div class="hero__inner">
+      <p class="hero__eyebrow"></p>
+      <h1 class="hero__headline"></h1>
+      <p class="hero__deck"></p>
+      <div class="hero__byline">
+        <span class="hero__author"></span>
+        <span class="hero__date"></span>
+      </div>
+      <div class="hero__scrollcue" aria-hidden="true">
+        <span>Scroll</span>
+        <svg viewBox="0 0 16 24" width="14" height="22"><path d="M8 2v18M2 14l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- Scenes (built dynamically by story.js from data.json) -->
+  <main id="story" class="story"></main>
+
+  <!-- Outro / sources -->
+  <footer class="outro">
+    <div class="outro__inner">
+      <h3 class="outro__title">Sources & Methodology</h3>
+      <ul id="sources" class="outro__sources"></ul>
+      <p class="outro__credits">
+        <span id="credits-author"></span>
+        · <span id="credits-published"></span>
+      </p>
+    </div>
+  </footer>
+
+  <!-- Atmosphere overlays (driven by theme tokens) -->
+  <div class="atmosphere atmosphere--grain" aria-hidden="true"></div>
+  <div class="atmosphere atmosphere--vignette" aria-hidden="true"></div>
+
+  <!-- Slide controls — only visible when meta.mode === "slides" -->
+  <nav class="slide-controls" data-slide-controls hidden aria-label="Slide navigation">
+    <button type="button" class="slide-controls__btn" data-slide-prev aria-label="Previous slide">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 2L4 8l6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="slide-controls__indicator" data-slide-indicator>0 / 0</span>
+    <button type="button" class="slide-controls__btn" data-slide-next aria-label="Next slide">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M6 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </nav>
+
+  <!-- D3 + Scrollama (UMD globals: d3, scrollama) -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://unpkg.com/scrollama"></script>
+
+  <!-- Motion One + Vizzu: ESM-only on CDN. We bridge them to globals so the
+       rest of the code (and bundled scenes) can be plain non-module scripts. -->
+  <script type="module">
+    import { animate, stagger, inView, scroll, spring }
+      from "https://cdn.jsdelivr.net/npm/motion@10/+esm";
+    window.MOTION = { animate, stagger, inView, scroll, spring };
+    window.dispatchEvent(new Event("motion:ready"));
+  </script>
+  <script type="module">
+    // Vizzu (animated data pivots) — only used by `kind: "vizzu"` scenes.
+    // Safe to leave loaded even if no vizzu scenes exist; ~60 KB gzipped.
+    import Vizzu from "https://cdn.jsdelivr.net/npm/vizzu@0.18/dist/vizzu.min.js";
+    window.Vizzu = Vizzu;
+    window.dispatchEvent(new Event("vizzu:ready"));
+  </script>
+
+  <!-- story.js (orchestration) and scenes (each calls window.STORY.register).
+       Plain scripts so they inline cleanly into a single self-contained HTML. -->
+  <script src="story.js" defer></script>
+  <!-- DSTORY:SCENES — use dstory.write_scene() or dstory.wire_scenes() to add scene script tags here. -->
+
+</body>
+</html>

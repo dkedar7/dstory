@@ -1,0 +1,46 @@
+[brand]
+name = "Warm Print"
+description = "Print-magazine warmth, ledger feel. For economics, labor stories, longform reporting."
+
+[colors]
+bg         = "#F5EFE0"
+bg_elev    = "#FAF6EA"
+bg_deep    = "#2B1A12"
+ink        = "#2B1A12"
+ink_soft   = "#574033"
+ink_faint  = "#8C7868"
+ink_invert = "#F5EFE0"
+accent     = "#8C2A2A"
+accent_2   = "#2D5C5C"
+alert      = "#C0392B"
+rule       = "#D4C9A8"
+frame      = "#B5A77F"
+
+[colors.categorical]
+palette = ["#8C2A2A", "#2D5C5C", "#C18A4F", "#4F6D2A", "#6E2A8C", "#1F3A5F", "#A0522D"]
+
+[colors.ramp_sequential]
+low  = "#F1E5C9"
+high = "#8C2A2A"
+
+[colors.ramp_diverging]
+neg = "#2D5C5C"
+mid = "#EFE4CD"
+pos = "#8C2A2A"
+
+[typography]
+display      = "'Source Serif 4', Georgia, serif"
+body         = "'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif"
+mono         = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+google_fonts = ["Source+Serif+4:opsz,wght@8..60,400;8..60,700", "Hanken+Grotesk:wght@400;500;600", "JetBrains+Mono:wght@400;500"]
+
+[motion]
+base_ms    = 450
+hero_ms    = 1200
+easing_out = "cubic-bezier(0.22, 1, 0.36, 1)"
+easing_in  = "cubic-bezier(0.55, 0, 0.7, 0.5)"
+
+[atmosphere]
+grain_opacity     = 0.05
+vignette_strength = 0.0
+noise_mix         = 0.0

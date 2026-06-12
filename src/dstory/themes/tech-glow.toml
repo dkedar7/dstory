@@ -1,0 +1,46 @@
+[brand]
+name = "Tech Glow"
+description = "Dense, dark, terminal-influenced. For developer audiences, ML/data infrastructure stories."
+
+[colors]
+bg         = "#08090C"
+bg_elev    = "#13151B"
+bg_deep    = "#03040A"
+ink        = "#E6E9EF"
+ink_soft   = "#9DA4B5"
+ink_faint  = "#5E6678"
+ink_invert = "#E6E9EF"
+accent     = "#5EEAD4"
+accent_2   = "#A78BFA"
+alert      = "#FB7185"
+rule       = "#1F232E"
+frame      = "#2C313D"
+
+[colors.categorical]
+palette = ["#5EEAD4", "#A78BFA", "#FBBF24", "#38BDF8", "#FB7185", "#84CC16", "#F472B6"]
+
+[colors.ramp_sequential]
+low  = "#0B1A1F"
+high = "#5EEAD4"
+
+[colors.ramp_diverging]
+neg = "#FB7185"
+mid = "#2A2E3A"
+pos = "#5EEAD4"
+
+[typography]
+display      = "'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif"
+body         = "'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif"
+mono         = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+google_fonts = ["Hanken+Grotesk:wght@400;500;600", "JetBrains+Mono:wght@400;500"]
+
+[motion]
+base_ms    = 350
+hero_ms    = 1100
+easing_out = "cubic-bezier(0.16, 1, 0.3, 1)"
+easing_in  = "cubic-bezier(0.7, 0, 0.84, 0)"
+
+[atmosphere]
+grain_opacity     = 0.0
+vignette_strength = 0.20
+noise_mix         = 0.08

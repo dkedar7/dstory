@@ -1,0 +1,46 @@
+[brand]
+name = "Editorial Noir"
+description = "Urgent, somber, magazine-cover serious. For long-form investigations and stories about loss, risk, or consequence."
+
+[colors]
+bg         = "#0E0E10"
+bg_elev    = "#15151A"
+bg_deep    = "#050507"
+ink        = "#F5F2EB"
+ink_soft   = "#B6B3AC"
+ink_faint  = "#6E6C68"
+ink_invert = "#F5F2EB"
+accent     = "#E25822"
+accent_2   = "#E2C46D"
+alert      = "#F25F5F"
+rule       = "#2A2A30"
+frame      = "#3A3A42"
+
+[colors.categorical]
+palette = ["#E25822", "#E2C46D", "#5DB7DE", "#99A879", "#C56183", "#7A8A99", "#D1B080"]
+
+[colors.ramp_sequential]
+low  = "#2A1A12"
+high = "#FFB088"
+
+[colors.ramp_diverging]
+neg = "#5DB7DE"
+mid = "#4A4A52"
+pos = "#E25822"
+
+[typography]
+display      = "'Fraunces', Georgia, serif"
+body         = "'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif"
+mono         = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+google_fonts = ["Fraunces:opsz,wght@9..144,400;9..144,700", "Inter+Tight:wght@400;500;600", "JetBrains+Mono:wght@400;500"]
+
+[motion]
+base_ms    = 450
+hero_ms    = 1200
+easing_out = "cubic-bezier(0.22, 1, 0.36, 1)"
+easing_in  = "cubic-bezier(0.55, 0, 0.7, 0.5)"
+
+[atmosphere]
+grain_opacity     = 0.04
+vignette_strength = 0.30
+noise_mix         = 0.0

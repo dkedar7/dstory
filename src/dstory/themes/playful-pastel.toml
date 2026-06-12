@@ -1,0 +1,46 @@
+[brand]
+name = "Playful Pastel"
+description = "Friendly, illustrative, kid- and student-friendly. For educational explainers, optimistic stories."
+
+[colors]
+bg         = "#EFF6FF"
+bg_elev    = "#FFFFFF"
+bg_deep    = "#1E293B"
+ink        = "#1E293B"
+ink_soft   = "#475569"
+ink_faint  = "#94A3B8"
+ink_invert = "#FFFFFF"
+accent     = "#FB7185"
+accent_2   = "#34D399"
+alert      = "#F97316"
+rule       = "#DBE5F0"
+frame      = "#B8C9D8"
+
+[colors.categorical]
+palette = ["#FB7185", "#34D399", "#60A5FA", "#FBBF24", "#A78BFA", "#F472B6", "#2DD4BF"]
+
+[colors.ramp_sequential]
+low  = "#FFE4E6"
+high = "#BE123C"
+
+[colors.ramp_diverging]
+neg = "#60A5FA"
+mid = "#F1F5F9"
+pos = "#FB7185"
+
+[typography]
+display      = "'Fraunces', Georgia, serif"
+body         = "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif"
+mono         = "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
+google_fonts = ["Fraunces:opsz,wght@9..144,400;9..144,700", "Plus+Jakarta+Sans:wght@400;500;600", "JetBrains+Mono:wght@400;500"]
+
+[motion]
+base_ms    = 500
+hero_ms    = 1400
+easing_out = "cubic-bezier(0.34, 1.56, 0.64, 1)"
+easing_in  = "cubic-bezier(0.55, 0, 0.7, 0.5)"
+
+[atmosphere]
+grain_opacity     = 0.0
+vignette_strength = 0.0
+noise_mix         = 0.0
