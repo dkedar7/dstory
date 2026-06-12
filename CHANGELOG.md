@@ -41,6 +41,15 @@ from finished recipes instead of a blank file.
   dodge the inlining regexes) — previously this produced a silently
   non-self-contained file.
 
+### Fixed
+- `references/vizzu-chart-gallery.md` had snippets that break on Vizzu 0.18
+  (the version the template loads): `align`/`split` belong on the axis
+  *channel*, not the config root (root-level `align` errors out and kills the
+  frame sequence), and stacking is explicit — composition charts (pie, donut,
+  stacked column/area, streamgraph, waterfall, violin) need
+  `[dimension, measure]` on the stacking axis or the marks silently overdraw.
+  All affected snippets corrected; a "gotchas" section documents both traps.
+
 ### Changed
 - README repositioned around the no-JavaScript path (Vizzu scenes + cookbook
   + `build()`), with an honest comparison table (Streamlit, ipyvizzu-story,

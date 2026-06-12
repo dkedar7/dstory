@@ -22,8 +22,20 @@ Every Vizzu chart type as a copy-paste JSON snippet that drops into a `kind: "vi
 
 ## Channel value forms
 - String: `"x": "Year"` (one field, default)
-- Object: `"x": {"set": "Year", "aggregator": "sum"}` (with options like `aggregator`, `range`)
+- Object: `"x": {"set": "Year", "aggregator": "sum"}` (with options like `aggregator`, `range`, `align`, `split`)
 - Array (list): `"y": ["Region", "Pop"]` (multi-level grouping or stacking)
+
+## Two Vizzu 0.18 gotchas (both produce broken charts, only one errors)
+
+1. **Stacking is explicit.** `color` alone does NOT stack marks — without the
+   dimension in the axis channel, all marks start at zero and overdraw each
+   other (a "pie" becomes overlapping arcs; a "stacked" area shows only the
+   tallest series). Composition charts need `[dimension, measure]` on the
+   stacking axis: `"y": ["Region", "Sales"]`.
+2. **`align` and `split` live on the axis channel, not the config root.**
+   A root-level `"align"` is rejected with `align/...: invalid config
+   parameter` — and in a dstory scene that kills the whole frame sequence.
+   Write `"y": {"set": [...], "align": "center"}`.
 
 ---
 
@@ -44,9 +56,10 @@ Every Vizzu chart type as a copy-paste JSON snippet that drops into a `kind: "vi
 ### Stacked column
 
 ```json
-{"channels": {"x": "Year", "y": "Sales", "color": "Region"}, "geometry": "rectangle"}
+{"channels": {"x": "Year", "y": ["Region", "Sales"], "color": "Region"}, "geometry": "rectangle"}
 ```
-*(stacks Region within each Year)*
+*(the dimension must be IN the y set to stack — color alone only tints the
+overdrawn bars)*
 
 ### Grouped column (side-by-side, not stacked)
 
@@ -58,7 +71,7 @@ Every Vizzu chart type as a copy-paste JSON snippet that drops into a `kind: "vi
 ### Percentage (100%) stacked column
 
 ```json
-{"channels": {"x": "Year", "y": {"set": "Sales", "range": {"max": "100%"}}, "color": "Region"},
+{"channels": {"x": "Year", "y": {"set": ["Region", "Sales"], "range": {"max": "100%"}}, "color": "Region"},
  "geometry": "rectangle"}
 ```
 
@@ -96,11 +109,11 @@ Every Vizzu chart type as a copy-paste JSON snippet that drops into a `kind: "vi
 ### Waterfall
 
 ```json
-{"channels": {"x": "Step", "y": "Delta", "color": "Step"},
- "geometry": "rectangle",
- "align": "center"}
+{"channels": {"x": "Step", "y": ["Step", "Delta"], "color": "Step"},
+ "geometry": "rectangle"}
 ```
-*(use signed `Delta` values; `align: "center"` produces the classic waterfall lift)*
+*(use signed `Delta` values; stacking y by the step dimension produces the
+classic floating-bar lift)*
 
 ### Lollipop
 
@@ -118,14 +131,15 @@ Every Vizzu chart type as a copy-paste JSON snippet that drops into a `kind: "vi
 ### Pie chart
 
 ```json
-{"channels": {"x": "Sales", "color": "Region"}, "geometry": "rectangle", "coordSystem": "polar"}
+{"channels": {"x": ["Region", "Sales"], "color": "Region"}, "geometry": "rectangle", "coordSystem": "polar"}
 ```
-*(only one channel; bars curl into a circle = pie wedges)*
+*(wedges stack along x and curl into a circle — `"x": "Sales"` alone overdraws
+five arcs all starting at angle zero)*
 
 ### Donut chart
 
 ```json
-{"channels": {"x": "Sales", "color": "Region"},
+{"channels": {"x": ["Region", "Sales"], "color": "Region"},
  "geometry": "rectangle", "coordSystem": "polar",
  "style": {"plot": {"marker": {"angularPadding": "1deg"},
                     "yAxis": {"label": {"position": "axis"}}}}}
@@ -150,7 +164,7 @@ Every Vizzu chart type as a copy-paste JSON snippet that drops into a `kind: "vi
 ### Polar stacked column
 
 ```json
-{"channels": {"x": "Year", "y": "Sales", "color": "Region"},
+{"channels": {"x": "Year", "y": ["Region", "Sales"], "color": "Region"},
  "geometry": "rectangle", "coordSystem": "polar"}
 ```
 
@@ -242,23 +256,26 @@ Every Vizzu chart type as a copy-paste JSON snippet that drops into a `kind: "vi
 ### Stacked area
 
 ```json
-{"channels": {"x": "Year", "y": "Sales", "color": "Region"}, "geometry": "area"}
+{"channels": {"x": "Year", "y": ["Region", "Sales"], "color": "Region"}, "geometry": "area"}
 ```
+*(without the dimension in y, the areas overlap and only the tallest series
+is visible)*
 
 ### Percentage stacked area
 
 ```json
-{"channels": {"x": "Year", "y": {"set": "Sales", "range": {"max": "100%"}}, "color": "Region"},
+{"channels": {"x": "Year", "y": {"set": ["Region", "Sales"], "range": {"max": "100%"}}, "color": "Region"},
  "geometry": "area"}
 ```
 
 ### Streamgraph (center-aligned stacked area)
 
 ```json
-{"channels": {"x": "Year", "y": "Sales", "color": "Region"},
- "geometry": "area",
- "align": "center"}
+{"channels": {"x": "Year", "y": {"set": ["Region", "Sales"], "align": "center"}, "color": "Region"},
+ "geometry": "area"}
 ```
+*(both gotchas at once: the stack needs the dimension in the y set, and
+`align` belongs on the channel, not the config root)*
 
 ### Polar area (rosette)
 
@@ -281,11 +298,12 @@ Every Vizzu chart type as a copy-paste JSON snippet that drops into a `kind: "vi
 ### Violin
 
 ```json
-{"channels": {"x": "Group", "y": "Value", "color": "Group"},
- "geometry": "area",
- "split": true}
+{"channels": {"x": "Group", "y": {"set": ["Group", "Value"], "align": "center", "split": true}, "color": "Group"},
+ "geometry": "area"}
 ```
-*(area with `split: true` mirrors above/below an axis)*
+*(channel-level `split: true` separates the groups; `align: "center"` mirrors
+each distribution around the axis — the dimension must be in the y set for
+either to apply)*
 
 ---
 
@@ -314,7 +332,7 @@ Don't pick one chart per scene — pick **a sequence that morphs between qualita
               "geometry": "rectangle"}},
   {"config": {"channels": {"x": "Region", "y": "Sales", "color": "Region"},
               "geometry": "rectangle", "coordSystem": "polar"}},
-  {"config": {"channels": {"x": "Sales", "color": "Region"},
+  {"config": {"channels": {"x": ["Region", "Sales"], "color": "Region"},
               "geometry": "rectangle", "coordSystem": "polar"}},
   {"config": {"channels": {"size": "Sales", "color": "Region"},
               "geometry": "circle"}},
@@ -326,14 +344,16 @@ Don't pick one chart per scene — pick **a sequence that morphs between qualita
 **Stacked column → streamgraph → ribbon line** (same time series, three temporal logics):
 ```json
 "frames": [
-  {"config": {"channels": {"x": "Year", "y": "Sales", "color": "Cat"},
+  {"config": {"channels": {"x": "Year", "y": {"set": "Sales", "align": "none"}, "color": "Cat"},
               "geometry": "rectangle"}},
-  {"config": {"channels": {"x": "Year", "y": "Sales", "color": "Cat"},
-              "geometry": "area", "align": "center"}},
-  {"config": {"channels": {"x": "Year", "y": "Sales", "color": "Cat"},
+  {"config": {"channels": {"x": "Year", "y": {"set": "Sales", "align": "center"}, "color": "Cat"},
+              "geometry": "area"}},
+  {"config": {"channels": {"x": "Year", "y": {"set": "Sales", "align": "none"}, "color": "Cat"},
               "geometry": "line"}}
 ]
 ```
+*(reset `align` explicitly in the line frame — configs merge differentially, so
+the streamgraph's `center` would otherwise leak into every later frame)*
 
 **Scatter → dot plot → bubble** (same observations, three encoding emphases):
 ```json
