@@ -26,3 +26,26 @@ jobs:
 
       - name: Run tests
         run: uv run pytest -q
+
+  # Browser e2e: the only job where the Playwright-driven tests actually run
+  # (elsewhere they skip for lack of a browser). Exercises the runtime JS —
+  # scroll mode, slides mode, and every cookbook recipe painting real marks.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Install Chromium
+        run: uv run playwright install --with-deps chromium
+
+      - name: Run tests (including browser e2e)
+        run: uv run pytest -q tests/test_e2e_browser.py -v

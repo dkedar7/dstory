@@ -93,6 +93,7 @@ PHRASE_RULES: list[tuple[re.Pattern, callable]] = [
     (re.compile(r"\bdoubled\b", re.I),    lambda v: 1.95 <= v <= 2.10),
     (re.compile(r"\btripled\b", re.I),    lambda v: 2.85 <= v <= 3.15),
     (re.compile(r"\bquadrupled\b", re.I), lambda v: 3.85 <= v <= 4.15),
+    (re.compile(r"\bquintupled\b", re.I), lambda v: 4.85 <= v <= 5.15),
     (re.compile(r"\bhalved\b", re.I),     lambda v: 0.45 <= v <= 0.55),
     (re.compile(r"\bmajority\b", re.I),   lambda v: v >= 0.50),
 ]
@@ -109,6 +110,70 @@ PII_PATTERNS = [
     (re.compile(r"\b\d{3}-\d{2}-\d{4}\b"), "SSN-shaped number"),
     (re.compile(r"\b\+?\d{1,2}[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"), "phone-shaped number"),
 ]
+
+
+# ---------- readability ----------
+
+# Minimum Flesch reading ease per audience. Below the floor, the prose is
+# harder than that audience should have to work for. Notes, not failures —
+# domain vocabulary can legitimately depress the score.
+READING_EASE_FLOORS: dict[str, float] = {
+    "student":        60.0,   # plain conversational English
+    "general-public": 50.0,   # newspaper level
+    "policymaker":    40.0,
+    "executive":      40.0,
+    # technical-peer: no floor — jargon is the shared language.
+}
+
+_VOWEL_GROUPS = re.compile(r"[aeiouy]+")
+
+
+def _count_syllables(word: str) -> int:
+    w = re.sub(r"[^a-z]", "", word.lower())
+    if not w:
+        return 0
+    n = len(_VOWEL_GROUPS.findall(w))
+    # Silent trailing 'e' (have, time) — but not -le (table) or -ee (free).
+    if w.endswith("e") and not w.endswith(("le", "ee")) and n > 1:
+        n -= 1
+    return max(1, n)
+
+
+def flesch_reading_ease(text: str) -> Optional[float]:
+    """Flesch reading ease (higher = easier; ~60-70 is plain English).
+
+    Returns None when there's too little text (< 40 words) to score reliably.
+    English-only heuristic.
+    """
+    words = re.findall(r"[A-Za-z']+", text)
+    sentences = [s for s in re.split(r"[.!?]+", text) if s.strip()]
+    if len(words) < 40 or not sentences:
+        return None
+    syllables = sum(_count_syllables(w) for w in words)
+    return (206.835
+            - 1.015 * (len(words) / len(sentences))
+            - 84.6 * (syllables / len(words)))
+
+
+def _story_prose(data: dict[str, Any]) -> str:
+    """Collect the reader-facing prose from data.json (headlines, commentary,
+    steps, frames, deck) — the text a reader actually encounters."""
+    parts: list[str] = []
+    meta = data.get("meta", {})
+    for k in ("deck", "subtitle", "description"):
+        if meta.get(k):
+            parts.append(str(meta[k]))
+    for s in data.get("scenes", []):
+        for k in ("headline", "commentary"):
+            if s.get(k):
+                parts.append(str(s[k]))
+        for step in (s.get("steps") or []) + (s.get("frames") or []):
+            for k in ("headline", "commentary"):
+                if step.get(k):
+                    parts.append(str(step[k]))
+    # Join with ". " so unpunctuated headlines count as their own sentences
+    # instead of fusing into one run-on (which would tank the score).
+    return ". ".join(parts)
 
 
 def _strip_html_for_prose(html: str) -> str:
@@ -197,6 +262,18 @@ def check_editorial(html: str, data: dict[str, Any]) -> Dimension:
         if re.search(r"\b(analysis|overview|summary|breakdown)\b\s*$", h, re.I):
             r.note(f"Scene {s.get('id', '?')} headline {h!r} reads as a topic, not an insight.")
 
+    # Readability vs. declared audience (English prose only).
+    audience = meta.get("audience", "general-public")
+    lang = (meta.get("lang") or "en").lower()
+    floor = READING_EASE_FLOORS.get(audience)
+    if floor is not None and lang.startswith("en"):
+        score = flesch_reading_ease(_story_prose(data))
+        if score is not None and score < floor:
+            r.note(
+                f"Readability: Flesch reading ease is {score:.0f}, below the ~{floor:.0f} "
+                f"target for audience '{audience}'. Consider shorter sentences and plainer words."
+            )
+
     return r
 
 
@@ -211,6 +288,16 @@ def check_static_a11y(html: str, data: dict[str, Any]) -> Dimension:
         r.note("Markup references both axisLeft and axisRight — dual y-axes are usually a mistake.")
     if re.search(r"\b(three\.js|webgl|3d|rotation: ?'\w*z')", html, re.I):
         r.note("3D / WebGL content detected — make sure no chart uses 3D for value encoding.")
+
+    if not re.search(r"<html\b[^>]*\blang=", html):
+        r.note("<html> has no lang attribute — set meta.lang so screen readers pick the right voice.")
+
+    # Chart-bearing scenes should carry an alt text (scene.alt → aria-label).
+    for s in data.get("scenes", []):
+        references_data = bool(s.get("dataset")) or bool(s.get("frames"))
+        if references_data and not s.get("alt"):
+            r.note(f"Scene {s.get('id', '?')} has a chart but no 'alt' text — "
+                   "screen-reader users get a silent <div>. Add scene.alt.")
     return r
 
 
@@ -242,6 +329,8 @@ BROWSER_AUDIT_JS = r"""
     canvasCount: document.querySelectorAll('canvas').length,
     colorSamples,
     imgsWithoutAlt: Array.from(document.querySelectorAll('img')).filter(i => !i.alt || !i.alt.trim()).length,
+    mountsWithoutAria: Array.from(document.querySelectorAll('[data-mount]'))
+      .filter(m => !m.getAttribute('aria-label')).length,
   };
 })()
 """
@@ -260,18 +349,19 @@ SLIDES_AUDIT_JS = r"""
 """
 
 
-def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimension, list[str]]:
-    """Returns (renders, visual, dynamic_a11y_issues)."""
+def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimension, list[str], list[str]]:
+    """Returns (renders, visual, dynamic_a11y_issues, dynamic_a11y_notes)."""
     renders = Dimension("Renders correctly")
     visual  = Dimension("Visual quality")
     extras: list[str] = []
+    extra_notes: list[str] = []
 
     try:
         from playwright.sync_api import sync_playwright  # type: ignore
     except ImportError:
         renders.fail("Playwright not installed; run `pip install dstory[vet] && playwright install chromium`.")
         visual.fail("Skipped — Playwright unavailable.")
-        return renders, visual, extras
+        return renders, visual, extras, extra_notes
 
     out_dir.mkdir(parents=True, exist_ok=True)
     viewports = [(1440, 900), (768, 1024), (480, 800)]
@@ -324,6 +414,12 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
 
             if facts["imgsWithoutAlt"] > 0:
                 extras.append(f"viewport {w}x{h}: {facts['imgsWithoutAlt']} <img> without alt text.")
+
+            if w == 1440 and facts.get("mountsWithoutAria", 0) > 0:
+                extra_notes.append(
+                    f"{facts['mountsWithoutAria']} chart mount(s) have no aria-label — "
+                    "set scene.alt to describe each chart for screen readers."
+                )
 
             # Slides mode keyboard nav check + bonus screenshots
             slide_screenshots: list[tuple[str, str]] = []
@@ -380,7 +476,7 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
             ctx.close()
         browser.close()
 
-    return renders, visual, extras
+    return renders, visual, extras, extra_notes
 
 
 # ---------- top-level API ----------
@@ -412,9 +508,11 @@ def vet(
         if out_dir is None:
             project = html_path.parent.parent  # .../slug/dist/story.html → .../slug
             out_dir = project / "vetting" / "screenshots"
-        renders, visual, dynamic_extras = run_browser_checks(html_path, out_dir)
+        renders, visual, dynamic_extras, dynamic_notes = run_browser_checks(html_path, out_dir)
         for x in dynamic_extras:
             a11y.fail(x)
+        for n in dynamic_notes:
+            a11y.note(n)
     else:
         renders = Dimension("Renders correctly"); renders.note("Skipped (browser=False).")
         visual  = Dimension("Visual quality");    visual.note("Skipped (browser=False).")

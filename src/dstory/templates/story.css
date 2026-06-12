@@ -13,6 +13,38 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ---------- skip link (visible only on keyboard focus) ---------- */
+.skip-link {
+  position: fixed;
+  top: -100px; left: 1rem;
+  z-index: 10000;
+  background: var(--accent);
+  color: var(--ink-invert);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  text-decoration: none;
+  transition: top 150ms ease;
+}
+.skip-link:focus { top: 1rem; }
+
+/* ---------- reading progress (scroll mode) ---------- */
+.progress-rail {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.progress-rail__fill {
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+body.story-mode--slides .progress-rail { display: none; }
+
 /* ---------- atmosphere overlays ---------- */
 .atmosphere { position: fixed; inset: 0; pointer-events: none; z-index: 9998; }
 .atmosphere--grain {
@@ -39,6 +71,19 @@ html, body {
     radial-gradient(circle at 20% 30%, color-mix(in oklch, var(--accent) 12%, transparent), transparent 55%),
     radial-gradient(circle at 80% 70%, color-mix(in oklch, var(--accent-2) 10%, transparent), transparent 55%);
   opacity: 0.9;
+}
+/* Full-bleed hero image (meta.hero_image; story.js sets background-image).
+   The scrim keeps the headline legible against any photo, in any theme. */
+.hero__bg--image {
+  background-size: cover;
+  background-position: center;
+}
+.hero__bg--image::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    color-mix(in srgb, var(--bg) 55%, transparent),
+    color-mix(in srgb, var(--bg) 80%, transparent));
 }
 .hero__inner {
   position: relative;
@@ -436,4 +481,17 @@ body.story-mode--slides .atmosphere--vignette { opacity: 0.5; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
   .hero__scrollcue { animation: none; }
+}
+
+/* ---------- print (browser print → clean PDF handout) ---------- */
+@media print {
+  .atmosphere, .hero__scrollcue, .slide-controls, .progress-rail, .skip-link {
+    display: none !important;
+  }
+  .hero, .scene--bleed { min-height: auto; }
+  .scene--pinned { height: auto; }
+  .scene--pinned .scene__pin { position: static; height: auto; }
+  .scene--scrolly .scene__graphic { position: static; height: auto; }
+  .scene--scrolly .step { min-height: auto; padding: 1rem 0; opacity: 1; }
+  .scene, .step { break-inside: avoid; }
 }

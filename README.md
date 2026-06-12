@@ -1,12 +1,19 @@
 # dstory
 
-> Build interactive scrollytelling and slide-deck data stories from Python — scaffold, brand, validate, bundle, and vet a single self-contained HTML file.
+> Turn DataFrames into NYT-style scrollytelling and slide-deck data stories — one self-contained HTML file you can email, host, or present. Pure Python in, no JavaScript required.
 
-**[▶ Live demo: *Ctrl-Alt-Reinvent — Microsoft, 1975–2025*](https://dkedar7.github.io/dstory/)** — a 40-scene data essay built with dstory: a custom Microsoft brand, 16 distinct chart idioms (sankey, chord, ridgeline, calendar heatmap, 3D, world map…), one self-contained HTML file.
+**[📖 Documentation](https://dkedar7.github.io/dstory/)** ·
+**[▶ Live demo: *Ctrl-Alt-Reinvent — Microsoft, 1975–2025*](https://dkedar7.github.io/dstory/demo/)** — a 40-scene data essay built with dstory ·
+**[▶ Cookbook gallery](https://dkedar7.github.io/dstory/gallery/)** — the chart recipes, rendered ·
+**[▶ Theme showcase](https://dkedar7.github.io/dstory/themes/)** — same story, eight personalities
 
-`dstory` is the deterministic infrastructure for building NYT/FT/Pudding-style data stories: a tested scaffolder, a single-file bundler, a 5-dimension vetter (renders / data fidelity / editorial integrity / visual / a11y), a brand system that lets anyone swap their own colors and typography without touching source code, and pydantic schemas that surface authoring bugs at build time instead of at delivery time.
+`dstory` is the deterministic infrastructure for data stories: a one-call builder, a single-file bundler, a 5-dimension vetter (renders / data fidelity / editorial integrity / visual / a11y), a brand system for your colors and typography, and pydantic schemas that surface authoring bugs at build time instead of delivery time.
 
-The chart authoring (D3, custom morphs, bespoke annotations) stays your job — that's where the creative variety lives. `dstory` handles everything else.
+## Who is this for?
+
+- **Python data scientists (no JS):** animated chart sequences via declarative [Vizzu](#vizzu-scenes-no-javascript) scenes, plus a [cookbook](#the-cookbook) of finished D3 charts you copy and own. DataFrame → story.html in one notebook cell.
+- **Authors comfortable with D3:** full creative control — scenes are plain JS files you write; dstory does everything else and stays out of your chart code.
+- **AI-assisted authoring:** dstory is the substrate the companion **data-storytelling** Claude skill builds on — the agent writes the bespoke D3; the vetter gates what ships.
 
 ## Status
 
@@ -24,67 +31,117 @@ pip install "dstory[all]"              # everything
 playwright install chromium
 ```
 
+## Quick start: notebook, zero JavaScript
+
+One cell, DataFrame to shippable HTML:
+
+```python
+import pandas as pd
+from dstory import build
+from dstory.prep import to_long
+
+df = pd.DataFrame({
+    "month":   ["Jan", "Feb", "Mar", "Apr"],
+    "Signups": [1000, 1500, 2900, 3400],
+    "Churn":   [200, 240, 250, 260],
+})
+
+result = build({
+    "meta": {"title": "Q1 Growth", "theme": "scientific-bright"},
+    "scenes": [{
+        "id": "scene-growth", "kind": "vizzu", "dataset": "metrics",
+        "alt": "Animated bar-to-line sequence: signups more than tripled while churn stayed flat.",
+        "series": [
+            {"name": "month", "type": "dimension"},
+            {"name": "variable", "type": "dimension"},
+            {"name": "value", "type": "measure"},
+        ],
+        "frames": [
+            {"headline": "Signups took off in March",
+             "config": {"channels": {"x": "month", "y": "value", "color": "variable"},
+                        "geometry": "rectangle"}},
+            {"headline": "While churn barely moved",
+             "config": {"channels": {"x": "month", "y": "value", "color": "variable"},
+                        "geometry": "line"}},
+        ],
+    }],
+    "datasets": {"metrics": to_long(df, id_vars="month")},
+}, "q1-growth", vet=True)
+
+result.html    # → q1-growth/dist/story.html — open it, scroll, the chart morphs
+result.passed  # → True (the 5-dimension vet report)
+```
+
+`kind: "vizzu"` scenes are fully declarative — frames animate between any
+chart configuration (bar → line → stacked → polar…, 40+ types; see
+[`references/vizzu-chart-gallery.md`](src/dstory/references/vizzu-chart-gallery.md)).
+No scene JS file exists for this story at all.
+
+## The cookbook
+
+When you want the bespoke-D3 look without writing D3 from scratch: 10 complete,
+themed, responsive scene renderers — **[see them rendered](https://dkedar7.github.io/dstory/gallery/)**.
+
+```bash
+dstory recipes                                        # list: line-reveal, beeswarm, bump-chart, ...
+dstory scene my-story scene-growth --from line-reveal # copy one in, wired and ready
+```
+
+A recipe is source code dropped into *your* project — edit it freely, it's
+yours. Each documents its dataset columns and `scene.config` options in the
+file header. All are theme-token driven and respect `prefers-reduced-motion`.
+There is still no `BarChart()` API and never will be: recipes are starting
+points, not abstractions.
+
 ## Quick start (CLI)
 
 ```bash
 # 1. Scaffold a project from one of the 8 bundled themes
 dstory init my-story --theme editorial-noir --audience general-public
 
-# 2. Edit my-story/data.json and write scene JS files in my-story/scenes/
-#    (See the dstory data-storytelling skill for the creative authoring guide.)
+# 2. Add scenes: from the cookbook, a blank stub, or by hand
+dstory scene my-story scene-trend --from line-reveal
+#    ...then edit my-story/data.json (datasets, headlines, claims)
 
-# 3. Bundle to a single self-contained HTML file
-dstory bundle my-story
-# → my-story/dist/story.html  (open it directly in a browser, no server needed)
+# 3. Preview while authoring
+dstory preview my-story
 
-# 4. Vet before delivery
+# 4. Bundle to a single self-contained HTML file
+dstory bundle my-story --vendor
+# → my-story/dist/story.html  (--vendor inlines d3/scrollama/Motion: works offline)
+
+# 5. Vet before delivery
 dstory vet my-story/dist/story.html --data my-story/data.json
 ```
 
-Other commands:
-- `dstory themes` — list the 8 bundled brand presets
-- `dstory --help` — full CLI reference
+Other commands: `dstory themes` (the 8 brand presets), `dstory recipes` (the cookbook), `dstory --help`.
 
-## Quick start (Python API)
+## Claims that can't drift from the data
 
 ```python
-from dstory import Brand, Story, init, bundle, vet
-from dstory.prep import compute_ratio, compute_claim, to_records
-import pandas as pd
+from dstory.prep import compute_ratio, compute_claim
 
-# Pick a brand (or load a custom TOML)
-brand = Brand.from_preset("scientific-bright")
-
-# Scaffold the project
-init("/tmp/my-story", brand=brand, audience="technical-peer", mode="scroll")
-
-# Crunch data with pandas
-df = pd.DataFrame({"month": ["Jan","Feb","Mar"], "users": [1000, 1500, 2900]})
-ratio = compute_ratio(after=df.users.iloc[-1], before=df.users.iloc[0])
-
-# Build a claim that's guaranteed to pass the vetter
+ratio = compute_ratio(after=2900, before=1000)        # 2.9
 claim = compute_claim(
     id="c1",
-    text_template="Users {phrase} between January and March",
-    value=ratio,                   # 2.9 → "tripled"
+    text_template="Signups {phrase} in Q1",           # → "Signups tripled in Q1"
+    value=ratio,
 )
-
-# Validate data.json with pydantic before writing
-story = Story.model_validate({
-    "meta": {"title": "Growth", "theme": "scientific-bright", "audience": "technical-peer"},
-    "claims": [claim],
-    "scenes": [{"id": "scene-growth", "kind": "simple",
-                "headline": "Users tripled in Q1", "commentary": claim["text"],
-                "dataset": "users"}],
-    "datasets": {"users": to_records(df)},
-})
-# ... write story.model_dump_json() to my-story/data.json ...
-
-# Bundle and vet
-result = bundle("/tmp/my-story")
-report = vet(result.out, data="/tmp/my-story/data.json")
-print("PASS" if report.passed else "BLOCKED")
 ```
+
+`compute_claim()` derives the phrase from the value using the same vocabulary
+the vetter checks ("doubled"…"quintupled", percentages), so a claim built this
+way cannot fail data-fidelity vetting — and a hand-written claim that drifts
+from its value blocks the build.
+
+## How is this different from…?
+
+| | dstory |
+|------|------|
+| **Streamlit / Dash** | No server. The output is one HTML file that works from an email attachment. Narrative-first (scroll/slides), not dashboard-first. |
+| **ipyvizzu-story** | dstory's vizzu scenes cover the same ground, then add: 5 other scene kinds (scrolly D3, full-bleed, pinned…), a brand/theming system, claim-vs-data vetting, and a11y/editorial gates. |
+| **Quarto** | Quarto renders documents; dstory builds bespoke *graphics-led* stories with scroll-driven chart morphs, and vets the output in a real browser before you ship. |
+| **Flourish / Datawrapper** | Code-first and version-controlled; your data never leaves your machine; no per-seat licensing. But you bring the polish — dstory brings the rails. |
 
 ## Brand system
 
@@ -155,6 +212,28 @@ A `data.json` story is composed of scenes; each declares its `kind`:
 | `width` | `narrow` (~36rem) / `default` (~56rem) / `wide` (~78rem) / `full` (100%) | Override the scene's max-width without touching CSS |
 | `chrome` | `true` (default) / `false` | When `false`, omit the auto-generated h2/p/source elements; renderer takes full control |
 
+### Reaching every reader
+
+`meta` fields that widen who can read (and share) the story:
+
+| Field | Effect |
+|------|------|
+| `lang` / `dir` | Set `<html lang dir>` — screen-reader voice, hyphenation, RTL layout |
+| `description` | `<meta name="description">` + Open Graph/Twitter description (falls back to `deck`) |
+| `share_image` | og:image / twitter:image for link unfurls (absolute URL) |
+| `hero_image` | Full-bleed hero photo with a theme-aware scrim; local files are inlined at bundle time |
+
+Per scene, set `alt` — one sentence stating what the chart shows *and* the
+takeaway. It becomes `role="img"` + `aria-label` on the chart mount, and the
+vetter flags chart scenes that lack it. The template also ships a
+skip-to-content link, a reading progress bar, `prefers-reduced-motion`
+support, a print stylesheet (browser print → clean PDF handout), and
+`#slide-N` deep links in slides mode.
+
+The vetter is audience-aware too: it scores the story's prose (Flesch reading
+ease) against `meta.audience` and notes when the writing is harder than that
+audience should have to work for.
+
 For project-wide CSS overrides, set `Story.extra_css` in your data:
 
 ```python
@@ -193,16 +272,19 @@ A bundled story is "ready to ship" only when all five pass.
 ```
 dstory/
 ├── src/dstory/
+│   ├── api.py          # build() — Story → bundled HTML in one call
 │   ├── schema.py       # pydantic models for data.json (Story, Meta, Scene, Claim, ...)
 │   ├── brand.py        # Brand class — TOML loader, preset extension, CSS emission
 │   ├── scaffold.py     # init() — copy template + write theme.css
-│   ├── bundle.py       # bundle() — inline CSS/JS/images, embed data.json
+│   ├── bundle.py       # bundle() — inline CSS/JS/images/data; --vendor for offline
 │   ├── vet.py          # vet() — 5-dimension report (Playwright optional)
 │   ├── prep.py         # pandas helpers + compute_claim() (vetter-aligned)
 │   ├── cli.py          # `dstory` CLI
+│   ├── cookbook/       # 10 complete scene recipes (+ registry & demos)
 │   ├── themes/         # 8 preset brand TOMLs
 │   └── templates/      # HTML/CSS/JS skeleton copied into new projects
-├── tests/              # 70 tests, pytest
+├── docs/gallery/       # rendered cookbook gallery (GitHub Pages)
+├── tests/              # 134 tests, pytest (browser e2e skips without Chromium)
 └── pyproject.toml
 ```
 

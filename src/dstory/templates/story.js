@@ -59,6 +59,13 @@ function el(tag, attrs = {}, ...kids) {
 function renderHero(meta) {
   const h = document.querySelector(".hero");
   if (!h) return;
+  if (meta.hero_image) {
+    const bg = h.querySelector(".hero__bg");
+    if (bg) {
+      bg.classList.add("hero__bg--image");
+      bg.style.backgroundImage = `url("${meta.hero_image}")`;
+    }
+  }
   h.querySelector(".hero__eyebrow").textContent = meta.subtitle || "";
   h.querySelector(".hero__headline").textContent = meta.title || "Untitled";
   h.querySelector(".hero__deck").textContent = meta.deck || "";
@@ -105,6 +112,15 @@ function buildScene(scene) {
   // Apply width modifier if set (default | narrow | wide | full)
   if (scene.width && scene.width !== "default") {
     node.classList.add("scene--w-" + scene.width);
+  }
+  // Text alternative for the chart (scene.alt) → expose the mount to
+  // screen readers. Without it the chart is a silent <div> of SVG paths.
+  if (scene.alt) {
+    const mount = node.matches("[data-mount]") ? node : node.querySelector("[data-mount]");
+    if (mount) {
+      mount.setAttribute("role", "img");
+      mount.setAttribute("aria-label", scene.alt);
+    }
   }
   return node;
 }
@@ -254,7 +270,27 @@ function activatePinnedScene(sceneEl, scene, data, slidesMode = false) {
   return ctrl;
 }
 
+function revealOnEnter(sceneEl) {
+  // Gentle entry reveal for simple scenes (headline → commentary → chart).
+  // Skipped under prefers-reduced-motion; harmless no-op if Motion is absent.
+  if (reduceMotion) return;
+  const targets = [
+    sceneEl.querySelector(":scope > h2"),
+    sceneEl.querySelector(":scope > p"),
+    sceneEl.querySelector(".scene__graphic"),
+  ].filter(Boolean);
+  if (!targets.length) return;
+  inView(sceneEl, () => {
+    animate(
+      targets,
+      { opacity: [0, 1], y: [14, 0] },
+      { duration: 0.65, easing: [0.22, 1, 0.36, 1], delay: stagger(0.1) }
+    );
+  }, { margin: "0px 0px -18% 0px" });
+}
+
 function activateSimpleScene(sceneEl, scene, data, slidesMode = false) {
+  if (!slidesMode) revealOnEnter(sceneEl);
   const renderer = SCENE_RENDERERS[scene.id];
   if (!renderer) return null;
   const mount = sceneEl.querySelector(`[data-mount="${scene.id}"]`);
@@ -412,6 +448,24 @@ async function activateVizzuScene(sceneEl, scene, data, slidesMode = false) {
   return ctrl;
 }
 
+function setupProgressRail() {
+  // Reading progress (scroll mode). The rail lives in index.html; we only
+  // drive the fill's scaleX from scroll position, throttled to one rAF.
+  const fill = document.querySelector("[data-progress] .progress-rail__fill");
+  if (!fill) return;
+  let raf = null;
+  const update = () => {
+    const total = document.documentElement.scrollHeight - window.innerHeight;
+    const p = total > 0 ? Math.min(1, Math.max(0, window.scrollY / total)) : 0;
+    fill.style.transform = `scaleX(${p})`;
+    raf = null;
+  };
+  const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll);
+  update();
+}
+
 function setupSlidesController(builtScenes, data) {
   const heroEl  = document.querySelector(".hero");
   const outroEl = document.querySelector(".outro");
@@ -445,6 +499,12 @@ function setupSlidesController(builtScenes, data) {
   };
   updateIndicator();
 
+  // Deep-linking: keep #slide-N in the URL so a specific slide can be shared
+  // ("open the deck at slide 12"). replaceState avoids history spam.
+  const syncHash = () => {
+    try { history.replaceState(null, "", `#slide-${current + 1}`); } catch (_) {}
+  };
+
   function show(idx, dir = "forward") {
     if (idx < 0 || idx >= slides.length) return;
     if (idx === current) return;
@@ -468,6 +528,7 @@ function setupSlidesController(builtScenes, data) {
 
     current = idx;
     updateIndicator();
+    syncHash();
   }
 
   // Trigger first slide's chart state if applicable.
@@ -510,11 +571,24 @@ function setupSlidesController(builtScenes, data) {
   // Reveal the controls.
   const controlsEl = document.querySelector("[data-slide-controls]");
   if (controlsEl) controlsEl.removeAttribute("hidden");
+
+  // Honor an incoming #slide-N deep link.
+  const hashMatch = location.hash.match(/^#slide-(\d+)$/);
+  if (hashMatch) {
+    const idx = Math.min(slides.length - 1, Math.max(0, parseInt(hashMatch[1], 10) - 1));
+    if (idx > 0) show(idx, "forward");
+  }
 }
 
 async function init() {
   await waitForMotion();
   const data = await getData();
+
+  // Language / direction — bundle time patches the static <html> tag; this
+  // covers dev mode (fetch) and keeps the two paths consistent.
+  if (data.meta?.lang) document.documentElement.lang = data.meta.lang;
+  if (data.meta?.dir && data.meta.dir !== "ltr") document.documentElement.dir = data.meta.dir;
+
   renderHero(data.meta || {});
   renderSources(data.meta?.sources || [], data.meta || {});
 
@@ -522,6 +596,8 @@ async function init() {
   if (slidesMode) {
     document.documentElement.classList.add("story-mode--slides");
     document.body.classList.add("story-mode--slides");
+  } else {
+    setupProgressRail();
   }
 
   const story = document.getElementById("story");

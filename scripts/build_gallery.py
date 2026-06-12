@@ -1,0 +1,143 @@
+"""Generate the cookbook gallery: one rendered screenshot per recipe plus a
+static index page, written to docs/gallery/ (published via GitHub Pages).
+
+Each recipe's demo (from dstory.cookbook.RECIPE_DEMOS) is built into a real
+story, rendered headless with reduced motion (so charts paint their final
+state deterministically), and screenshotted.
+
+Usage:  uv run python scripts/build_gallery.py
+Needs the [vet] extra + `playwright install chromium` + network (CDN libs).
+"""
+
+from __future__ import annotations
+
+import html as html_mod
+import sys
+import tempfile
+from pathlib import Path
+
+from dstory import build, recipe_js, list_recipes
+from dstory.cookbook import RECIPE_DEMOS
+
+DOCS_GALLERY = Path(__file__).resolve().parent.parent / "docs" / "gallery"
+THEME = "editorial-noir"
+
+
+def render_screenshots(out_dir: Path) -> None:
+    from playwright.sync_api import sync_playwright
+
+    recipes = {r.name: r for r in list_recipes()}
+    tmp = Path(tempfile.mkdtemp(prefix="dstory-gallery-"))
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": 1100, "height": 900},
+                                reduced_motion="reduce")
+        for name, demo in RECIPE_DEMOS.items():
+            sid = f"scene-{name}"
+            result = build(
+                {"meta": {"title": f"Gallery — {name}", "theme": THEME},
+                 "scenes": [{"id": sid, "dataset": name, **demo["scene"]}],
+                 "datasets": {name: demo["dataset"]}},
+                tmp / name,
+                scenes={sid: recipe_js(name, sid)},
+            )
+            page.goto(result.html.as_uri(), wait_until="load")
+            page.wait_for_selector(f'[data-mount="{sid}"] svg', timeout=15000)
+
+            if recipes[name].kind == "scrolly":
+                # Activate the first step so the spotlight state is visible.
+                page.evaluate(
+                    "document.querySelector('.step').scrollIntoView({block: 'center'})")
+                page.wait_for_timeout(700)
+                target = page.locator(f'[data-scene="{sid}"] .scene__graphic')
+            else:
+                page.evaluate(
+                    f"document.querySelector('[data-scene=\"{sid}\"]')"
+                    ".scrollIntoView({block: 'center'})")
+                page.wait_for_timeout(400)
+                target = page.locator(f'[data-scene="{sid}"]')
+
+            shot = out_dir / f"{name}.png"
+            target.screenshot(path=str(shot))
+            print(f"  rendered {shot.name}")
+        browser.close()
+
+
+def write_index(out_dir: Path) -> None:
+    cards = []
+    for r in list_recipes():
+        esc = html_mod.escape
+        cards.append(f"""\
+    <figure class="card">
+      <a href="{esc(r.name)}.png"><img src="{esc(r.name)}.png" alt="{esc(r.summary)}" loading="lazy"></a>
+      <figcaption>
+        <h2>{esc(r.name)} <span class="kind">{esc(r.kind)}</span></h2>
+        <p>{esc(r.summary)}</p>
+        <code>dstory scene my-story scene-x --from {esc(r.name)}</code>
+      </figcaption>
+    </figure>""")
+
+    page = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dstory cookbook gallery</title>
+<style>
+  :root {{ color-scheme: light; }}
+  body {{ margin: 0; padding: 3rem 1.5rem; background: #faf7f2; color: #1a1a1a;
+         font: 16px/1.55 system-ui, sans-serif; }}
+  header {{ max-width: 72rem; margin: 0 auto 3rem; }}
+  h1 {{ font-size: 2.2rem; margin: 0 0 0.5rem; }}
+  header p {{ color: #555; max-width: 52ch; }}
+  .grid {{ max-width: 72rem; margin: 0 auto; display: grid; gap: 2rem;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }}
+  .card {{ margin: 0; background: #fff; border: 1px solid #e4ded4; border-radius: 6px;
+          overflow: hidden; }}
+  .card img {{ width: 100%; height: 240px; object-fit: contain; display: block;
+              background: #14110f; padding: 0.75rem; box-sizing: border-box; }}
+  figcaption {{ padding: 1rem 1.25rem 1.25rem; }}
+  h2 {{ font-size: 1.05rem; margin: 0 0 0.35rem; }}
+  .kind {{ font-size: 0.75rem; font-weight: 400; color: #777; border: 1px solid #ddd;
+          border-radius: 999px; padding: 0.1rem 0.5rem; vertical-align: middle; }}
+  figcaption p {{ margin: 0 0 0.75rem; color: #555; font-size: 0.9rem; }}
+  code {{ display: block; font-size: 0.78rem; background: #f3efe8; padding: 0.5rem 0.6rem;
+         border-radius: 4px; overflow-x: auto; }}
+  footer {{ max-width: 72rem; margin: 3rem auto 0; color: #777; font-size: 0.85rem; }}
+  a {{ color: inherit; }}
+</style>
+</head>
+<body>
+<header>
+  <h1>dstory cookbook</h1>
+  <p>Complete, themed scene renderers you copy into your project and own.
+     Each recipe documents its dataset columns and config options in the
+     file header. Rendered here with the <em>editorial-noir</em> theme.</p>
+</header>
+<div class="grid">
+{chr(10).join(cards)}
+</div>
+<footer>
+  Generated by <code style="display:inline;padding:0.1rem 0.3rem">scripts/build_gallery.py</code> ·
+  <a href="../index.html">docs</a> ·
+  <a href="../themes/index.html">themes</a> ·
+  <a href="../demo/index.html">demo story</a> ·
+  <a href="https://github.com/dkedar7/dstory">dkedar7/dstory</a>
+</footer>
+</body>
+</html>
+"""
+    (out_dir / "index.html").write_text(page, encoding="utf-8")
+    print(f"  wrote {out_dir / 'index.html'}")
+
+
+def main() -> int:
+    DOCS_GALLERY.mkdir(parents=True, exist_ok=True)
+    render_screenshots(DOCS_GALLERY)
+    write_index(DOCS_GALLERY)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

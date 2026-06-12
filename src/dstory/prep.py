@@ -57,6 +57,7 @@ RATIO_PHRASES = {
     "doubled":     2.0,
     "tripled":     3.0,
     "quadrupled":  4.0,
+    "quintupled":  5.0,
     "halved":      0.5,
 }
 
@@ -131,6 +132,35 @@ def compute_claim(
     if scene is not None:
         out["scene"] = scene
     return out
+
+
+# ---------- number formatting (no pandas needed) ----------
+
+def fmt_compact(n: float, *, digits: int = 1) -> str:
+    """Format a number compactly for prose/annotations: 1234567 → '1.2M'.
+
+    Uses K/M/B/T suffixes; trims trailing '.0' so 2000 → '2K', not '2.0K'.
+    """
+    sign = "-" if n < 0 else ""
+    x = abs(float(n))
+    for threshold, suffix in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")):
+        if x >= threshold:
+            s = f"{x / threshold:.{digits}f}".rstrip("0").rstrip(".")
+            return f"{sign}{s}{suffix}"
+    s = f"{x:.{digits}f}".rstrip("0").rstrip(".")
+    return f"{sign}{s}"
+
+
+def fmt_pct(value: float, *, digits: int = 1, signed: bool = False) -> str:
+    """Format a percentage for prose: 42.0 → '42%', 7.25 → '7.3%'.
+
+    `value` is in percent units (use compute_pct_change's output directly).
+    signed=True keeps the leading '+' on increases.
+    """
+    s = f"{value:.{digits}f}".rstrip("0").rstrip(".")
+    if signed and value > 0:
+        s = f"+{s}"
+    return f"{s}%"
 
 
 # ---------- convenience: time-series prep ----------

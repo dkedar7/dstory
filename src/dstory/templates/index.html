@@ -15,6 +15,11 @@
 </head>
 <body>
 
+  <a class="skip-link" href="#story">Skip to story</a>
+
+  <!-- Reading progress (scroll mode only; story.js drives the fill) -->
+  <div class="progress-rail" data-progress aria-hidden="true"><div class="progress-rail__fill"></div></div>
+
   <!-- Hero scene -->
   <header class="hero" data-scene="hero">
     <div class="hero__bg" aria-hidden="true"></div>
@@ -57,7 +62,7 @@
     <button type="button" class="slide-controls__btn" data-slide-prev aria-label="Previous slide">
       <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 2L4 8l6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-    <span class="slide-controls__indicator" data-slide-indicator>0 / 0</span>
+    <span class="slide-controls__indicator" data-slide-indicator aria-live="polite">0 / 0</span>
     <button type="button" class="slide-controls__btn" data-slide-next aria-label="Next slide">
       <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M6 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>

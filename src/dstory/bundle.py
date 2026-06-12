@@ -30,13 +30,19 @@ class BundleResult:
     warnings: list[str]
 
 
-def bundle(slug: str | Path, *, validate: bool = True) -> BundleResult:
+def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False) -> BundleResult:
     """Bundle <slug>/index.html → <slug>/dist/story.html.
 
     Args:
         slug: project directory.
         validate: if True (default), validate data.json against the Story schema
                   before bundling and raise on errors.
+        vendor: if True, download the CDN-hosted runtime libraries (d3,
+                scrollama, Motion) and inline them, so the story works fully
+                offline. Vizzu can't be vendored (it fetches WebAssembly at
+                runtime); its loader is dropped when the story has no vizzu
+                scenes, or kept with a warning when it does. Requires network
+                at bundle time; adds ~300 KB.
     """
     project = Path(slug)
     if not project.is_dir():
@@ -107,6 +113,20 @@ def bundle(slug: str | Path, *, validate: bool = True) -> BundleResult:
 
     # 3. Inject data.json on window.__STORY_DATA__ just before </head>
     raw_data = json.loads(data_json.read_text(encoding="utf-8"))
+
+    # 3-pre. Inline a project-local hero image as a data URI so the bundle
+    # stays self-contained (story.js reads meta.hero_image at runtime).
+    meta = raw_data.get("meta") or {}
+    hero_image = meta.get("hero_image")
+    if (isinstance(hero_image, str) and hero_image
+            and not _is_remote(hero_image) and not hero_image.startswith("data:")):
+        p = (project / hero_image).resolve()
+        if p.exists():
+            meta["hero_image"] = _data_uri(p)
+            counts["images"] += 1
+        else:
+            warnings.append(f"Hero image not found: {hero_image}")
+
     embed = json.dumps(raw_data, ensure_ascii=False)
     inject = f"<script>window.__STORY_DATA__ = {embed};</script>"
     if "</head>" in html:
@@ -143,7 +163,6 @@ def bundle(slug: str | Path, *, validate: bool = True) -> BundleResult:
     )
 
     # 5. Patch <title> from meta.title (template ships a default placeholder).
-    meta = raw_data.get("meta") or {}
     title = meta.get("title")
     if isinstance(title, str) and title.strip():
         from html import escape as _escape
@@ -154,15 +173,40 @@ def bundle(slug: str | Path, *, validate: bool = True) -> BundleResult:
             html, count=1, flags=re.S,
         )
 
+    # 6. Patch <html lang dir> from meta (template defaults to lang="en").
+    html = _patch_lang_dir(html, lang=meta.get("lang"), dir_=meta.get("dir"))
+
+    # 7. Inject <meta name="description"> + Open Graph / Twitter card tags so
+    # shared links unfurl with the story's title and dek instead of nothing.
+    social = _social_meta_tags(meta)
+    if social and "</head>" in html:
+        html = html.replace("</head>", f"{social}\n</head>", 1)
+
+    # 8. Vendor CDN runtime libraries for full offline self-containment.
+    if vendor:
+        html = _vendor_remote_scripts(html, raw_data, warnings)
+
+    # 9. Anything we inline (<script src>, stylesheet <link>, <img src>) that
+    # still points at a local file means the inlining regexes missed it (odd
+    # quoting, multiline tag) — the "self-contained" file would silently
+    # depend on files that won't ship with it. Warn loudly.
+    for ref in _leftover_local_refs(html):
+        warnings.append(
+            f"Local reference survived bundling: {ref} — the output is NOT "
+            "self-contained. Check the tag's quoting/format in index.html."
+        )
+
     # Write output
     out = project / "dist" / "story.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html, encoding="utf-8")
 
     size = out.stat().st_size
-    if size > 500 * 1024:
+    size_target_kb = 1500 if vendor else 500
+    if size > size_target_kb * 1024:
         warnings.append(
-            f"Bundle is {size/1024:.1f} KB — over 500 KB target. Consider trimming images/data."
+            f"Bundle is {size/1024:.1f} KB — over {size_target_kb} KB target. "
+            "Consider trimming images/data."
         )
 
     return BundleResult(
@@ -180,6 +224,63 @@ def _is_remote(url: str) -> bool:
     return url.startswith(("http://", "https://", "//"))
 
 
+def _patch_lang_dir(html: str, *, lang: Optional[str], dir_: Optional[str]) -> str:
+    """Set lang (and dir, when not the ltr default) on the <html> root tag."""
+    def repl(m: re.Match) -> str:
+        tag = m.group(0)
+        if isinstance(lang, str) and lang.strip():
+            safe = lang.strip()
+            if re.search(r'\blang="[^"]*"', tag):
+                tag = re.sub(r'\blang="[^"]*"', f'lang="{safe}"', tag)
+            else:
+                tag = tag[:-1] + f' lang="{safe}">'
+        if dir_ in ("rtl", "auto"):
+            if re.search(r'\bdir="[^"]*"', tag):
+                tag = re.sub(r'\bdir="[^"]*"', f'dir="{dir_}"', tag)
+            else:
+                tag = tag[:-1] + f' dir="{dir_}">'
+        return tag
+    return re.sub(r"<html\b[^>]*>", repl, html, count=1)
+
+
+def _social_meta_tags(meta: dict) -> str:
+    """Build description + Open Graph + Twitter card tags from story meta.
+
+    description falls back to deck, then subtitle. share_image must be an
+    absolute URL — og:image scrapers don't resolve data URIs.
+    """
+    from html import escape
+
+    def clean(key: str) -> str:
+        v = meta.get(key)
+        return v.strip() if isinstance(v, str) else ""
+
+    title  = clean("title")
+    desc   = clean("description") or clean("deck") or clean("subtitle")
+    author = clean("author")
+    image  = clean("share_image")
+
+    tags: list[str] = []
+    def tag(attr: str, name: str, content: str) -> None:
+        tags.append(f'<meta {attr}="{name}" content="{escape(content, quote=True)}">')
+
+    if desc:   tag("name", "description", desc)
+    if author: tag("name", "author", author)
+    if title:
+        tag("property", "og:title", title)
+        tag("name", "twitter:title", title)
+    if desc:
+        tag("property", "og:description", desc)
+        tag("name", "twitter:description", desc)
+    if title or desc:
+        tag("property", "og:type", "article")
+        tag("name", "twitter:card", "summary_large_image" if image else "summary")
+    if image:
+        tag("property", "og:image", image)
+        tag("name", "twitter:image", image)
+    return "\n".join(tags)
+
+
 def _inline_style(p: Path) -> str:
     return f'<style data-src="{p.name}">\n{p.read_text(encoding="utf-8")}\n</style>'
 
@@ -194,3 +295,97 @@ def _data_uri(p: Path) -> str:
     mime = mime or "application/octet-stream"
     data = base64.b64encode(p.read_bytes()).decode("ascii")
     return f"data:{mime};base64,{data}"
+
+
+# ---------- vendoring ----------
+
+# Motion is loaded as an ESM module in the template (with a window.MOTION
+# bridge); to vendor it we swap in the UMD build and recreate the bridge.
+_MOTION_UMD_URL = "https://cdn.jsdelivr.net/npm/motion@10/dist/motion.min.js"
+_MOTION_BRIDGE = (
+    "window.MOTION = { animate: Motion.animate, stagger: Motion.stagger, "
+    "inView: Motion.inView, scroll: Motion.scroll, spring: Motion.spring };\n"
+    'window.dispatchEvent(new Event("motion:ready"));'
+)
+
+
+def _fetch(url: str, timeout: float = 30.0) -> str:
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "dstory-bundler"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8")
+
+
+def _vendor_remote_scripts(html: str, raw_data: dict, warnings: list[str]) -> str:
+    """Inline CDN-hosted runtime libs so the bundle works offline.
+
+    - UMD <script src="https://..."> tags (d3, scrollama): fetched and inlined.
+    - The Motion ESM-bridge module: replaced with the UMD build + bridge.
+    - The Vizzu ESM module: can't be vendored (it streams a .wasm at runtime).
+      Dropped when the story has no vizzu scenes; kept with a warning when it does.
+    """
+    # 1. UMD scripts.
+    def repl_remote(m: re.Match) -> str:
+        url = m.group("src")
+        try:
+            js = _fetch(url)
+        except Exception as e:
+            warnings.append(f"Vendor: could not fetch {url} ({e}) — left as CDN reference.")
+            return m.group(0)
+        return f'<script data-vendored="{url}">\n{js}\n</script>'
+
+    html = re.sub(
+        r'<script\b[^>]*\bsrc="(?P<src>https?://[^"]+)"[^>]*></script>',
+        repl_remote, html, flags=re.IGNORECASE,
+    )
+
+    # 2. Module blocks. Find each <script type="module">…</script> and decide
+    # by its import URL.
+    module_blocks = re.findall(r'<script\s+type="module">[\s\S]*?</script>', html)
+    has_vizzu_scenes = any(
+        s.get("kind") == "vizzu" for s in raw_data.get("scenes", [])
+    )
+    for block in module_blocks:
+        if "/npm/motion@" in block:
+            try:
+                js = _fetch(_MOTION_UMD_URL)
+                replacement = (
+                    f'<script data-vendored="{_MOTION_UMD_URL}">\n{js}\n</script>\n'
+                    f"<script>\n{_MOTION_BRIDGE}\n</script>"
+                )
+                html = html.replace(block, replacement, 1)
+            except Exception as e:
+                warnings.append(
+                    f"Vendor: could not fetch Motion UMD build ({e}) — left as CDN module."
+                )
+        elif "vizzu" in block.lower():
+            if has_vizzu_scenes:
+                warnings.append(
+                    "Vendor: Vizzu can't be inlined (it loads WebAssembly at runtime) — "
+                    "vizzu scenes still need network access."
+                )
+            else:
+                html = html.replace(block, "", 1)
+
+    return html
+
+
+def _leftover_local_refs(html: str) -> list[str]:
+    """Local file references in tags the bundler should have inlined.
+
+    Matches both quote styles deliberately — the inlining regexes only handle
+    double quotes, so a single-quoted attribute is exactly the case this
+    safety net exists to catch.
+    """
+    refs: list[str] = []
+    for pattern in (
+        r'<script\b[^>]*\bsrc=(["\'])(?P<ref>[^"\']+)\1',
+        r'<link\b[^>]*\brel=(["\'])stylesheet\1[^>]*\bhref=(["\'])(?P<ref>[^"\']+)\2',
+        r'<link\b[^>]*\bhref=(["\'])(?P<ref>[^"\']+)\1[^>]*\brel=(["\'])stylesheet\3',
+        r'<img\b[^>]*\bsrc=(["\'])(?P<ref>[^"\']+)\1',
+    ):
+        for m in re.finditer(pattern, html, flags=re.IGNORECASE):
+            ref = m.group("ref")
+            if not _is_remote(ref) and not ref.startswith(("data:", "#")):
+                refs.append(ref)
+    return sorted(set(refs))

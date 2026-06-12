@@ -11,17 +11,21 @@ Optional:
     dstory.prep           — pandas-based data prep helpers (extras: dstory[prep])
 """
 
+from .api import build, BuildResult
 from .brand import Brand, list_presets
 from .bundle import bundle, BundleResult
-from .scaffold import init, wire_scenes, write_scene
+from .cookbook import list_recipes, recipe_js, recipe_demo, Recipe
+from .scaffold import init, wire_scenes, write_scene, starter_scene_js
 from .schema import Story, Meta, Scene, Claim, VizzuFrame, Step, Source, Annotation, SeriesSpec
 from .vet import vet, Report, Dimension
 
-__version__ = "0.3.1"
+__version__ = "0.5.0"
 
 __all__ = [
+    "build", "BuildResult",
     "Brand", "list_presets",
-    "init", "wire_scenes", "write_scene",
+    "init", "wire_scenes", "write_scene", "starter_scene_js",
+    "list_recipes", "recipe_js", "recipe_demo", "Recipe",
     "bundle", "BundleResult",
     "vet", "Report", "Dimension",
     "Story", "Meta", "Scene", "Claim", "VizzuFrame", "Step", "Source", "Annotation", "SeriesSpec",

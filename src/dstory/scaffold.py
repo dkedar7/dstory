@@ -232,6 +232,10 @@ def init(
     if brand.wordmark and brand.wordmark.exists():
         html = _inject_wordmark(html, brand.wordmark)
 
+    # If brand has a favicon, inline it as a data-URI <link rel="icon">.
+    if brand.favicon and brand.favicon.exists():
+        html = _inject_favicon(html, brand.favicon)
+
     # If brand has extra_css, append to story.css (won't reorder tokens)
     if brand.extra_css and brand.extra_css.exists():
         story_css_path = dest / "story.css"
@@ -287,13 +291,23 @@ def _slugify(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
+def _file_data_uri(path: Path, default_mime: str = "application/octet-stream") -> str:
+    import base64, mimetypes
+    mime, _ = mimetypes.guess_type(path.name)
+    data = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:{mime or default_mime};base64,{data}"
+
+
+def _inject_favicon(html: str, favicon_path: Path) -> str:
+    """Inline a favicon as a data-URI <link rel="icon"> — no extra file to ship."""
+    uri = _file_data_uri(favicon_path, default_mime="image/png")
+    link = f'<link rel="icon" href="{uri}">'
+    return html.replace("</head>", f"  {link}\n</head>", 1)
+
+
 def _inject_wordmark(html: str, wordmark_path: Path) -> str:
     """Inline an SVG/PNG wordmark into the hero as a data URI, top-right."""
-    import base64, mimetypes
-    mime, _ = mimetypes.guess_type(wordmark_path.name)
-    mime = mime or "image/svg+xml"
-    data = base64.b64encode(wordmark_path.read_bytes()).decode("ascii")
-    uri  = f"data:{mime};base64,{data}"
+    uri = _file_data_uri(wordmark_path, default_mime="image/svg+xml")
     snippet = (
         f'<img class="hero__wordmark" alt="" '
         f'src="{uri}" '
@@ -301,3 +315,94 @@ def _inject_wordmark(html: str, wordmark_path: Path) -> str:
     )
     # Inject immediately after .hero opening tag
     return re.sub(r'(<header\s+class="hero"[^>]*>)', r'\1\n      ' + snippet, html, count=1)
+
+
+# ---------- starter scene stubs ----------
+
+_STARTER_SIMPLE = '''\
+// scenes/{id}.js — kind: "simple". Draw once into the mount.
+window.STORY.register("{id}", (mount, data, scene) => {{
+  const records = data.datasets[scene.dataset] || [];
+  const w = mount.clientWidth, h = Math.max(mount.clientHeight, 300);
+  const svg = d3.select(mount).append("svg")
+    .attr("viewBox", `0 0 ${{w}} ${{h}}`)
+    .attr("width", "100%").attr("height", h);
+  // TODO: draw the chart. Theme tokens: var(--accent), var(--cat-1)..--cat-7,
+  // var(--ink-soft) etc. Use the .annotation class for callout text.
+}});
+'''
+
+_STARTER_SCROLLY = '''\
+// scenes/{id}.js — kind: "scrolly". Sticky chart, morph on each step.
+window.STORY.register("{id}", (mount, data, scene) => {{
+  const records = data.datasets[scene.dataset] || [];
+  const w = mount.clientWidth, h = mount.clientHeight;
+  const svg = d3.select(mount).append("svg")
+    .attr("viewBox", `0 0 ${{w}} ${{h}}`)
+    .attr("width", "100%").attr("height", "100%");
+  // TODO: initial draw.
+  return {{
+    onStep(i, direction) {{
+      // TODO: morph the chart for step i (matches scene.steps[i] in data.json).
+    }},
+  }};
+}});
+'''
+
+_STARTER_PINNED = '''\
+// scenes/{id}.js — kind: "pinned". One pinned object, driven by scroll progress 0..1.
+window.STORY.register("{id}", (mount, data, scene) => {{
+  // TODO: initial draw into `mount`.
+  return {{
+    onProgress(p) {{
+      // TODO: transform the visual as p goes 0 → 1 (slides mode shows p=1).
+    }},
+  }};
+}});
+'''
+
+_STARTER_BLEED = '''\
+// scenes/{id}.js — kind: "bleed". Full-viewport background; headline text is
+// rendered by the framework from scene.headline / scene.commentary.
+window.STORY.register("{id}", (mount, data, scene) => {{
+  // TODO: paint the cinematic backdrop into `mount` (canvas, SVG, gradient...).
+}});
+'''
+
+_STARTER_CUSTOM = '''\
+// scenes/{id}.js — kind: "custom". Chrome-free: you own the entire <section>.
+window.STORY.register("{id}", (mount, data, scene) => {{
+  // `mount` IS the <section>. Build any layout; read scene.headline /
+  // scene.commentary / scene.source_line yourself if you want them shown.
+}});
+'''
+
+_STARTER_VIZZU = '''\
+// scenes/{id}.js — kind: "vizzu".
+// NOTE: vizzu scenes are fully declarative — define `series` and `frames[]`
+// in data.json and DELETE this file. Keep it only to take manual control of
+// the chart (registering a renderer overrides the default vizzu behavior).
+window.STORY.register("{id}", (mount, data, scene) => {{
+  // TODO: drive your own Vizzu instance, or delete this file.
+}});
+'''
+
+_STARTERS: dict[str, str] = {
+    "simple":  _STARTER_SIMPLE,
+    "scrolly": _STARTER_SCROLLY,
+    "pinned":  _STARTER_PINNED,
+    "bleed":   _STARTER_BLEED,
+    "custom":  _STARTER_CUSTOM,
+    "vizzu":   _STARTER_VIZZU,
+}
+
+
+def starter_scene_js(scene_id: str, kind: str = "simple") -> str:
+    """Return a starter scene script for `kind`, ready for write_scene().
+
+    Each stub registers a renderer with the correct contract for its kind
+    (scrolly returns onStep, pinned returns onProgress, ...).
+    """
+    if kind not in _STARTERS:
+        raise ValueError(f"Unknown scene kind {kind!r}. One of: {sorted(_STARTERS)}")
+    return _STARTERS[kind].format(id=scene_id)

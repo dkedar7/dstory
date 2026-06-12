@@ -1,6 +1,6 @@
 [project]
 name = "dstory"
-version = "0.3.1"
+version = "0.5.0"
 description = "Build interactive scrollytelling and slide-deck data stories from Python — bundle, vet, theme, and ship a single self-contained HTML file."
 readme = "README.md"
 authors = [
@@ -21,12 +21,13 @@ classifiers = [
     "Topic :: Multimedia :: Graphics",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
+# Playwright is deliberately NOT a core dependency — browser-driven vetting
+# is the [vet] extra. Static vet checks work without it.
 dependencies = [
     "pydantic>=2.5",
     "click>=8.1",
     "tomli>=2.0; python_version<'3.11'",
     "rich>=13.0",
-    "playwright>=1.59.0",
 ]
 
 [project.optional-dependencies]
@@ -51,6 +52,7 @@ include = [
     "src/dstory/templates/**",
     "src/dstory/themes/**",
     "src/dstory/references/**",
+    "src/dstory/cookbook/**",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -63,4 +65,7 @@ addopts   = "-q"
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
+    # greenlet >=3.2 wheels fail to load on some Windows setups (DLL error);
+    # pin to 3.1.x so the Playwright-driven e2e tests keep working there.
+    "greenlet<3.2; sys_platform == 'win32'",
 ]

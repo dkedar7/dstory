@@ -34,6 +34,22 @@ class Meta(BaseModel):
     mode: Mode = "scroll"
     sources: list[Source] = Field(default_factory=list)
 
+    # Language / direction — set on <html lang dir> at bundle time and runtime.
+    # lang reaches screen readers and hyphenation; dir="rtl" flips the layout.
+    lang: str = "en"
+    dir: Literal["ltr", "rtl", "auto"] = "ltr"
+
+    # Sharing — emitted as <meta name="description"> + Open Graph / Twitter
+    # card tags at bundle time. description falls back to deck, then subtitle.
+    # share_image must be an absolute URL (data URIs don't work for og:image).
+    description: Optional[str] = ""
+    share_image: Optional[str] = None
+
+    # Full-bleed hero background image. A project-relative path is inlined as
+    # a data URI at bundle time; an absolute URL is left as-is. Decorative —
+    # the hero text carries the content, so no alt is needed.
+    hero_image: Optional[str] = None
+
 
 class Claim(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -87,6 +103,11 @@ class Scene(BaseModel):
     commentary: Optional[str] = ""
     source_line: Optional[str] = ""
     dataset: Optional[str] = None
+
+    # alt: text alternative for the chart, set as role="img" + aria-label on
+    # the mount. One sentence stating what the chart shows AND the takeaway,
+    # e.g. "Line chart: monthly users tripled from 1,000 to 2,900 over Q1."
+    alt: Optional[str] = None
 
     # Layout controls
     # width: per-scene column width override.
