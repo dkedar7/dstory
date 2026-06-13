@@ -92,21 +92,27 @@ STORY = {
                 {"name": "Region", "type": "dimension"},
                 {"name": "Sales", "type": "measure"},
             ],
+            # Every frame lists EVERY channel it touches anywhere in the
+            # sequence (nulls included). The runtime skips stale frames
+            # during fast scrolling, so a frame can never rely on a
+            # predecessor to detach a channel for it.
             "frames": [
                 _f("Start flat: a column chart",
                    "Five regions, one measure. Height carries the value.",
-                   {"x": "Region", "y": "Sales", "color": "Region", "label": "Sales"},
+                   {"x": "Region", "y": "Sales", "color": "Region",
+                    "label": "Sales", "size": None},
                    "rectangle"),
                 _f("Wrap the axis: radial bars",
                    "Same channels, polar coordinates. The x-axis curls into a circle.",
-                   {"x": "Region", "y": "Sales", "color": "Region", "label": None},
+                   {"x": "Region", "y": "Sales", "color": "Region",
+                    "label": None, "size": None},
                    "rectangle", "polar"),
                 # Pie wedges must STACK on x — [dimension, measure] — or the
                 # five arcs all start at angle zero and overdraw each other.
                 _f("Drop an axis: a pie",
                    "Move the measure onto x and the wedges become parts of a whole.",
                    {"x": {"set": ["Region", "Sales"]}, "y": None,
-                    "color": "Region", "label": "Region"},
+                    "color": "Region", "label": "Region", "size": None},
                    "rectangle", "polar"),
                 _f("Change geometry: packed bubbles",
                    "No axes at all now — area carries the value, the layout packs itself.",
@@ -114,7 +120,7 @@ STORY = {
                    "circle"),
                 _f("Tile the plane: a treemap",
                    "Same areas, squared off. Five frames, zero re-orientation — the colors never moved.",
-                   {"size": "Sales", "color": "Region", "label": "Region"},
+                   {"x": None, "y": None, "size": "Sales", "color": "Region", "label": "Region"},
                    "rectangle"),
             ],
         },

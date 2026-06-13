@@ -421,13 +421,34 @@ async function activateVizzuScene(sceneEl, scene, data, slidesMode = false) {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const duration = reduce ? 0 : (scene.duration || 1.0);
 
+  // Morph scheduler: latest target wins. chart.animate() QUEUES animations,
+  // so a fast scroll through N steps would otherwise play N back-to-back
+  // morphs while the text runs ahead of the chart. While a morph is in
+  // flight we keep only the newest requested frame and play it when the
+  // current one finishes — stale intermediate frames are skipped. (Frames
+  // should be self-contained for this reason: set geometry, coordSystem,
+  // and any align/split resets explicitly in every frame.)
+  let morphing = false;
+  let queuedConfig = null;
+  function morphTo(config) {
+    if (morphing) { queuedConfig = config; return; }
+    morphing = true;
+    const next = () => {
+      morphing = false;
+      if (queuedConfig) {
+        const c = queuedConfig;
+        queuedConfig = null;
+        morphTo(c);
+      }
+    };
+    chart.animate({ config }, duration).then(next, next);
+  }
+
   // ctrl that the slides controller (or scroll mode) can call to morph to a frame.
   const ctrl = {
     onStep(i /*, direction */) {
       const frame = (scene.frames || [])[i];
-      if (frame && frame.config) {
-        chart.animate({ config: frame.config }, duration).catch(() => {});
-      }
+      if (frame && frame.config) morphTo(frame.config);
     },
   };
 

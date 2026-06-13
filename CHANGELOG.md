@@ -3,6 +3,20 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.5.1] - 2026-06-13
+
+### Fixed
+- **Vizzu scenes no longer queue a backlog of morphs on fast scrolling.**
+  `chart.animate()` queues animations, so scrolling quickly through N steps
+  played N back-to-back ~1s morphs while the text ran ahead of the chart.
+  The runtime now uses a latest-wins scheduler: while a morph is in flight,
+  only the newest requested frame is kept and stale intermediates are skipped.
+  Same fix applies in slides mode (rapid arrow-keying). Authoring note:
+  frames should stay self-contained (set `geometry`, `coordSystem`, and any
+  `align`/`split` resets explicitly in every frame), since intermediate
+  frames may be skipped. The prebuilt demo story on the docs site was
+  patched in place; the morph showcase was rebuilt from the new template.
+
 ## [0.5.0] - 2026-06-12
 
 The on-ramp release: pure-Python authors can now go DataFrame → story.html

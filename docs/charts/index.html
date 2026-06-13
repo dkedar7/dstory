@@ -292,19 +292,24 @@ either to apply)</em></p>
 </table>
 <hr />
 <h2>The morph trick (Vizzu's actual superpower)</h2>
-<p>Don't pick one chart per scene — pick <strong>a sequence that morphs between qualitatively different shapes</strong>. The reader stays oriented because the data is constant; only the lens changes. Examples that work:</p>
+<p>Don't pick one chart per scene — pick <strong>a sequence that morphs between qualitatively different shapes</strong>. The reader stays oriented because the data is constant; only the lens changes.</p>
+<p><strong>Make every frame self-contained</strong>: list every channel the sequence touches
+(with <code>null</code> for detached ones) and set <code>geometry</code>/<code>coordSystem</code> explicitly.
+Configs merge differentially, AND the dstory runtime skips stale intermediate
+frames during fast scrolling — a frame can never rely on its predecessor to
+detach a channel for it. Examples that work:</p>
 <p><strong>Bar → polar bar → pie → bubble → treemap</strong> (same total per region, 5 different visual logics):</p>
 <pre><code class="language-json">&quot;frames&quot;: [
-  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Region&quot;, &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;},
-              &quot;geometry&quot;: &quot;rectangle&quot;}},
-  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Region&quot;, &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Region&quot;, &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;, &quot;size&quot;: null},
+              &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;cartesian&quot;}},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Region&quot;, &quot;y&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;, &quot;size&quot;: null},
               &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}},
-  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;color&quot;: &quot;Region&quot;},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: [&quot;Region&quot;, &quot;Sales&quot;], &quot;y&quot;: null, &quot;color&quot;: &quot;Region&quot;, &quot;size&quot;: null},
               &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;polar&quot;}},
-  {&quot;config&quot;: {&quot;channels&quot;: {&quot;size&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;},
-              &quot;geometry&quot;: &quot;circle&quot;}},
-  {&quot;config&quot;: {&quot;channels&quot;: {&quot;size&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;, &quot;label&quot;: &quot;Region&quot;},
-              &quot;geometry&quot;: &quot;rectangle&quot;}}
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: null, &quot;y&quot;: null, &quot;size&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;},
+              &quot;geometry&quot;: &quot;circle&quot;, &quot;coordSystem&quot;: &quot;cartesian&quot;}},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: null, &quot;y&quot;: null, &quot;size&quot;: &quot;Sales&quot;, &quot;color&quot;: &quot;Region&quot;, &quot;label&quot;: &quot;Region&quot;},
+              &quot;geometry&quot;: &quot;rectangle&quot;, &quot;coordSystem&quot;: &quot;cartesian&quot;}}
 ]
 </code></pre>
 <p><strong>Stacked column → streamgraph → ribbon line</strong> (same time series, three temporal logics):</p>
@@ -321,14 +326,16 @@ either to apply)</em></p>
 the streamgraph's <code>center</code> would otherwise leak into every later frame)</em></p>
 <p><strong>Scatter → dot plot → bubble</strong> (same observations, three encoding emphases):</p>
 <pre><code class="language-json">&quot;frames&quot;: [
-  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;GDP&quot;, &quot;y&quot;: &quot;Lifespan&quot;, &quot;color&quot;: &quot;Continent&quot;},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;GDP&quot;, &quot;y&quot;: &quot;Lifespan&quot;, &quot;color&quot;: &quot;Continent&quot;, &quot;noop&quot;: &quot;Country&quot;, &quot;size&quot;: null},
               &quot;geometry&quot;: &quot;circle&quot;}},
-  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Continent&quot;, &quot;y&quot;: &quot;Lifespan&quot;, &quot;color&quot;: &quot;Continent&quot;},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: &quot;Continent&quot;, &quot;y&quot;: &quot;Lifespan&quot;, &quot;color&quot;: &quot;Continent&quot;, &quot;noop&quot;: &quot;Country&quot;, &quot;size&quot;: null},
               &quot;geometry&quot;: &quot;circle&quot;}},
-  {&quot;config&quot;: {&quot;channels&quot;: {&quot;size&quot;: &quot;Pop&quot;, &quot;color&quot;: &quot;Continent&quot;},
+  {&quot;config&quot;: {&quot;channels&quot;: {&quot;x&quot;: null, &quot;y&quot;: null, &quot;noop&quot;: null, &quot;size&quot;: &quot;Pop&quot;, &quot;color&quot;: &quot;Continent&quot;},
               &quot;geometry&quot;: &quot;circle&quot;}}
 ]
 </code></pre>
+<p><em>(<code>noop</code> keeps individual countries as separate dots in the first two frames
+without encoding them anywhere)</em></p>
 <h2>Anti-patterns</h2>
 <ul>
 <li><strong>bar → area → line</strong>: three cousins of the same chart. Easy to author, low surprise. Use only as part of a richer 5-frame morph, not as a 3-frame sequence on its own.</li>

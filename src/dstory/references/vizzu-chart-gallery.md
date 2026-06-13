@@ -323,21 +323,27 @@ either to apply)*
 
 ## The morph trick (Vizzu's actual superpower)
 
-Don't pick one chart per scene — pick **a sequence that morphs between qualitatively different shapes**. The reader stays oriented because the data is constant; only the lens changes. Examples that work:
+Don't pick one chart per scene — pick **a sequence that morphs between qualitatively different shapes**. The reader stays oriented because the data is constant; only the lens changes.
+
+**Make every frame self-contained**: list every channel the sequence touches
+(with `null` for detached ones) and set `geometry`/`coordSystem` explicitly.
+Configs merge differentially, AND the dstory runtime skips stale intermediate
+frames during fast scrolling — a frame can never rely on its predecessor to
+detach a channel for it. Examples that work:
 
 **Bar → polar bar → pie → bubble → treemap** (same total per region, 5 different visual logics):
 ```json
 "frames": [
-  {"config": {"channels": {"x": "Region", "y": "Sales", "color": "Region"},
-              "geometry": "rectangle"}},
-  {"config": {"channels": {"x": "Region", "y": "Sales", "color": "Region"},
+  {"config": {"channels": {"x": "Region", "y": "Sales", "color": "Region", "size": null},
+              "geometry": "rectangle", "coordSystem": "cartesian"}},
+  {"config": {"channels": {"x": "Region", "y": "Sales", "color": "Region", "size": null},
               "geometry": "rectangle", "coordSystem": "polar"}},
-  {"config": {"channels": {"x": ["Region", "Sales"], "color": "Region"},
+  {"config": {"channels": {"x": ["Region", "Sales"], "y": null, "color": "Region", "size": null},
               "geometry": "rectangle", "coordSystem": "polar"}},
-  {"config": {"channels": {"size": "Sales", "color": "Region"},
-              "geometry": "circle"}},
-  {"config": {"channels": {"size": "Sales", "color": "Region", "label": "Region"},
-              "geometry": "rectangle"}}
+  {"config": {"channels": {"x": null, "y": null, "size": "Sales", "color": "Region"},
+              "geometry": "circle", "coordSystem": "cartesian"}},
+  {"config": {"channels": {"x": null, "y": null, "size": "Sales", "color": "Region", "label": "Region"},
+              "geometry": "rectangle", "coordSystem": "cartesian"}}
 ]
 ```
 
@@ -358,14 +364,16 @@ the streamgraph's `center` would otherwise leak into every later frame)*
 **Scatter → dot plot → bubble** (same observations, three encoding emphases):
 ```json
 "frames": [
-  {"config": {"channels": {"x": "GDP", "y": "Lifespan", "color": "Continent"},
+  {"config": {"channels": {"x": "GDP", "y": "Lifespan", "color": "Continent", "noop": "Country", "size": null},
               "geometry": "circle"}},
-  {"config": {"channels": {"x": "Continent", "y": "Lifespan", "color": "Continent"},
+  {"config": {"channels": {"x": "Continent", "y": "Lifespan", "color": "Continent", "noop": "Country", "size": null},
               "geometry": "circle"}},
-  {"config": {"channels": {"size": "Pop", "color": "Continent"},
+  {"config": {"channels": {"x": null, "y": null, "noop": null, "size": "Pop", "color": "Continent"},
               "geometry": "circle"}}
 ]
 ```
+*(`noop` keeps individual countries as separate dots in the first two frames
+without encoding them anywhere)*
 
 ## Anti-patterns
 
