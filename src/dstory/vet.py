@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+from .prep import RATIO_WINDOWS
+
 
 # ---------- result types ----------
 
@@ -89,15 +91,23 @@ def _parse_color(s: str) -> Optional[tuple[float, float, float]]:
 
 # ---------- static checks (no browser) ----------
 
+def _window(lo: float, hi: float):
+    return lambda v: lo <= v <= hi
+
+
+# Ratio phrases share their windows with dstory.prep (RATIO_WINDOWS), so a
+# claim built with compute_claim() always satisfies these predicates. Each
+# predicate takes an after/before ratio.
 PHRASE_RULES: list[tuple[re.Pattern, callable]] = [
-    (re.compile(r"\bdoubled\b", re.I),    lambda v: 1.95 <= v <= 2.10),
-    (re.compile(r"\btripled\b", re.I),    lambda v: 2.85 <= v <= 3.15),
-    (re.compile(r"\bquadrupled\b", re.I), lambda v: 3.85 <= v <= 4.15),
-    (re.compile(r"\bquintupled\b", re.I), lambda v: 4.85 <= v <= 5.15),
-    (re.compile(r"\bhalved\b", re.I),     lambda v: 0.45 <= v <= 0.55),
-    (re.compile(r"\bmajority\b", re.I),   lambda v: v >= 0.50),
+    (re.compile(rf"\b{word}\b", re.I), _window(lo, hi))
+    for word, (lo, hi) in RATIO_WINDOWS.items()
 ]
+# "majority" is about a share (0..1), not a ratio; only checked for claims
+# without an explicit unit.
+MAJORITY_RULE = (re.compile(r"\bmajority\b", re.I), lambda v: v >= 0.50)
+PHRASE_RULES.append(MAJORITY_RULE)
 PCT_TOLERANCE_PP = 0.5
+_PCT_RE = re.compile(r"(?:\b(increas|decreas)\w*\s+(?:by\s+)?)?(\d+(?:\.\d+)?)\s*%", re.I)
 
 SLOP_PHRASES = [
     "lorem ipsum", "[placeholder]", "[todo]", "TODO:", "as you can see",
@@ -207,21 +217,39 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
         if norm_text and norm_text not in prose_lower:
             r.note(f"Claim {cid!r} text not found verbatim in prose; check chart and prose match.")
 
+        unit = c.get("unit")
+        # Normalise the value to the two scales the rules need.
+        if value is None:
+            as_ratio = actual_pct = None
+        elif unit == "ratio":
+            as_ratio, actual_pct = value, (value - 1.0) * 100.0
+        elif unit == "pct":
+            as_ratio, actual_pct = 1.0 + value / 100.0, value
+        else:
+            # Legacy, unit-less claim: 0..1 reads as a share, else as percent.
+            as_ratio, actual_pct = value, (value * 100 if 0 <= value <= 1 else value)
+
         for pattern, predicate in PHRASE_RULES:
+            if (pattern, predicate) == MAJORITY_RULE and unit is not None:
+                continue
             if pattern.search(text):
                 if value is None:
                     r.fail(f"Claim {cid!r} uses '{pattern.pattern}' but has no numeric value.")
-                elif not predicate(value):
-                    r.fail(f"Claim {cid!r}: prose says \"{text}\" but value={value} fails check for "
+                elif not predicate(as_ratio):
+                    r.fail(f"Claim {cid!r}: prose says \"{text}\" but value={value}"
+                           f"{f' ({unit})' if unit else ''} fails check for "
                            f"'{pattern.pattern}'. Either rephrase or fix the data.")
 
-        m = re.search(r"(\d+(?:\.\d+)?)\s*%", text)
+        m = _PCT_RE.search(text)
         if m and value is not None:
-            stated = float(m.group(1))
-            actual_pct = value * 100 if 0 <= value <= 1 else value
-            if abs(actual_pct - stated) > PCT_TOLERANCE_PP:
-                r.fail(f"Claim {cid!r}: prose says {stated}%, derived value is "
-                       f"{actual_pct:.2f}% (tolerance {PCT_TOLERANCE_PP}pp).")
+            direction, stated = (m.group(1) or "").lower(), float(m.group(2))
+            if direction == "decreas":
+                stated = -stated
+            # Without an explicit direction word, compare magnitudes only.
+            got = actual_pct if direction else abs(actual_pct)
+            if abs(got - stated) > PCT_TOLERANCE_PP:
+                r.fail(f"Claim {cid!r}: prose says {m.group(0).strip()}, derived value is "
+                       f"{actual_pct:+.2f}% (tolerance {PCT_TOLERANCE_PP}pp).")
 
     return r
 
@@ -277,6 +305,14 @@ def check_editorial(html: str, data: dict[str, Any]) -> Dimension:
     return r
 
 
+_VENDORED_SCRIPT = re.compile(r"<script\b[^>]*\bdata-vendored=[^>]*>.*?</script>", re.I | re.S)
+
+
+def _strip_vendored(html: str) -> str:
+    """Drop third-party library blocks inlined by `dstory bundle --vendor`."""
+    return _VENDORED_SCRIPT.sub("", html)
+
+
 def check_static_a11y(html: str, data: dict[str, Any]) -> Dimension:
     r = Dimension("Accessibility & ethics (static)")
     flat = json.dumps(data, ensure_ascii=False)
@@ -284,9 +320,12 @@ def check_static_a11y(html: str, data: dict[str, Any]) -> Dimension:
         if pat.search(flat):
             r.fail(f"data.json contains a {label}; verify this isn't sensitive PII.")
 
-    if re.search(r"\baxisRight\b", html) and re.search(r"\baxisLeft\b", html):
+    # Library code inlined by `bundle --vendor` (d3 defines both axisLeft and
+    # axisRight, for one) must not trip the author-code heuristics below.
+    author = _strip_vendored(html)
+    if re.search(r"\baxisRight\b", author) and re.search(r"\baxisLeft\b", author):
         r.note("Markup references both axisLeft and axisRight — dual y-axes are usually a mistake.")
-    if re.search(r"\b(three\.js|webgl|3d|rotation: ?'\w*z')", html, re.I):
+    if re.search(r"\b(three\.js|webgl|3d|rotation: ?'\w*z')", author, re.I):
         r.note("3D / WebGL content detected — make sure no chart uses 3D for value encoding.")
 
     if not re.search(r"<html\b[^>]*\blang=", html):
@@ -335,6 +374,37 @@ BROWSER_AUDIT_JS = r"""
 })()
 """
 
+# Scenes that carry data (a dataset or Vizzu frames) must paint something in
+# their chart mount. Returns the ids of scenes whose mount is still empty:
+# no svg with marks, no sized canvas, no image, and no HTML chart either.
+PAINT_AUDIT_JS = r"""
+(() => {
+  const data = window.__STORY_DATA__;
+  if (!data || !Array.isArray(data.scenes)) return [];
+  const marks = 'path, rect, circle, line, polyline, polygon, ellipse, text, image, use';
+  const unpainted = [];
+  for (const s of data.scenes) {
+    if (!s || !s.id) continue;
+    const hasData = !!s.dataset || (Array.isArray(s.frames) && s.frames.length > 0);
+    if (!hasData) continue;
+    const mount = document.querySelector(`[data-mount="${CSS.escape(s.id)}"]`);
+    if (!mount) { unpainted.push(s.id); continue; }
+    const svgs = Array.from(mount.querySelectorAll('svg'));
+    const svgPainted = svgs.some(svg => svg.querySelector(marks));
+    const canvasPainted = Array.from(mount.querySelectorAll('canvas'))
+      .some(c => c.width > 0 && c.height > 0);
+    const imgPainted = !!mount.querySelector('img');
+    // An HTML-only chart (no svg at all) counts if it built any elements.
+    // Mounts start empty (for kind:"custom" the mount is the bare section).
+    const htmlPainted = svgs.length === 0 && mount.children.length > 0;
+    if (!(svgPainted || canvasPainted || imgPainted || htmlPainted)) unpainted.push(s.id);
+  }
+  return unpainted;
+})()
+"""
+
+_EMPTY_DATASET_WARNING = re.compile(r"^\[[\w-]+\] empty dataset")
+
 SLIDES_AUDIT_JS = r"""
 (() => {
   if (!document.body.classList.contains('story-mode--slides')) return null;
@@ -373,9 +443,16 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
             ctx  = browser.new_context(viewport={"width": w, "height": h})
             page = ctx.new_page()
             console_errors: list[str] = []
+            empty_warnings: list[str] = []
+
+            def on_console(msg, errs=console_errors, empties=empty_warnings):
+                if msg.type == "error":
+                    errs.append(f"{msg.type}: {msg.text}")
+                elif msg.type == "warning" and _EMPTY_DATASET_WARNING.match(msg.text or ""):
+                    empties.append(msg.text)
+
             page.on("pageerror", lambda exc: console_errors.append(f"pageerror: {exc}"))
-            page.on("console", lambda msg:
-                    console_errors.append(f"{msg.type}: {msg.text}") if msg.type == "error" else None)
+            page.on("console", on_console)
 
             try:
                 page.goto(url, wait_until="domcontentloaded", timeout=10000)
@@ -395,6 +472,24 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
 
             if facts["sceneCount"] == 0:
                 renders.fail(f"viewport {w}x{h}: no scenes in DOM.")
+
+            # "Charts paint": every data-bearing scene must draw something.
+            # Renderers may be async (Vizzu), so give them a moment first.
+            try:
+                page.wait_for_function(f"{PAINT_AUDIT_JS.strip()}.length === 0", timeout=4000)
+            except Exception:
+                pass
+            try:
+                unpainted = page.evaluate(PAINT_AUDIT_JS)
+            except Exception as e:
+                unpainted = []
+                renders.note(f"viewport {w}x{h}: paint check skipped — {e}")
+            if unpainted:
+                renders.fail(f"viewport {w}x{h}: chart did not paint in scene(s) "
+                             f"{', '.join(unpainted)} — check the dataset columns match the "
+                             "renderer (scene.config) and that a renderer is registered.")
+            if empty_warnings:
+                renders.fail(f"viewport {w}x{h}: recipe reported an empty dataset — {empty_warnings[:3]}")
             if facts["svgCount"] == 0 and facts["canvasCount"] == 0:
                 renders.note(f"viewport {w}x{h}: no SVG or Canvas charts detected.")
 

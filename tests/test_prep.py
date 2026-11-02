@@ -71,5 +71,5 @@ def test_compute_claim_full_payload():
 
 
 def test_compute_claim_no_scene_omitted():
-    claim = compute_claim(id="c2", text_template="x {phrase}", value=2.0)
+    claim = compute_claim(id="c2", text_template="x {phrase}", value=2.0, kind="ratio")
     assert "scene" not in claim

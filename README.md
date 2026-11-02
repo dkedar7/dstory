@@ -131,9 +131,13 @@ claim = compute_claim(
 ```
 
 `compute_claim()` derives the phrase from the value using the same vocabulary
-the vetter checks ("doubled"…"quintupled", percentages), so a claim built this
-way cannot fail data-fidelity vetting — and a hand-written claim that drifts
-from its value blocks the build.
+and windows the vetter checks ("doubled"…"quintupled", percentages), so a claim
+built this way cannot fail data-fidelity vetting — and a hand-written claim that
+drifts from its value blocks the build. `compute_ratio()` and
+`compute_pct_change()` tag their result with its unit, and the claim records it
+(`"unit": "ratio"` or `"pct"`), so a 3.4× ratio is never printed as "3.4%" and a
++2% change is never called "doubled". For a plain float, pass
+`kind="ratio"` or `kind="pct"`.
 
 ## How is this different from…?
 

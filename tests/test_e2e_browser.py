@@ -185,3 +185,24 @@ def test_slides_mode_deeplink_and_keyboard(browser, slides_story: Path):
     )
     assert page.evaluate("location.hash") == "#slide-3"
     page.close()
+
+
+# ---------- dogfood #1 / #3 ----------
+
+def test_script_payload_in_data_stays_inert(browser, tmp_path: Path):
+    from dstory import build
+    payload = "</script><script>window.__pwn=1</script>"
+    res = build({"meta": {"title": f"Q1 {payload}"},
+                 "scenes": [{"id": "s1", "kind": "simple", "headline": "Hello"}],
+                 "datasets": {"d": [{"label": payload, "value": 1}]}},
+                tmp_path / "inj")
+    page = browser.new_page()
+    errors = []
+    page.on("pageerror", lambda exc: errors.append(str(exc)))
+    page.goto(res.html.as_uri(), wait_until="load")
+    page.wait_for_function("document.querySelector('h1')?.textContent?.includes('Q1')", timeout=10000)
+    assert page.evaluate("window.__pwn") is None
+    assert payload in page.evaluate("document.querySelector('h1').textContent")
+    assert not errors, errors
+    page.close()
+

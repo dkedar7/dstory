@@ -3,6 +3,29 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- **Security: story text can no longer break out of the bundled data script**
+  (#1). `data.json` is embedded with every `<` escaped as `<` (plus
+  U+2028/U+2029), so a `</script>` in a title or dataset value stays inert.
+- **`compute_claim()` claims always pass vetting, and never state the wrong
+  unit** (#2). `compute_ratio()` / `compute_pct_change()` return unit-tagged
+  floats (`Ratio`, `PctChange`); claims record `"unit": "ratio" | "pct"`; prep
+  and vet share one phrase-window table (`RATIO_WINDOWS`). A 3.4× ratio now
+  reads "increased by 240.0%", not "3.4%"; a +2% change is never "doubled".
+  The vetter honours `unit`, checks "increased/decreased by N%" direction, and
+  no longer fails correct "decreased by N%" claims. `compute_claim()` takes a
+  `kind=` argument and warns on an untagged float.
+- **The browser vetter checks that charts paint** (#3). Every scene with a
+  `dataset` or `frames` must draw something in its mount (svg marks, a sized
+  canvas, an image, or HTML), and a recipe's `empty dataset` warning fails
+  "Renders correctly".
+- **The CLI no longer crashes on non-UTF-8 consoles** (#4). Unencodable
+  characters print as `?` instead of raising `UnicodeEncodeError`.
+- **No false dual-axis / 3D notes on `--vendor` bundles** (#5). Static checks
+  skip `<script data-vendored>` library code.
+
 ## [0.5.1] - 2026-06-13
 
 ### Fixed

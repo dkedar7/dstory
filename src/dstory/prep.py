@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import math
 import re
+import warnings
 from typing import Any, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -51,8 +52,19 @@ def to_long(df: "pd.DataFrame", *, id_vars: list[str] | str, value_vars: Optiona
 
 # ---------- claim derivation ----------
 
-# Same vocabulary the vetter uses for cross-checking. Keeping these lists in sync
-# is intentional: if the prose says "tripled," the value must satisfy the predicate.
+# The single source of truth for ratio phrases. The vetter builds its
+# PHRASE_RULES from RATIO_WINDOWS, so prep can never label a value with a
+# phrase the vetter would reject (or vice versa). Windows are inclusive and
+# are expressed as after/before ratios.
+RATIO_WINDOWS: dict[str, tuple[float, float]] = {
+    "doubled":    (1.95, 2.10),
+    "tripled":    (2.85, 3.15),
+    "quadrupled": (3.85, 4.15),
+    "quintupled": (4.85, 5.15),
+    "halved":     (0.45, 0.55),
+}
+
+# Nominal targets, kept for backward compatibility.
 RATIO_PHRASES = {
     "doubled":     2.0,
     "tripled":     3.0,
@@ -61,46 +73,82 @@ RATIO_PHRASES = {
     "halved":      0.5,
 }
 
+CLAIM_UNITS = ("ratio", "pct")
 
-def compute_ratio(after: float, before: float) -> float:
-    """ratio = after / before, with sane error handling."""
+
+class Ratio(float):
+    """A float tagged as an after/before ratio (2.0 == doubled)."""
+    unit = "ratio"
+
+
+class PctChange(float):
+    """A float tagged as a signed percent change (+50.0 == up 50%)."""
+    unit = "pct"
+
+
+def ratio_phrase(ratio: float) -> Optional[str]:
+    """The phrase whose vetter window contains `ratio`, or None."""
+    for word, (lo, hi) in RATIO_WINDOWS.items():
+        if lo <= ratio <= hi:
+            return word
+    return None
+
+
+def compute_ratio(after: float, before: float) -> Ratio:
+    """ratio = after / before, with sane error handling.
+
+    Returns a `Ratio` (a float subclass) so `compute_claim` knows the unit and
+    can never print a 3.4x ratio as "3.4%".
+    """
     if before == 0:
         raise ValueError("Cannot compute ratio with before=0.")
-    return after / before
+    return Ratio(after / before)
 
 
-def compute_pct_change(after: float, before: float) -> float:
-    """Percentage change (signed). +50.0 means a 50% increase."""
+def compute_pct_change(after: float, before: float) -> PctChange:
+    """Percentage change (signed). +50.0 means a 50% increase.
+
+    Returns a `PctChange` (a float subclass) so `compute_claim` knows the unit
+    and can never print a +2% change as "doubled".
+    """
     if before == 0:
         raise ValueError("Cannot compute pct change with before=0.")
-    return (after - before) / before * 100.0
+    return PctChange((after - before) / before * 100.0)
+
+
+def _resolve_unit(value: float, kind: str) -> Optional[str]:
+    if kind in CLAIM_UNITS:
+        return kind
+    if kind != "auto":
+        raise ValueError(f"kind must be 'auto', 'ratio' or 'pct', got {kind!r}.")
+    return getattr(value, "unit", None)
+
+
+def _pct_phrase(pct: float) -> str:
+    if pct >= 0:
+        return f"increased by {pct:.1f}%"
+    return f"decreased by {abs(pct):.1f}%"
 
 
 def derive_claim_text(value: float, *, kind: str = "auto") -> str:
     """Produce a claim phrase that's safe to feed into the vetter.
 
-    - ratio:   "doubled"/"tripled"/.. or "Nx" / "N-fold"
-    - pct:     "increased by N%" / "decreased by N%"
-    - auto:    matches a known ratio phrase if value is near one (2.0, 3.0, 0.5, etc),
-               otherwise treats value as a percentage change
+    - ratio: "doubled"/"tripled"/... when the ratio is inside the vetter's
+             window, otherwise the equivalent percent change (3.4 -> "increased
+             by 240.0%").
+    - pct:   "doubled"/... when 1 + pct/100 is inside a window, otherwise
+             "increased by N%" / "decreased by N%".
+    - auto:  uses the unit tagged by compute_ratio / compute_pct_change. An
+             untagged float is ambiguous: it gets a phrase if it falls in a
+             ratio window, otherwise it is treated as a percent change. Pass
+             kind= explicitly for plain floats.
     """
-    if kind in ("ratio", "auto"):
-        # Tolerance matches the vetter's predicate window (target ± 0.15) so
-        # any value that derive_claim_text labels with a phrase will pass vet.
-        for word, target in RATIO_PHRASES.items():
-            if abs(value - target) <= 0.15:
-                return word
-        if kind == "ratio":
-            # Forced ratio mode: produce a generic ratio phrase
-            if value >= 2:
-                return f"{value:.1f}× higher"
-            if value <= 0.5:
-                return f"{value:.2f}× as much (a {(1-value)*100:.0f}% drop)"
-            return f"{value:.2f}× the prior level"
-        # auto + no phrase match → fall through to pct
-    if value >= 0:
-        return f"increased by {value:.1f}%"
-    return f"decreased by {abs(value):.1f}%"
+    unit = _resolve_unit(value, kind)
+    if unit == "ratio":
+        return ratio_phrase(value) or _pct_phrase((value - 1.0) * 100.0)
+    if unit == "pct":
+        return ratio_phrase(1.0 + value / 100.0) or _pct_phrase(value)
+    return ratio_phrase(value) or _pct_phrase(value)
 
 
 def compute_claim(
@@ -109,12 +157,15 @@ def compute_claim(
     text_template: str,
     value: float,
     scene: Optional[str] = None,
+    kind: str = "auto",
 ) -> dict[str, Any]:
     """Build a `Claim` dict ready to drop into `data['claims']`.
 
     The value is computed by the caller (use compute_ratio/compute_pct_change),
-    then formatted into the text via `text_template`. Vetter will cross-check
-    the rendered prose against this value.
+    then formatted into the text via `text_template`. The claim records the
+    value's unit ("ratio" or "pct") so the vetter checks the text against the
+    right interpretation. With a plain float, pass kind="ratio" or kind="pct";
+    otherwise a warning is raised because the unit is ambiguous.
 
     Example:
         ratio = compute_ratio(after=4_200_000, before=1_380_000)   # ~3.04
@@ -124,11 +175,22 @@ def compute_claim(
             value=ratio,
             scene="scene-trend",
         )
-        # → {"id": "c1", "text": "Monthly volume tripled between ...", "value": 3.04, ...}
+        # -> {"id": "c1", "text": "Monthly volume tripled between ...",
+        #     "value": 3.04, "unit": "ratio", ...}
     """
-    phrase = derive_claim_text(value)
-    text = text_template.format(phrase=phrase, value=value)
+    unit = _resolve_unit(value, kind)
+    if unit is None:
+        warnings.warn(
+            "compute_claim got a plain float with kind='auto', so it can't tell a "
+            "ratio from a percent change. Use compute_ratio()/compute_pct_change() "
+            "or pass kind='ratio' / kind='pct'.",
+            UserWarning, stacklevel=2,
+        )
+    phrase = derive_claim_text(value, kind=unit or "auto")
+    text = text_template.format(phrase=phrase, value=float(value))
     out: dict[str, Any] = {"id": id, "text": text, "value": float(value)}
+    if unit is not None:
+        out["unit"] = unit
     if scene is not None:
         out["scene"] = scene
     return out

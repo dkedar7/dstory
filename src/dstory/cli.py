@@ -32,7 +32,25 @@ def cli() -> None:
 
     Scaffold a project, bundle to a single HTML, and vet it for delivery.
     """
-    pass
+    _safe_streams()
+
+
+def _safe_streams() -> None:
+    """Never crash on output encoding.
+
+    On a non-UTF-8 console (cp1252 on Windows, or redirected output there),
+    recipe summaries, vet messages ("≥", "→") and echoed story text can hold
+    characters the codec can't encode. Replace them with '?' instead of
+    raising UnicodeEncodeError mid-report.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(errors="replace")
+        except (ValueError, OSError):
+            pass
 
 
 @cli.command()

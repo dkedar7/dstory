@@ -127,7 +127,7 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False) -> 
         else:
             warnings.append(f"Hero image not found: {hero_image}")
 
-    embed = json.dumps(raw_data, ensure_ascii=False)
+    embed = _json_for_script(raw_data)
     inject = f"<script>window.__STORY_DATA__ = {embed};</script>"
     if "</head>" in html:
         html = html.replace("</head>", f"{inject}\n</head>", 1)
@@ -219,6 +219,21 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False) -> 
 
 
 # ---------- helpers ----------
+
+def _json_for_script(obj: object) -> str:
+    """Serialize `obj` as JSON that is inert inside an inline <script>.
+
+    json.dumps leaves "</script>" and "<!--" intact, so story text or data
+    containing them would close the script element (or open a comment) and
+    let the rest run as markup/script. Escaping every "<" as \\u003c is still
+    valid JSON/JS and covers both. U+2028/U+2029 are escaped for older JS
+    engines that treat them as line terminators inside string literals.
+    """
+    s = json.dumps(obj, ensure_ascii=False)
+    return (s.replace("<", "\\u003c")
+             .replace(" ", "\\u2028")
+             .replace(" ", "\\u2029"))
+
 
 def _is_remote(url: str) -> bool:
     return url.startswith(("http://", "https://", "//"))

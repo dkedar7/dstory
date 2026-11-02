@@ -56,6 +56,10 @@ class Claim(BaseModel):
     id: str
     text: str
     value: Optional[float] = None
+    # What `value` measures: "ratio" (after/before, 2.0 == doubled) or "pct"
+    # (signed percent change, +50.0 == up 50%). Omit for legacy claims; the
+    # vetter then guesses (0..1 is a share, otherwise percent points).
+    unit: Optional[Literal["ratio", "pct"]] = None
     scene: Optional[str] = None
 
 
