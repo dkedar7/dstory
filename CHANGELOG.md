@@ -3,7 +3,7 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.6.0] - 2026-11-02
 
 ### Fixed
 - **Security: story text can no longer break out of the bundled data script**
