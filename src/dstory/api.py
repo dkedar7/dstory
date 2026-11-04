@@ -69,7 +69,8 @@ def build(
         path: project directory to create (re-running overwrites framework
               files; your data/scenes come from the arguments each time).
         brand: Brand instance or preset name. Defaults to meta.theme when that
-               names a bundled preset, else "editorial-noir".
+               names a bundled preset; an unknown name raises instead of falling
+               back to "editorial-noir".
         scenes: optional {scene_id: js_source} of custom renderers to write
                 and wire. Vizzu scenes don't need one.
         vendor: inline the CDN runtime libs for a fully offline bundle
@@ -87,7 +88,13 @@ def build(
     meta = story_obj.meta
 
     if brand is None:
-        brand = meta.theme if meta.theme in list_presets() else "editorial-noir"
+        # A typo in meta.theme used to be swapped for editorial-noir in silence, which is the one
+        # entry point that did not reject it: init --theme and Brand.from_preset both fail loudly.
+        if meta.theme not in list_presets():
+            raise ValueError(
+                f"Unknown preset: {meta.theme}. Available: {', '.join(list_presets())}"
+            )
+        brand = meta.theme
 
     project = init(
         path, brand=brand, audience=meta.audience, mode=meta.mode,

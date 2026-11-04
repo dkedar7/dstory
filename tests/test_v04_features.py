@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from dstory import Meta, Scene, Story, bundle, init, starter_scene_js
+from dstory import Meta, Scene, Story, build, bundle, init, starter_scene_js
 from dstory.prep import RATIO_PHRASES, derive_claim_text, fmt_compact, fmt_pct
 from dstory.vet import (
     PHRASE_RULES,
@@ -295,3 +295,15 @@ def test_bundle_contains_a11y_and_polish_features(tmp_path: Path):
     assert "hero__bg--image" in html         # hero image support
     assert "revealOnEnter" in html           # simple-scene reveal
     assert 'aria-label", scene.alt' in html  # alt wiring in runtime JS
+
+
+def test_build_rejects_an_unknown_meta_theme(tmp_path: Path):
+    # A misspelled preset used to be swapped for editorial-noir, so the author silently got a
+    # different theme; init --theme and Brand.from_preset both reject the same name.
+    data = {
+        "meta": {"title": "t", "theme": "scientific-brigth"},
+        "scenes": [{"id": "a", "headline": "h"}],
+    }
+    with pytest.raises(ValueError, match="Unknown preset: scientific-brigth"):
+        build(data, tmp_path / "r2")
+    assert not (tmp_path / "r2").exists()
