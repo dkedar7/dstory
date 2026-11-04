@@ -3,6 +3,12 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- `build()` rejects an unknown `meta.theme` with the available preset list instead of silently
+  using `editorial-noir`. Passing `brand=` explicitly still overrides the theme name.
+
 ## [0.6.0] - 2026-11-02
 
 ### Fixed
