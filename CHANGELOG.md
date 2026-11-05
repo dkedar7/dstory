@@ -3,7 +3,7 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.7.0] - 2026-11-05
 
 ### Added
 - **`dstory.draft(df, title=...)`: zero-config DataFrame to vetted story**

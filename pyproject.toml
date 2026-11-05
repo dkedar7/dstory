@@ -1,6 +1,6 @@
 [project]
 name = "dstory"
-version = "0.6.0"
+version = "0.7.0"
 description = "Build interactive scrollytelling and slide-deck data stories from Python — bundle, vet, theme, and ship a single self-contained HTML file."
 readme = "README.md"
 authors = [
@@ -69,4 +69,5 @@ dev = [
     # pin to 3.1.x so the Playwright-driven e2e tests keep working there.
     "greenlet<3.2; sys_platform == 'win32'",
     "markdown>=3.10.2",
+    "pandas>=2.0",
 ]

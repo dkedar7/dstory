@@ -43,7 +43,7 @@ wheels = [
 
 [[package]]
 name = "dstory"
-version = "0.6.0"
+version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -74,6 +74,8 @@ vet = [
 dev = [
     { name = "greenlet", version = "3.1.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'win32'" },
     { name = "markdown" },
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pandas", version = "3.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pytest" },
 ]
 
@@ -96,6 +98,7 @@ provides-extras = ["vet", "prep", "all"]
 dev = [
     { name = "greenlet", marker = "sys_platform == 'win32'", specifier = "<3.2" },
     { name = "markdown", specifier = ">=3.10.2" },
+    { name = "pandas", specifier = ">=2.0" },
     { name = "pytest", specifier = ">=9.0.3" },
 ]
 
