@@ -3,6 +3,7 @@
 Public API:
     Brand, list_presets   — theme/brand handling
     init                  — scaffold a new project
+    draft, Draft          — zero-config DataFrame -> story draft (needs [prep])
     bundle                — bundle a project into a single HTML file
     vet, Report           — vet a bundled HTML for delivery
     Story, Scene, Meta, Claim, VizzuFrame  — pydantic models for data.json
@@ -14,6 +15,7 @@ Optional:
 from .api import build, BuildResult
 from .brand import Brand, list_presets
 from .bundle import bundle, BundleResult
+from .draft import draft, Draft
 from .cookbook import list_recipes, recipe_js, recipe_demo, Recipe
 from .scaffold import init, wire_scenes, write_scene, starter_scene_js
 from .schema import Story, Meta, Scene, Claim, VizzuFrame, Step, Source, Annotation, SeriesSpec
@@ -23,6 +25,7 @@ __version__ = "0.6.0"
 
 __all__ = [
     "build", "BuildResult",
+    "draft", "Draft",
     "Brand", "list_presets",
     "init", "wire_scenes", "write_scene", "starter_scene_js",
     "list_recipes", "recipe_js", "recipe_demo", "Recipe",

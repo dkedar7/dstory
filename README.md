@@ -84,6 +84,44 @@ chart configuration (bar → line → stacked → polar…, 40+ types; see
 [`references/vizzu-chart-gallery.md`](src/dstory/references/vizzu-chart-gallery.md)).
 No scene JS file exists for this story at all.
 
+## Zero-config: `dstory.draft`
+
+Skip the dict entirely. `draft()` profiles a DataFrame (time, category and
+measure columns; wide tables are melted), picks scenes by rule, maps the
+columns onto cookbook recipes, and writes headlines, commentary and alt text
+from computed facts. Every number in that prose is a registered claim, so the
+vetter checks it against the data. Deterministic and offline: no model, no key.
+
+```python
+import pandas as pd, dstory
+
+df = pd.read_csv("mix.csv")                    # year, source, share_pct
+d = dstory.draft(df, title="Gas took coal's place", theme="warm-print")
+print(d.explain())
+result = dstory.build(d.story, "mix", scenes=d.scenes, vet=True)
+result.passed                                  # True
+
+dstory.build(df, "mix")                        # or: a DataFrame straight in
+```
+
+```text
+Scenes:
+  1. scene-trend: line-reveal over year x share_pct -- time series detected; share_pct is a share, so it follows the largest source in 2024 (Gas)
+  2. scene-shift: slope-chart of source, 2014 vs 2024 -- category x first/last period (4 source values present in both)
+  3. scene-mix: waffle of source by share_pct in 2024 -- share_pct sums to ~100 per year
+Claims (6), each checked by the vetter:
+  c-trend: Gas share rose 59% between 2014 and 2024
+  c-shift: Coal share fell 61.5% between 2014 and 2024, the biggest shift of any source
+  ...
+```
+
+Rules today: time x measure gives `line-reveal`; category x first/last period
+gives `slope-chart`; shares summing to ~100 (or ~1) give `waffle`; anything
+else gets one safe `bar-steps` scene. `d.story` is a plain data.json dict, so
+edit it like one; `d.to_project("mix")` writes a normal project instead.
+Needs the `[prep]` extra (`pip install "dstory[prep]"`).
+**[See one CSV drafted in two themes](https://dkedar7.github.io/dstory/drafted/)**.
+
 ## The cookbook
 
 When you want the bespoke-D3 look without writing D3 from scratch: 10 complete,

@@ -91,6 +91,8 @@ def build(
         BuildResult with .html (the bundled file), .bundle stats, and
         .report / .passed when vet=True.
     """
+    from .draft import _maybe_draft  # a pandas DataFrame → dstory.draft() first
+    story, scenes = _maybe_draft(story, path, brand=brand, scenes=scenes)
     story_obj = story if isinstance(story, Story) else Story.model_validate(story)
     meta = story_obj.meta
 
