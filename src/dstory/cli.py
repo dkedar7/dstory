@@ -97,10 +97,13 @@ def init(slug: str, theme: str, audience: str, mode: str, title: str, overwrite:
 @click.option("--vendor", is_flag=True,
               help="Inline the CDN runtime libs (d3, scrollama, Motion) so the "
                    "story works fully offline. Needs network now; adds ~300 KB.")
-def bundle(slug: str, no_validate: bool, vendor: bool) -> None:
+@click.option("--no-check-claims", is_flag=True,
+              help="Bundle even when a claim's text contradicts its value.")
+def bundle(slug: str, no_validate: bool, vendor: bool, no_check_claims: bool) -> None:
     """Bundle SLUG into a single self-contained HTML file."""
     try:
-        result = bundle_story(slug, validate=not no_validate, vendor=vendor)
+        result = bundle_story(slug, validate=not no_validate, vendor=vendor,
+                              check_claims=not no_check_claims)
     except (FileNotFoundError, ValueError) as e:
         console.print(f"[red]{CROSS} Bundle failed:[/red] {e}")
         sys.exit(1)
@@ -127,7 +130,10 @@ def vet(html_path: str, data_path: str, no_browser: bool) -> None:
     table.add_column("Issues / Notes")
 
     for d in report.dimensions:
-        status = f"[green]{CHECK}[/green]" if d.passed else f"[red]{CROSS}[/red]"
+        if d.skipped:
+            status = "[yellow]skipped[/yellow]"
+        else:
+            status = f"[green]{CHECK}[/green]" if d.passed else f"[red]{CROSS}[/red]"
         details: list[str] = []
         for i in d.issues:
             details.append(f"[red]- {i}[/red]")
@@ -138,7 +144,10 @@ def vet(html_path: str, data_path: str, no_browser: bool) -> None:
         table.add_row(d.name, status, "\n".join(details) or "—")
 
     console.print(table)
-    if report.passed:
+    if report.passed and report.skipped:
+        console.print(f"[yellow bold]OVERALL: PASS (partial)[/yellow bold] — "
+                      f"{', '.join(report.skipped)} not checked.")
+    elif report.passed:
         console.print("[green bold]OVERALL: PASS[/green bold] — safe to deliver.")
     else:
         console.print("[red bold]OVERALL: BLOCKED[/red bold] — fix the issues above.")

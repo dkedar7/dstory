@@ -38,7 +38,7 @@ def test_data_fidelity_blocks_mismatched_ratio(tmp_path: Path):
         scenes=[{"id": "s1", "kind": "simple", "headline": "h", "commentary": "x tripled overnight"}],
         claims=[{"id": "c1", "text": "x tripled overnight", "value": 2.4}],   # NOT triple
     )
-    result = bundle(dest)
+    result = bundle(dest, check_claims=False)  # vet must catch it too
     html = result.out.read_text()
     data = json.loads((dest / "data.json").read_text())
     dim = check_data_fidelity(html, data)
@@ -53,7 +53,7 @@ def test_data_fidelity_blocks_off_pct(tmp_path: Path):
                  "commentary": "labor share fell to 47%"}],
         claims=[{"id": "c1", "text": "labor share fell to 47%", "value": 50.0}],
     )
-    result = bundle(dest)
+    result = bundle(dest, check_claims=False)  # vet must catch it too
     html = result.out.read_text()
     data = json.loads((dest / "data.json").read_text())
     dim = check_data_fidelity(html, data)

@@ -368,6 +368,12 @@ async function activateVizzuScene(sceneEl, scene, data, slidesMode = false) {
   const Vizzu = await waitForVizzu();
   if (!Vizzu) {
     console.warn("Vizzu not available — scene", scene.id, "will be inert.");
+    // Degrade to words, not an empty box: show the chart's description.
+    const mount = sceneEl.querySelector(`[data-mount="${scene.id}"]`);
+    if (mount && scene.alt && !mount.childElementCount) {
+      mount.append(el("p", { class: "scene__fallback" },
+        `${scene.alt} (The animated chart needs an internet connection.)`));
+    }
     return null;
   }
   const records = data.datasets?.[scene.dataset];
@@ -633,21 +639,37 @@ async function init() {
   // be starved on very long pages (>10k px) when other scripts (e.g. Vizzu
   // wasm) are still initializing. setTimeout always fires.
   await new Promise(r => setTimeout(r, 16));
+  const reportFailure = (s, err) =>
+    // Don't let one failing scene kill the rest of the page.
+    console.error(`[dstory] Scene "${s.id}" failed to activate:`, err?.message || err);
+
+  // Every non-Vizzu scene activates right away. Vizzu scenes wait for their
+  // library + WASM (CDN, up to a 4 s timeout offline), so they initialise in
+  // parallel and never hold back the charts that follow them.
+  const pending = [];
   for (const entry of built) {
     const s = entry.scene;
     try {
       if (s.kind === "scrolly")      entry.ctrl = activateScrollyScene(entry.node, s, data, slidesMode);
       else if (s.kind === "bleed")   entry.ctrl = activateBleedScene(entry.node, s, data, slidesMode);
       else if (s.kind === "pinned")  entry.ctrl = activatePinnedScene(entry.node, s, data, slidesMode);
-      else if (s.kind === "vizzu")   entry.ctrl = await activateVizzuScene(entry.node, s, data, slidesMode);
+      else if (s.kind === "vizzu") {
+        pending.push(
+          activateVizzuScene(entry.node, s, data, slidesMode)
+            .then(ctrl => { entry.ctrl = ctrl; })
+            .catch(err => reportFailure(s, err))
+        );
+      }
       else if (s.kind === "custom")  entry.ctrl = activateCustomScene(entry.node, s, data, slidesMode);
       else                            entry.ctrl = activateSimpleScene(entry.node, s, data, slidesMode);
     } catch (sceneErr) {
-      // Don't let one failing scene kill the rest of the page.
-      console.error(`[dstory] Scene "${s.id}" failed to activate:`, sceneErr?.message || sceneErr);
+      reportFailure(s, sceneErr);
     }
   }
 
+  // The slides controller drives each scene's ctrl, so it needs the Vizzu
+  // controllers too. Non-Vizzu slides are already painted meanwhile.
+  await Promise.all(pending);
   if (slidesMode) setupSlidesController(built, data);
 }
 

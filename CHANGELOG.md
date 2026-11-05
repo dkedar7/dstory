@@ -3,6 +3,37 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **`build(vet=True)` now runs the browser checks by default** (#12) whenever
+  Playwright and Chromium are available, including inside Jupyter (the checks
+  run off the notebook's event loop). When they can't run, `build()` warns, the
+  skipped dimensions are flagged (`report.skipped`, `report.complete`, and
+  `"skipped"` in the JSON report), and `dstory vet --no-browser` prints
+  `PASS (partial)`. Pass `browser=False` to keep static-only vetting.
+- **Drifted claims block the build** (#9), as the README promised.
+  `build()` and `dstory bundle` raise `ClaimDriftError` before writing
+  anything; opt out with `check_claims=False` / `--no-check-claims`.
+- **An unknown `meta.theme` is an error** (#13) listing the presets, instead
+  of a silent fallback to `editorial-noir`.
+
+### Fixed
+- **Vizzu overdraw:** the README quickstart now groups its bars, so churn is
+  visible next to signups. The vetter fails any Vizzu bar/area frame whose
+  `color` series isn't stacked or grouped when the data shows the marks
+  overlapping (#7).
+- **Vizzu channel typos fail at build time:** a frame channel naming a series
+  the scene doesn't declare is a validation error, not a browser crash (#12).
+- **Slides mode:** charts fit their card at laptop sizes (1280×720 and up) for
+  every cookbook recipe; the source line clears the slide controls. The
+  browser vetter fails a chart that overflows its card (#8).
+- **Vizzu scenes no longer hold back the charts after them** (#16). Non-Vizzu
+  scenes paint immediately, and Vizzu scenes start up in parallel. Offline, a
+  Vizzu mount shows its `alt` text instead of an empty box.
+- `fmt_compact(999_999)` is `"1M"`, not `"1000K"` (#10), and `digits=0` no longer
+  strips significant zeros (`10` stayed `"1"`).
+
 ## [0.6.0] - 2026-11-02
 
 ### Fixed

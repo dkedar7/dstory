@@ -59,7 +59,8 @@ result = build({
         ],
         "frames": [
             {"headline": "Signups took off in March",
-             "config": {"channels": {"x": "month", "y": "value", "color": "variable"},
+             # grouped bars: churn sits beside signups instead of hiding behind them
+             "config": {"channels": {"x": ["month", "variable"], "y": "value", "color": "variable"},
                         "geometry": "rectangle"}},
             {"headline": "While churn barely moved",
              "config": {"channels": {"x": "month", "y": "value", "color": "variable"},
@@ -72,6 +73,11 @@ result = build({
 result.html    # → q1-growth/dist/story.html — open it, scroll, the chart morphs
 result.passed  # → True (the 5-dimension vet report)
 ```
+
+With `vet=True`, `build()` runs the browser checks (does every chart paint, any
+console errors, screenshots) whenever Playwright and Chromium are installed, and
+warns when it can't. If that happens, `result.report.skipped` lists what wasn't
+checked. Run `pip install "dstory[vet]" && playwright install chromium` to get the full gate.
 
 `kind: "vizzu"` scenes are fully declarative — frames animate between any
 chart configuration (bar → line → stacked → polar…, 40+ types; see
@@ -133,7 +139,9 @@ claim = compute_claim(
 `compute_claim()` derives the phrase from the value using the same vocabulary
 and windows the vetter checks ("doubled"…"quintupled", percentages), so a claim
 built this way cannot fail data-fidelity vetting — and a hand-written claim that
-drifts from its value blocks the build. `compute_ratio()` and
+drifts from its value blocks the build: `build()` and `dstory bundle` refuse to
+write it (`ClaimDriftError`; opt out with `check_claims=False` /
+`--no-check-claims`). `compute_ratio()` and
 `compute_pct_change()` tag their result with its unit, and the claim records it
 (`"unit": "ratio"` or `"pct"`), so a 3.4× ratio is never printed as "3.4%" and a
 +2% change is never called "doubled". For a plain float, pass

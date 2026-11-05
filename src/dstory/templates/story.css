@@ -424,6 +424,37 @@ body.story-mode--slides .scene--simple > * {
   width: 100%;
   margin-left: auto;
   margin-right: auto;
+  flex: 0 0 auto;             /* text keeps its height... */
+}
+body.story-mode--slides .scene--simple {
+  padding-bottom: 5.5rem;     /* clear the slide controls */
+}
+/* ...and the chart card takes whatever height is left, never more. Recipes
+   size their SVG with inline width:100%/height:auto, which on a laptop
+   viewport is taller than the card, so fit the SVG to the card instead
+   (its viewBox keeps the aspect ratio). */
+body.story-mode--slides .scene--simple .scene__graphic {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;     /* svg + any HTML legend stack vertically */
+  overflow: hidden;
+}
+body.story-mode--slides .scene--simple .scene__graphic > svg {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100% !important;
+  height: auto !important;
+}
+body.story-mode--slides .scene--simple .scene__graphic > :not(svg) { flex: 0 0 auto; }
+
+/* Shown in a Vizzu mount when the library can't load (offline bundle). */
+.scene__fallback {
+  margin: auto;
+  max-width: 42ch;
+  padding: 1.5rem;
+  color: var(--ink-soft);
+  text-align: center;
 }
 
 /* Bleed in slides mode is already viewport-filling; just no extra padding. */

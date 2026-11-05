@@ -205,12 +205,18 @@ def fmt_compact(n: float, *, digits: int = 1) -> str:
     """
     sign = "-" if n < 0 else ""
     x = abs(float(n))
-    for threshold, suffix in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")):
-        if x >= threshold:
-            s = f"{x / threshold:.{digits}f}".rstrip("0").rstrip(".")
-            return f"{sign}{s}{suffix}"
-    s = f"{x:.{digits}f}".rstrip("0").rstrip(".")
-    return f"{sign}{s}"
+    scales = ((1.0, ""), (1e3, "K"), (1e6, "M"), (1e9, "B"), (1e12, "T"))
+    # Start at the largest suffix the raw value reaches, then pick the suffix
+    # *after* rounding: 999_999 rounds to "1000K", which must read "1M".
+    i = max(k for k, (threshold, _) in enumerate(scales) if k == 0 or x >= threshold)
+    while True:
+        threshold, suffix = scales[i]
+        rounded = round(x / threshold, digits)
+        if rounded >= 1000 and i + 1 < len(scales):
+            i += 1
+            continue
+        s = f"{rounded:.{digits}f}".rstrip("0").rstrip(".") if digits > 0 else f"{rounded:.0f}"
+        return f"{sign}{s}{suffix}"
 
 
 def fmt_pct(value: float, *, digits: int = 1, signed: bool = False) -> str:

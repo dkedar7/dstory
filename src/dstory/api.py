@@ -22,6 +22,7 @@ source via `scenes={"scene-id": js_source}` (or start from a cookbook recipe).
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -59,8 +60,9 @@ def build(
     scenes: Optional[dict[str, str]] = None,
     vendor: bool = False,
     vet: bool = False,
-    browser: bool = False,
+    browser: Optional[bool] = None,
     overwrite: bool = True,
+    check_claims: bool = True,
 ) -> BuildResult:
     """Scaffold + write + bundle (+ vet) a story in one call.
 
@@ -68,16 +70,22 @@ def build(
         story: a validated Story or a plain dict matching the data.json schema.
         path: project directory to create (re-running overwrites framework
               files; your data/scenes come from the arguments each time).
-        brand: Brand instance or preset name. Defaults to meta.theme when that
-               names a bundled preset, else "editorial-noir".
+        brand: Brand instance or preset name. Defaults to meta.theme, which
+               must name a bundled preset (an unknown name raises ValueError
+               listing the presets). Pass brand= to use a custom Brand.
         scenes: optional {scene_id: js_source} of custom renderers to write
                 and wire. Vizzu scenes don't need one.
         vendor: inline the CDN runtime libs for a fully offline bundle
                 (needs network at build time; see bundle()).
         vet: run the vetter on the result and attach the Report.
-        browser: include browser-driven vet checks (needs the [vet] extra).
+        browser: browser-driven vet checks (renders, charts paint, visual).
+                 None (default) runs them whenever Playwright + Chromium are
+                 available and warns when they can't run; True requires them;
+                 False skips them (static checks only).
         overwrite: allow writing into an existing directory (default True —
                    notebook cells re-run).
+        check_claims: refuse to bundle when a claim's text contradicts its
+                      value (e.g. "tripled" for 1.2). Default True.
 
     Returns:
         BuildResult with .html (the bundled file), .bundle stats, and
@@ -87,7 +95,14 @@ def build(
     meta = story_obj.meta
 
     if brand is None:
-        brand = meta.theme if meta.theme in list_presets() else "editorial-noir"
+        presets = list_presets()
+        if meta.theme not in presets:
+            raise ValueError(
+                f"Unknown theme preset {meta.theme!r} in meta.theme. "
+                f"Available: {', '.join(presets)}. "
+                "(To use a custom brand, pass brand=Brand(...).)"
+            )
+        brand = meta.theme
 
     project = init(
         path, brand=brand, audience=meta.audience, mode=meta.mode,
@@ -99,11 +114,19 @@ def build(
     for scene_id, js in (scenes or {}).items():
         write_scene(project, scene_id, js)
 
-    bundle_result = bundle_project(project, validate=True, vendor=vendor)
+    bundle_result = bundle_project(project, validate=True, vendor=vendor,
+                                   check_claims=check_claims)
 
     report: Optional[Report] = None
     if vet:
         report = vet_html(bundle_result.out, data=project / "data.json", browser=browser)
+        if report.skipped and browser is not False:  # explicit False = caller's choice
+            reason = next((n for d in report.dimensions if d.skipped for n in d.notes), "")
+            warnings.warn(
+                f"Vetting was partial: {', '.join(report.skipped)} did not run. {reason} "
+                "result.passed only covers the static checks.",
+                UserWarning, stacklevel=2,
+            )
 
     return BuildResult(
         project=project, html=bundle_result.out,

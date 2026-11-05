@@ -30,7 +30,14 @@ class BundleResult:
     warnings: list[str]
 
 
-def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False) -> BundleResult:
+class ClaimDriftError(ValueError):
+    """A claim's text contradicts its value ("tripled" for 1.2). Raised by
+    bundle() before anything is written; pass check_claims=False (CLI:
+    --no-check-claims) to bundle anyway."""
+
+
+def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
+           check_claims: bool = True) -> BundleResult:
     """Bundle <slug>/index.html → <slug>/dist/story.html.
 
     Args:
@@ -43,6 +50,9 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False) -> 
                 runtime); its loader is dropped when the story has no vizzu
                 scenes, or kept with a warning when it does. Requires network
                 at bundle time; adds ~300 KB.
+        check_claims: if True (default), run the static claim cross-check
+                and raise ClaimDriftError when a claim's text contradicts its
+                value. Nothing is written in that case.
     """
     project = Path(slug)
     if not project.is_dir():
@@ -64,6 +74,16 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False) -> 
             raise ValueError(
                 "data.json validation issues (fix before bundling):\n  - "
                 + "\n  - ".join(issues)
+            )
+
+    if check_claims:
+        from .vet import check_data_fidelity  # local import: vet is heavier
+        fidelity = check_data_fidelity("", json.loads(data_json.read_text(encoding="utf-8")))
+        if not fidelity.passed:
+            raise ClaimDriftError(
+                "Claims contradict their values (fix the text or the data, or pass "
+                "check_claims=False / --no-check-claims):\n  - "
+                + "\n  - ".join(fidelity.issues)
             )
 
     html = index.read_text(encoding="utf-8")

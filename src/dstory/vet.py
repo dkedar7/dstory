@@ -28,6 +28,10 @@ class Dimension:
     passed: bool = True
     issues: list[str] = field(default_factory=list)
     notes:  list[str] = field(default_factory=list)
+    # True when the dimension's checks did not run (e.g. browser=False). A
+    # skipped dimension never fails, so callers should not read its `passed`
+    # as "checked and clean"; see Report.skipped.
+    skipped: bool = False
 
     def fail(self, msg: str) -> None:
         self.passed = False
@@ -47,13 +51,25 @@ class Report:
     def passed(self) -> bool:
         return all(d.passed for d in self.dimensions)
 
+    @property
+    def skipped(self) -> list[str]:
+        """Names of dimensions whose checks did not run."""
+        return [d.name for d in self.dimensions if d.skipped]
+
+    @property
+    def complete(self) -> bool:
+        """True when every dimension actually ran."""
+        return not self.skipped
+
     def to_json(self) -> dict[str, Any]:
         return {
             "html_path": self.html_path,
             "data_path": self.data_path,
             "passed": self.passed,
+            "complete": self.complete,
             "dimensions": [
-                {"name": d.name, "passed": d.passed, "issues": d.issues, "notes": d.notes}
+                {"name": d.name, "passed": d.passed, "skipped": d.skipped,
+                 "issues": d.issues, "notes": d.notes}
                 for d in self.dimensions
             ],
         }
@@ -254,6 +270,65 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
     return r
 
 
+_OVERDRAW_GEOMETRIES = (None, "rectangle", "area")
+
+
+def check_vizzu_overdraw(data: dict[str, Any]) -> list[str]:
+    """Vizzu frames whose colour series would hide data.
+
+    In Vizzu, `color` alone does not stack or group: with rectangle/area
+    geometry every mark starts at zero, so when one x position has several
+    colour values the taller mark covers the shorter ones. Flag a frame only
+    when the scene's own data proves the overlap (some x key carries more
+    than one colour value), so colour-by-category charts stay clean.
+    """
+    from .schema import vizzu_channel_series
+    issues: list[str] = []
+    datasets = data.get("datasets") or {}
+    for scene in data.get("scenes") or []:
+        if scene.get("kind") != "vizzu":
+            continue
+        rows = datasets.get(scene.get("dataset")) or []
+        if not isinstance(rows, list) or not rows:
+            continue
+        for i, frame in enumerate(scene.get("frames") or []):
+            config = (frame or {}).get("config") or {}
+            if config.get("geometry") not in _OVERDRAW_GEOMETRIES:
+                continue
+            ch = config.get("channels") or {}
+            if config.get("coordSystem") not in (None, "cartesian"):
+                continue
+            x_set = set(vizzu_channel_series(ch.get("x")))
+            y_set = set(vizzu_channel_series(ch.get("y")))
+            color = [c for c in vizzu_channel_series(ch.get("color"))
+                     if c not in x_set and c not in y_set]
+            if not color:
+                continue
+            # The categorical axis: x for vertical bars; if x is all measures
+            # (horizontal bars) the y dimensions act as the key instead.
+            declared = {s.get("name"): s.get("type", "dimension")
+                        for s in (scene.get("series") or []) if isinstance(s, dict)}
+            if declared:
+                key_cols = [c for c in (x_set | y_set) if declared.get(c) == "dimension"]
+            else:
+                key_cols = [c for c in (x_set | y_set) if isinstance(rows[0].get(c), str)]
+            seen: dict[tuple, set] = {}
+            for r in rows:
+                if not isinstance(r, dict):
+                    continue
+                k = tuple(r.get(c) for c in sorted(key_cols))
+                seen.setdefault(k, set()).add(tuple(r.get(c) for c in color))
+            if any(len(v) > 1 for v in seen.values()):
+                cname = color[0]
+                issues.append(
+                    f"Scene {scene.get('id')!r} frame {i + 1}: color {cname!r} is not on the x or "
+                    f"y channel, so its {config.get('geometry') or 'rectangle'} marks overdraw "
+                    f"each other and smaller {cname!r} values are hidden. Stack it "
+                    f"(\"y\": [\"{cname}\", <measure>]) or group it (\"x\": [<dimension>, \"{cname}\"])."
+                )
+    return issues
+
+
 def check_editorial(html: str, data: dict[str, Any]) -> Dimension:
     r = Dimension("Editorial integrity")
     # Scan both static HTML AND the data dict — scenes built dynamically from
@@ -403,6 +478,23 @@ PAINT_AUDIT_JS = r"""
 })()
 """
 
+# A chart card (.scene__graphic) whose SVG extends past its bottom edge: the
+# chart then sits on the source line, under the slide controls, or off-screen.
+OVERFLOW_AUDIT_JS = r"""
+(() => {
+  const out = [];
+  for (const g of document.querySelectorAll('.scene__graphic[data-mount]')) {
+    const box = g.getBoundingClientRect();
+    if (box.height === 0) continue;
+    for (const svg of g.querySelectorAll(':scope > svg')) {
+      const r = svg.getBoundingClientRect();
+      if (r.height > 0 && r.bottom > box.bottom + 2) { out.push(g.getAttribute('data-mount')); break; }
+    }
+  }
+  return out;
+})()
+"""
+
 _EMPTY_DATASET_WARNING = re.compile(r"^\[[\w-]+\] empty dataset")
 
 SLIDES_AUDIT_JS = r"""
@@ -490,6 +582,14 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
                              "renderer (scene.config) and that a renderer is registered.")
             if empty_warnings:
                 renders.fail(f"viewport {w}x{h}: recipe reported an empty dataset — {empty_warnings[:3]}")
+            try:
+                overflowing = page.evaluate(OVERFLOW_AUDIT_JS)
+            except Exception:
+                overflowing = []
+            if overflowing:
+                renders.fail(f"viewport {w}x{h}: chart overflows its card in scene(s) "
+                             f"{', '.join(overflowing)} — it covers the source line or "
+                             "runs off the slide.")
             if facts["svgCount"] == 0 and facts["canvasCount"] == 0:
                 renders.note(f"viewport {w}x{h}: no SVG or Canvas charts detected.")
 
@@ -576,14 +676,63 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
 
 # ---------- top-level API ----------
 
+_BROWSER_STATUS: Optional[tuple[bool, str]] = None
+
+
+def _off_event_loop(fn, *args, **kwargs):
+    """Call fn, in a worker thread if this thread runs an asyncio loop.
+
+    Playwright's sync API refuses to start inside a running event loop, which
+    is exactly where Jupyter/IPython cells execute. A plain thread has no loop.
+    """
+    import asyncio
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return fn(*args, **kwargs)
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=1) as ex:
+        return ex.submit(fn, *args, **kwargs).result()
+
+
+def _probe_browser() -> tuple[bool, str]:
+    try:
+        from playwright.sync_api import sync_playwright  # type: ignore
+    except ImportError:
+        return (False, 'Playwright not installed (pip install "dstory[vet]")')
+    try:
+        with sync_playwright() as p:
+            p.chromium.launch().close()
+        return (True, "")
+    except Exception as e:  # missing Chromium, sandbox restrictions...
+        first = (str(e).strip().splitlines() or ["unknown error"])[0]
+        return (False, f"Chromium could not start ({first}); run `playwright install chromium`")
+
+
+def browser_available() -> tuple[bool, str]:
+    """(available, reason): can Playwright launch headless Chromium here?
+
+    Cached per process: the first call launches and closes a browser once.
+    """
+    global _BROWSER_STATUS
+    if _BROWSER_STATUS is None:
+        _BROWSER_STATUS = _off_event_loop(_probe_browser)
+    return _BROWSER_STATUS
+
+
 def vet(
     html: str | Path,
     *,
     data: str | Path,
-    browser: bool = True,
+    browser: Optional[bool] = True,
     out_dir: Optional[Path] = None,
 ) -> Report:
-    """Vet a bundled story. Returns a typed Report."""
+    """Vet a bundled story. Returns a typed Report.
+
+    browser: True runs the headless-browser checks (needs the [vet] extra and
+    Chromium); False skips them; None runs them when a browser is available
+    and skips them otherwise. Skipped dimensions are flagged (`Report.skipped`).
+    """
     html_path = Path(html).resolve()
     data_path = Path(data).resolve()
     if not html_path.exists():
@@ -595,22 +744,33 @@ def vet(
     data_obj  = json.loads(data_path.read_text(encoding="utf-8"))
 
     fidelity  = check_data_fidelity(html_text, data_obj)
+    for issue in check_vizzu_overdraw(data_obj):
+        fidelity.fail(issue)
     editorial = check_editorial(html_text, data_obj)
     a11y      = check_static_a11y(html_text, data_obj)
+
+    skip_reason = "browser=False"
+    if browser is None:
+        browser, why = browser_available()
+        if not browser:
+            skip_reason = f"no browser available: {why}"
 
     if browser:
         # Default screenshots dir: <project>/vetting/screenshots/
         if out_dir is None:
             project = html_path.parent.parent  # .../slug/dist/story.html → .../slug
             out_dir = project / "vetting" / "screenshots"
-        renders, visual, dynamic_extras, dynamic_notes = run_browser_checks(html_path, out_dir)
+        renders, visual, dynamic_extras, dynamic_notes = _off_event_loop(
+            run_browser_checks, html_path, out_dir)
         for x in dynamic_extras:
             a11y.fail(x)
         for n in dynamic_notes:
             a11y.note(n)
     else:
-        renders = Dimension("Renders correctly"); renders.note("Skipped (browser=False).")
-        visual  = Dimension("Visual quality");    visual.note("Skipped (browser=False).")
+        renders = Dimension("Renders correctly", skipped=True)
+        renders.note(f"Skipped ({skip_reason}). Charts were NOT checked in a browser.")
+        visual  = Dimension("Visual quality", skipped=True)
+        visual.note(f"Skipped ({skip_reason}).")
 
     report = Report(
         html_path=str(html_path),

@@ -180,4 +180,44 @@ class Story(BaseModel):
         for s in self.scenes:
             if s.dataset and s.dataset not in self.datasets:
                 issues.append(f"Scene {s.id!r} references dataset {s.dataset!r} which is not in data.datasets.")
+            issues.extend(_vizzu_channel_issues(s))
         return issues
+
+
+def vizzu_channel_series(value: Any) -> list[str]:
+    """Series names referenced by one Vizzu channel value.
+
+    Accepts the forms Vizzu does: "name", ["a", "b"], {"set": ...}, None.
+    Aggregator expressions such as "count()" are not series names and are skipped.
+    """
+    if value is None:
+        return []
+    if isinstance(value, dict):
+        return vizzu_channel_series(value.get("set"))
+    if isinstance(value, str):
+        return [] if "(" in value else [value]
+    if isinstance(value, (list, tuple)):
+        out: list[str] = []
+        for v in value:
+            out.extend(vizzu_channel_series(v))
+        return out
+    return []
+
+
+def _vizzu_channel_issues(scene: "Scene") -> list[str]:
+    """A frame channel naming a series the scene doesn't declare fails in the
+    browser ("series not found"); catch it at build time instead."""
+    if scene.kind != "vizzu" or not scene.series or not scene.frames:
+        return []
+    declared = {sp.name for sp in scene.series}
+    issues = []
+    for i, frame in enumerate(scene.frames):
+        for channel, value in (frame.config.channels or {}).items():
+            for name in vizzu_channel_series(value):
+                if name not in declared:
+                    issues.append(
+                        f"Scene {scene.id!r} frame {i + 1}: channel {channel!r} uses series "
+                        f"{name!r}, which is not in the scene's series "
+                        f"({', '.join(sorted(declared))})."
+                    )
+    return issues
