@@ -3,7 +3,7 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.8.0] - 2026-11-06
 
 ### Added
 - **`dstory draft <file>`: the zero-config story, no Python needed** (#11,
