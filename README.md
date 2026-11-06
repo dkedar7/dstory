@@ -84,13 +84,25 @@ chart configuration (bar → line → stacked → polar…, 40+ types; see
 [`references/vizzu-chart-gallery.md`](src/dstory/references/vizzu-chart-gallery.md)).
 No scene JS file exists for this story at all.
 
-## Zero-config: `dstory.draft`
+## Zero-config: `dstory draft`
 
-Skip the dict entirely. `draft()` profiles a DataFrame (time, category and
-measure columns; wide tables are melted), picks scenes by rule, maps the
-columns onto cookbook recipes, and writes headlines, commentary and alt text
-from computed facts. Every number in that prose is a registered claim, so the
-vetter checks it against the data. Deterministic and offline: no model, no key.
+Skip the dict entirely. Point dstory at a data file and get a vetted story:
+
+```bash
+dstory draft mix.csv --theme warm-print --source "Power-mix shares"
+#  -> mix/dist/story.html, vetted (browser checks too when Chromium is installed)
+```
+
+`draft` profiles the table (time, category and measure columns; wide tables
+are melted), picks scenes by rule, maps the columns onto cookbook recipes, and
+writes headlines, commentary and alt text from computed facts. Every number in
+that prose is a registered claim, so the vetter checks it against the data.
+Deterministic and offline: no model, no key. It reads CSV, TSV, JSON, Parquet
+and Excel; `--mode slides`, `--vendor`, `--max-scenes` and `--no-vet` work as
+elsewhere. The output is a normal project: edit `mix/data.json`, then
+`dstory bundle mix`.
+
+The same thing from Python, with a DataFrame:
 
 ```python
 import pandas as pd, dstory
@@ -106,20 +118,47 @@ dstory.build(df, "mix")                        # or: a DataFrame straight in
 
 ```text
 Scenes:
-  1. scene-trend: line-reveal over year x share_pct -- time series detected; share_pct is a share, so it follows the largest source in 2024 (Gas)
+  1. scene-trend: line-reveal over year x share_pct -- time series detected; share_pct is a share, compared in percentage points, so it follows the largest source in 2024 (Gas)
   2. scene-shift: slope-chart of source, 2014 vs 2024 -- category x first/last period (4 source values present in both)
-  3. scene-mix: waffle of source by share_pct in 2024 -- share_pct sums to ~100 per year
+  3. scene-race: bump-chart of source rank by share_pct -- the top source changed (Coal in 2014, Gas in 2024)
+  4. scene-mix: waffle of source by share_pct in 2024 -- share_pct sums to ~100 per year
 Claims (6), each checked by the vetter:
-  c-trend: Gas share rose 59% between 2014 and 2024
-  c-shift: Coal share fell 61.5% between 2014 and 2024, the biggest shift of any source
+  c-trend: Gas share rose 16 points between 2014 and 2024
+  c-shift: Coal share fell 24 points between 2014 and 2024, the biggest shift of any source
   ...
 ```
 
-Rules today: time x measure gives `line-reveal`; category x first/last period
-gives `slope-chart`; shares summing to ~100 (or ~1) give `waffle`; anything
-else gets one safe `bar-steps` scene. `d.story` is a plain data.json dict, so
-edit it like one; `d.to_project("mix")` writes a normal project instead.
-Needs the `[prep]` extra (`pip install "dstory[prep]"`).
+Rules today:
+
+| Data | Scene |
+|---|---|
+| time x measure | `line-reveal` |
+| category x first/last period | `slope-chart` |
+| the top-ranked category changed over time | `bump-chart` ("Gas overtook Coal to rank first by 2024") |
+| shares summing to ~100 (or ~1) | `waffle` |
+| anything else | one safe `bar-steps` scene |
+
+The prose follows newsroom conventions so a reader can't be misled:
+
+- Shares are compared in percentage points ("fell 24 points"), not relative
+  percent.
+- Big multiples read as "rose 12-fold", not "rose 1100%".
+- A change across zero is described ("turned negative in 2023"), never given as
+  a percent.
+- Daily dates read "on Jan 2, 2024".
+- Separate columns (Signups, Churn) are never summed into a total.
+
+The vetter enforces the same rules for hand-written claims:
+
+- `unit: "pp"` claims are checked as points. Build them with
+  `prep.compute_point_change()`.
+- "N-fold" is checked against the ratio.
+- A direction verb ("rose", "fell") must match the sign.
+- A percent fall beyond 100% fails.
+
+`d.story` is a plain data.json dict, so edit it like one;
+`d.to_project("mix")` writes a normal project instead. Needs the `[prep]`
+extra (`pip install "dstory[prep]"`).
 **[See one CSV drafted in two themes](https://dkedar7.github.io/dstory/drafted/)**.
 
 ## The cookbook
@@ -159,7 +198,7 @@ dstory bundle my-story --vendor
 dstory vet my-story/dist/story.html --data my-story/data.json
 ```
 
-Other commands: `dstory themes` (the 8 brand presets), `dstory recipes` (the cookbook), `dstory --help`.
+Other commands: `dstory draft data.csv` (a vetted story from a data file, zero config), `dstory themes` (the 8 brand presets), `dstory recipes` (the cookbook), `dstory --help`.
 
 ## Claims that can't drift from the data
 

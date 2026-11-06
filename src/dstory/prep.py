@@ -73,7 +73,12 @@ RATIO_PHRASES = {
     "halved":      0.5,
 }
 
-CLAIM_UNITS = ("ratio", "pct")
+CLAIM_UNITS = ("ratio", "pct", "pp")
+
+# Ratios at or above this read as "N-fold" ("rose 12-fold") rather than as a
+# percent change ("rose 1100%"). The vetter accepts "N-fold" when the ratio
+# rounds to N.
+FOLD_MIN_RATIO = 5.5
 
 
 class Ratio(float):
@@ -84,6 +89,12 @@ class Ratio(float):
 class PctChange(float):
     """A float tagged as a signed percent change (+50.0 == up 50%)."""
     unit = "pct"
+
+
+class PointChange(float):
+    """A float tagged as a signed change in percentage points (+16.0 == up
+    16 points, e.g. a share going from 27% to 43%)."""
+    unit = "pp"
 
 
 def ratio_phrase(ratio: float) -> Optional[str]:
@@ -116,11 +127,28 @@ def compute_pct_change(after: float, before: float) -> PctChange:
     return PctChange((after - before) / before * 100.0)
 
 
+def compute_point_change(after: float, before: float, *, scale: float = 1.0) -> PointChange:
+    """Change between two shares or rates, in percentage points (signed).
+
+    Pass shares as percentages (27.0, 43.0), or as fractions with scale=100
+    (0.27, 0.43 -> +16.0). Use this rather than compute_pct_change for shares:
+    a share going from 39% to 15% "fell 24 points", not "fell 61.5%".
+    """
+    return PointChange((after - before) * scale)
+
+
+def fold_phrase(ratio: float) -> Optional[str]:
+    """'12-fold' for a ratio of ~12 (at or above FOLD_MIN_RATIO), else None."""
+    if ratio != ratio or ratio < FOLD_MIN_RATIO:
+        return None
+    return f"{round(ratio):d}-fold"
+
+
 def _resolve_unit(value: float, kind: str) -> Optional[str]:
     if kind in CLAIM_UNITS:
         return kind
     if kind != "auto":
-        raise ValueError(f"kind must be 'auto', 'ratio' or 'pct', got {kind!r}.")
+        raise ValueError(f"kind must be 'auto', 'ratio', 'pct' or 'pp', got {kind!r}.")
     return getattr(value, "unit", None)
 
 
@@ -138,12 +166,17 @@ def derive_claim_text(value: float, *, kind: str = "auto") -> str:
              by 240.0%").
     - pct:   "doubled"/... when 1 + pct/100 is inside a window, otherwise
              "increased by N%" / "decreased by N%".
+    - pp:    "rose N percentage points" / "fell N percentage points".
     - auto:  uses the unit tagged by compute_ratio / compute_pct_change. An
              untagged float is ambiguous: it gets a phrase if it falls in a
              ratio window, otherwise it is treated as a percent change. Pass
              kind= explicitly for plain floats.
     """
     unit = _resolve_unit(value, kind)
+    if unit == "pp":
+        pts = f"{abs(value):.1f}".removesuffix(".0")
+        noun = "point" if pts == "1" else "points"
+        return f"{'rose' if value >= 0 else 'fell'} {pts} percentage {noun}"
     if unit == "ratio":
         return ratio_phrase(value) or _pct_phrase((value - 1.0) * 100.0)
     if unit == "pct":

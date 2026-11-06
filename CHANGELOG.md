@@ -3,6 +3,55 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **`dstory draft <file>`: the zero-config story, no Python needed** (#11,
+  milestone 2). Reads CSV, TSV, JSON, Parquet or Excel and drafts the story. It
+  then bundles one self-contained HTML and vets it, browser checks included
+  when Chromium is installed. It prints `explain()` and the vet table, and
+  exits 1 when the vet blocks. Options: `--title`, `--theme`, `--mode`,
+  `--audience`, `--source`, `--max-scenes`, `--vendor`, `--no-vet`,
+  `--no-browser`, `--out` and `--overwrite`.
+- **New draft rule, `bump-chart`**: when the top-ranked category changes over
+  time (3 to 12 periods), `draft()` adds a race scene, for example "Gas
+  overtook Coal to rank first by 2024", with the new leader highlighted.
+- **Percentage-point claims**: `prep.compute_point_change()`, a `PointChange`
+  value and claim `unit: "pp"`. The vetter checks "fell 24 points" against
+  the value and its sign.
+- **"N-fold" phrasing**: ratios of 5.5 or more read as "rose 12-fold"
+  (`prep.fold_phrase()`), and the vetter checks the multiple against the
+  ratio.
+- `draft()` sets `meta.published` to the draft date.
+
+### Changed
+- `draft()` compares shares in percentage points rather than relative percent
+  ("Coal share fell 24 points", not "fell 61.5%").
+- **Wide tables are no longer summed.** One column per series (Signups,
+  Churn) now follows the largest series instead of adding unlike measures
+  into a "Total value".
+- **The no-number fallback headline states a direction.** It reads "Net
+  income fell between 2020 and 2023" instead of "How net income has moved".
+- **Daily dates read as dates**: "on Jan 2, 2024", not "in 2024-01-02".
+- When the trend scene already names the biggest mover, the slope scene
+  states the comparison ("No source moved more than Gas") instead of
+  repeating the trend headline.
+- **The vetter checks direction verbs.** "rose 12%" with a negative value now
+  fails; previously only "increased" and "decreased" were checked. The full
+  list is: rose, fell, grew, gained, climbed, jumped, dropped, declined, lost,
+  shrank, slid and slumped.
+
+### Fixed
+- **`draft()` no longer writes a percent change across zero** (#17).
+  - A series that ends negative gets "Net income turned negative in 2023"
+    instead of "fell 200%".
+  - The slope scene drops "the biggest shift of any X" when a category
+    couldn't be measured on the same scale. A category that crossed zero is
+    named ("E turned negative by 2024").
+  - "Sharpest move" commentary is only written when every step was
+    measurable.
+  - The vetter fails any percent claim below -100%.
+
 ## [0.7.0] - 2026-11-05
 
 ### Added

@@ -2,7 +2,7 @@
 `dstory.draft()` and built in two themes, written to docs/drafted/.
 
 Nothing here is hand-written story content: the scenes, headlines, claims and
-alt text all come from draft(). Each build must pass the static vetter.
+alt text all come from draft(). Each build must pass the vetter (browser checks included when Chromium is installed).
 
 Usage:  uv run --extra prep python scripts/build_draft_example.py
 """
@@ -33,7 +33,7 @@ def main() -> int:
     for theme in THEMES:
         d = dstory.draft(df, title=TITLE, theme=theme, source=SOURCE)
         explain = d.explain()
-        result = dstory.build(d.story, tmp / theme, scenes=d.scenes, vet=True, browser=False)
+        result = dstory.build(d.story, tmp / theme, scenes=d.scenes, vet=True)
         if not result.passed:
             for dim in result.report.dimensions:
                 for issue in dim.issues:
@@ -56,7 +56,9 @@ def write_index(explain: str) -> None:
         f'd = dstory.draft(df, title="{TITLE}", theme="warm-print",\n'
         f'                 source="{SOURCE}")\n'
         'print(d.explain())\n'
-        'dstory.build(d.story, "mix", scenes=d.scenes, vet=True)'
+        'dstory.build(d.story, "mix", scenes=d.scenes, vet=True)\n\n'
+        '# or, with no Python at all:\n'
+        f'#   dstory draft mix.csv --theme warm-print --source "{SOURCE}"'
     )
     page = f"""<!doctype html>
 <html lang="en">

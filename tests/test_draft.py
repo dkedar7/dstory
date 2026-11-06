@@ -64,7 +64,7 @@ FIXTURES = {
 }
 
 EXPECTED_RECIPES = {
-    "timeseries-long": ["scene-trend", "scene-shift"],
+    "timeseries-long": ["scene-trend", "scene-shift", "scene-race"],
     "timeseries-wide": ["scene-trend", "scene-shift"],
     "before-after": ["scene-shift"],
     "shares": ["scene-mix"],
@@ -72,6 +72,9 @@ EXPECTED_RECIPES = {
 }
 
 _NUM = re.compile(r"\d+(?:[.,]\d+)*")
+# Time labels ("2019", "Mar 2024", "Jan 2, 2024") name a period; they are not
+# quantities, so they need no claim.
+_TIME_LABEL = re.compile(r"\b[A-Z][a-z]{2} \d{1,2}, \d{4}\b|\b(?:1[0-9]|2[0-2])\d{2}\b")
 
 
 def _prose(story: dict) -> list[str]:
@@ -109,7 +112,7 @@ def test_every_number_in_prose_is_a_claim(name):
     d = draft(FIXTURES[name](), title="A drafted story")
     claim_nums = {n for c in d.story["claims"] for n in _NUM.findall(c["text"])}
     for text in _prose(d.story):
-        for n in _NUM.findall(text):
+        for n in _NUM.findall(_TIME_LABEL.sub("", text)):
             assert n in claim_nums, f"{n!r} in {text!r} is not covered by a claim"
     # And each claim is actually used verbatim in the prose.
     prose = " ".join(_prose(d.story))
@@ -143,7 +146,13 @@ def test_long_and_wide_time_series_agree():
     # Same facts: Solar is the biggest mover in both shapes.
     assert "Solar" in a.story["scenes"][1]["headline"]
     assert "solar" in b.story["scenes"][1]["headline"].lower()
-    assert a.story["claims"][0]["value"] == b.story["claims"][0]["value"]
+    shift = lambda d: next(c["value"] for c in d.story["claims"] if c["id"] == "c-shift")  # noqa: E731
+    assert shift(a) == shift(b)
+    # The long table's measure is additive, so the trend is the total; the wide
+    # table's columns are separate series, so the trend follows the largest one
+    # instead of summing them (dogfood note on #11).
+    assert a.story["scenes"][0]["headline"].startswith("Total twh")
+    assert b.story["scenes"][0]["headline"].lower().startswith("gas ")
 
 
 def test_explain_mentions_rules_and_profile():

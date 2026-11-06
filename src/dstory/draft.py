@@ -14,11 +14,16 @@ Deterministic, offline, and keyless: no model calls, no network.
     print(d.explain())
     dstory.build(d.story, "grid", scenes=d.scenes, vet=True)
 
-Rules (milestone 1):
-  * time x measure                 -> line-reveal
-  * category x first/last period   -> slope-chart
-  * shares summing to ~100 (or ~1) -> waffle
-  * nothing matched                -> one bar-steps scene (always safe)
+Rules:
+  * time x measure                    -> line-reveal
+  * category x first/last period      -> slope-chart
+  * the top-ranked category changed   -> bump-chart
+  * shares summing to ~100 (or ~1)    -> waffle
+  * nothing matched                   -> one bar-steps scene (always safe)
+
+Shares and rates that sum to ~100 are compared in percentage points ("fell
+24 points"), never as a relative change. Changes across zero are described
+("turned negative in 2023"), never as a percent.
 
 pandas is optional for dstory as a whole; this module imports it lazily and
 raises an ImportError pointing at the [prep] extra when it is missing.
@@ -29,13 +34,15 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Any, Optional
 
 from .brand import list_presets
 from .cookbook import recipe_js
 from .prep import (
-    compute_claim, compute_pct_change, fmt_compact, ratio_phrase, to_long, PctChange,
+    compute_claim, compute_pct_change, compute_point_change, fmt_compact, fold_phrase,
+    ratio_phrase, to_long, PctChange, PointChange,
 )
 from .schema import Story
 
@@ -56,6 +63,8 @@ _DATE_STR = re.compile(r"^\d{4}-\d{2}(-\d{2})?([T ].*)?$")
 MAX_SLOPE_CATEGORIES = 10
 MAX_WAFFLE_CATEGORIES = 7     # the waffle palette has 7 categorical colors
 MAX_BAR_ROWS = 12
+MAX_BUMP_CATEGORIES = 10
+MAX_BUMP_PERIODS = 12
 
 
 # ---------- public types ----------
@@ -219,13 +228,30 @@ def _pct_str(p: float) -> str:
 
 
 def _change(pct: float) -> str:
-    """A verb phrase for a percent change: 'doubled', 'rose 42%', 'fell 7.5%'."""
+    """A verb phrase for a percent change: 'doubled', 'rose 42%', 'fell 7.5%',
+    'rose 12-fold'."""
     word = ratio_phrase(1.0 + pct / 100.0)
     if word:
         return word
+    fold = fold_phrase(1.0 + pct / 100.0)
+    if fold:
+        return f"rose {fold}"
     if abs(pct) < 0.05:
         return "held steady, a 0% change"
     return f"{'rose' if pct > 0 else 'fell'} {_pct_str(pct)}%"
+
+
+def _points(pp: float) -> str:
+    """A verb phrase for a change in percentage points: 'fell 24 points'."""
+    if abs(pp) < 0.05:
+        return "held steady"
+    mag = _pct_str(pp)
+    return f"{'rose' if pp > 0 else 'fell'} {mag} {'point' if mag == '1' else 'points'}"
+
+
+def _move(change: float) -> str:
+    """_points for a PointChange, _change for a percent change."""
+    return _points(change) if isinstance(change, PointChange) else _change(change)
 
 
 def _fmt_value(v: float) -> str:
@@ -268,10 +294,24 @@ def _clean(v: Any) -> Any:
 
 
 def _pct(after: float, before: float) -> Optional[PctChange]:
-    """compute_pct_change, rounded, or None when the base can't carry one."""
-    if before is None or after is None or before <= 0:
+    """compute_pct_change, rounded, or None when it would mislead: a base at
+    or below zero, or an end below zero (a change across zero, where "fell
+    200%" means nothing to a reader)."""
+    if before is None or after is None or before <= 0 or after < 0:
         return None
     return PctChange(round(compute_pct_change(after, before), 4))
+
+
+def _delta(after: float, before: float, share_scale: Optional[float]):
+    """The change used in prose: percentage points for shares (always
+    defined), else a percent change (None when it would mislead)."""
+    if share_scale:
+        return PointChange(round(compute_point_change(after, before, scale=share_scale), 4))
+    return _pct(after, before)
+
+
+def _drift(v0: float, v1: float) -> str:
+    return "rose" if v1 > v0 else "fell" if v1 < v0 else "held level"
 
 
 # ---------- the drafter ----------
@@ -292,6 +332,8 @@ class _Drafter:
         self.datasets: dict[str, list[dict[str, Any]]] = {}
         self.js: dict[str, str] = {}
         self.featured: set[str] = set()   # labels already headlined by a scene
+        self.series_melt = False          # wide-by-series table melted to long
+        self.daily = False                # time labels are calendar days
 
     # ----- profiling -----
 
@@ -363,6 +405,9 @@ class _Drafter:
             medians = [float(df[m].abs().median()) for m in measures]
             lo, hi = min(medians), max(medians)
             if lo > 0 and hi / lo <= 1000:
+                # Separate columns are separate series (Signups, Churn): never
+                # sum them, follow the largest instead.
+                self.series_melt = True
                 long = pd.DataFrame.from_records(
                     to_long(df, id_vars=times, value_vars=measures,
                             var_name="series", value_name="value"))
@@ -390,8 +435,13 @@ class _Drafter:
         elif first:
             label = lambda k: k.strftime("%b %Y")  # noqa: E731
         else:
-            label = lambda k: k.strftime("%Y-%m-%d")  # noqa: E731
+            self.daily = True
+            label = lambda k: f"{k.strftime('%b')} {k.day}, {k.year}"  # noqa: E731
         return keys, (lambda k: k.strftime("%Y-%m-%d")), label
+
+    def _at(self, label: str) -> str:
+        """'in 2024', 'in Mar 2024', 'on Mar 2, 2024'."""
+        return f"{'on' if self.daily else 'in'} {label}"
 
     # ----- claims -----
 
@@ -426,9 +476,11 @@ class _Drafter:
         self.js[sid] = recipe_js(recipe, sid)
 
     def _line_scene(self, T, M, series, iso, label, subject: str, why: str, *,
-                    proper: bool = False) -> bool:
+                    proper: bool = False, share_scale: Optional[float] = None) -> bool:
         """series: list of (key, value), sorted by key. `proper` means the
-        subject starts with a data label, so it keeps its case mid-sentence."""
+        subject starts with a data label, so it keeps its case mid-sentence.
+        `share_scale` (1 or 100) marks the measure as a share, compared in
+        percentage points."""
         sid = "scene-trend"
         in_text = subject if proper else subject[:1].lower() + subject[1:]
         pts = [(k, float(v)) for k, v in series if v == v]
@@ -436,36 +488,46 @@ class _Drafter:
             return False
         (k0, v0), (k1, v1) = pts[0], pts[-1]
         t0, t1 = label(k0), label(k1)
-        pct = _pct(v1, v0)
-        if pct is not None:
-            headline = self._claim("c-trend", f"{subject} {_change(pct)} between {t0} and {t1}",
-                                   pct, sid)
-        else:
-            headline = f"How {in_text} has moved"
-
         values = [v for _, v in pts]
+        change = _delta(v1, v0, share_scale)
+        crossed = None   # the last period where the series crossed zero
+        for i in range(1, len(values)):
+            if (values[i - 1] >= 0 > values[i]) or (values[i - 1] <= 0 < values[i]):
+                crossed = i
+        if change is not None:
+            headline = self._claim("c-trend", f"{subject} {_move(change)} between {t0} and {t1}",
+                                   change, sid)
+        elif crossed is not None and (v0 < 0) != (v1 < 0):
+            sign = "negative" if v1 < 0 else "positive"
+            headline = _sentence_case(f"{subject} turned {sign} {self._at(label(pts[crossed][0]))}")
+        else:
+            headline = _sentence_case(f"{subject} {_drift(v0, v1)} between {t0} and {t1}")
+
         ipk = max(range(len(values)), key=values.__getitem__)
         commentary = ""
-        from_peak = _pct(v1, values[ipk]) if 0 < ipk < len(values) - 1 else None
-        if from_peak is not None and from_peak <= -3:
+        from_peak = _delta(v1, values[ipk], share_scale) if 0 < ipk < len(values) - 1 else None
+        peak_drop = from_peak is not None and (
+            from_peak <= -1 if share_scale else from_peak <= -3)
+        if peak_drop:
             commentary = self._claim(
                 "c-trend-peak",
-                f"It peaked in {label(pts[ipk][0])}, then {_change(from_peak)} by {t1}.",
+                f"It peaked {self._at(label(pts[ipk][0]))}, then {_move(from_peak)} by {t1}.",
                 from_peak, sid)
         else:
-            steps = [(i, _pct(values[i], values[i - 1])) for i in range(1, len(values))]
-            steps = [(i, p) for i, p in steps if p is not None]
-            if steps:
+            steps = [(i, _delta(values[i], values[i - 1], share_scale))
+                     for i in range(1, len(values))]
+            # "Sharpest" only holds when every step could be measured.
+            if all(p is not None for _, p in steps):
                 i, p = max(steps, key=lambda ip: abs(ip[1]))
                 commentary = self._claim(
                     "c-trend-step",
-                    f"The sharpest move came in {label(pts[i][0])}, when it {_change(p)} "
+                    f"The sharpest move came {self._at(label(pts[i][0]))}, when it {_move(p)} "
                     f"from {label(pts[i - 1][0])}.", p, sid)
 
         alt = (f"Line chart of {in_text} from {t0} to {t1}: "
                f"it goes from {_fmt_value(v0)} to {_fmt_value(v1)}")
         annotation = None
-        if from_peak is not None and from_peak <= -3:
+        if peak_drop:
             alt += f", peaking at {_fmt_value(values[ipk])} in {label(pts[ipk][0])}"
             annotation = {"x": iso(pts[ipk][0]), "y": _clean(values[ipk]),
                           "text": f"Peak: {_fmt_value(values[ipk])}"}
@@ -477,7 +539,7 @@ class _Drafter:
         self.reasons.append(f"scene-trend: line-reveal over {T} x {M} -- {why}")
         return True
 
-    def _slope_scene(self, C, M, wide, periods, label, shares: bool) -> bool:
+    def _slope_scene(self, C, M, wide, periods, label, share_scale: Optional[float]) -> bool:
         sid = "scene-shift"
         p0, p1 = periods[0], periods[-1]
         t0, t1 = label(p0), label(p1)
@@ -491,35 +553,52 @@ class _Drafter:
             both = both.sort_values(p1, ascending=False).head(MAX_SLOPE_CATEGORIES)
             trimmed = f"; kept the {MAX_SLOPE_CATEGORIES} largest in {t1}"
         rows = [(str(lab), float(r[p0]), float(r[p1])) for lab, r in both.iterrows()]
-        movers = [(lab, _pct(e, s)) for lab, s, e in rows]
-        movers = [(lab, p) for lab, p in movers if p is not None]
+        measured = [(lab, _delta(e, s, share_scale)) for lab, s, e in rows]
+        movers = [(lab, p) for lab, p in measured if p is not None]
+        # Superlatives ("biggest", "least") only hold when every category was measured.
+        complete = len(movers) == len(rows)
+        crossers = [(lab, "negative" if e < 0 else "positive") for lab, s, e in rows
+                    if (s >= 0 > e) or (s <= 0 < e)]
         cname = _humanize(C)
 
         def subj(lab: str) -> str:
-            return f"{lab} share" if shares else lab
+            return f"{lab} share" if share_scale else lab
 
         headline, commentary, highlight = "", "", []
         if movers:
             top, tp = max(movers, key=lambda lp: abs(lp[1]))
-            headline = self._claim(
-                "c-shift", f"{subj(top)} {_change(tp)} between {t0} and {t1}, "
-                           f"the biggest shift of any {cname}", tp, sid)
+            if top in self.featured and complete:
+                # The trend scene already stated this change; add the comparison only.
+                headline = _sentence_case(f"No {cname} moved more than {top} "
+                                          f"between {t0} and {t1}")
+            else:
+                biggest = f", the biggest shift of any {cname}" if complete else ""
+                headline = self._claim(
+                    "c-shift", f"{subj(top)} {_move(tp)} between {t0} and {t1}{biggest}", tp, sid)
             highlight.append(top)
             rest = [(lab, p) for lab, p in movers if lab != top]
             opposite = [(lab, p) for lab, p in rest if (p > 0) != (tp > 0) and abs(p) >= 0.05]
             # Don't restate the line scene's subject when another label can make the point.
             fresh = [(lab, p) for lab, p in opposite if lab not in self.featured]
             opposite = fresh or opposite
-            if opposite:
+            if crossers:
+                lab, sign = crossers[0]
+                commentary = _sentence_case(f"{lab} turned {sign} by {t1}.")
+                highlight.append(lab)
+            elif opposite:
                 lab, p = max(opposite, key=lambda lp: abs(lp[1]))
                 commentary = self._claim("c-shift-contrast",
-                                         f"{subj(lab)}, by contrast, {_change(p)}.", p, sid)
+                                         f"{subj(lab)}, by contrast, {_move(p)}.", p, sid)
                 highlight.append(lab)
-            elif rest:
+            elif rest and complete:
                 lab, p = min(rest, key=lambda lp: abs(lp[1]))
                 commentary = self._claim("c-shift-least",
-                                         f"{subj(lab)} changed least: it {_change(p)}.", p, sid)
+                                         f"{subj(lab)} changed least: it {_move(p)}.", p, sid)
                 highlight.append(lab)
+        elif crossers:
+            lab, sign = crossers[0]
+            headline = _sentence_case(f"{lab} turned {sign} between {t0} and {t1}")
+            highlight.append(lab)
         else:
             headline = f"Where each {cname} stood in {t0} and {t1}"
         by_label = {lab: (s, e) for lab, s, e in rows}
@@ -536,6 +615,51 @@ class _Drafter:
         self.reasons.append(
             f"scene-shift: slope-chart of {C}, {t0} vs {t1} -- category x first/last period "
             f"({len(rows)} {C} values present in both{trimmed})")
+        return True
+
+    def _bump_scene(self, T, C, M, wide, periods, label) -> bool:
+        """Bump chart when the top-ranked category changed between the first
+        and last period. wide: index period, columns category."""
+        sid = "scene-race"
+        if not 3 <= len(periods) <= MAX_BUMP_PERIODS:
+            self.reasons.append(f"(skipped) bump-chart: needs 3 to {MAX_BUMP_PERIODS} "
+                                f"{T} periods, found {len(periods)}.")
+            return False
+        full = wide.dropna(axis=1)   # categories present in every period
+        if full.shape[1] < 3:
+            self.reasons.append(f"(skipped) bump-chart: fewer than 3 {C} values present in "
+                                f"every {T}.")
+            return False
+        if full.shape[1] > MAX_BUMP_CATEGORIES:
+            keep = full.loc[periods[-1]].sort_values(ascending=False).index[:MAX_BUMP_CATEGORIES]
+            full = full[keep]
+        first, last = full.loc[periods[0]], full.loc[periods[-1]]
+        old, new = str(first.idxmax()), str(last.idxmax())
+        # A tie at the top is not an overtake.
+        if old == new or (first == first.max()).sum() > 1 or (last == last.max()).sum() > 1:
+            self.reasons.append(f"(skipped) bump-chart: the top {C} did not change "
+                                f"({new} leads in both {label(periods[0])} and "
+                                f"{label(periods[-1])}).")
+            return False
+        t0, t1 = label(periods[0]), label(periods[-1])
+        rank0 = {str(k): i + 1 for i, k in enumerate(first.sort_values(ascending=False).index)}
+        rank1 = {str(k): i + 1 for i, k in enumerate(last.sort_values(ascending=False).index)}
+        took = next(label(p) for p in periods if str(full.loc[p].idxmax()) == new
+                    and all(str(full.loc[q].idxmax()) == new for q in periods[periods.index(p):]))
+        headline = _sentence_case(f"{new} overtook {old} to rank first by {t1}")
+        commentary = _sentence_case(
+            f"{old} led {self._at(t0)}; {new} has held the top spot since {took}."
+            if took != t1 else f"{old} led {self._at(t0)}; {new} took the top spot {self._at(t1)}.")
+        alt = (f"Bump chart ranking each {_humanize(C)} by {_humanize(M)} from {t0} to {t1}: "
+               f"{new} climbs from rank {rank0[new]} to rank 1, and {old} slips from rank 1 "
+               f"to rank {rank1[old]}.")
+        rows = [{T: label(p), C: str(c), M: full.loc[p, c]} for p in periods for c in full.columns]
+        self._add_scene("bump-chart", {
+            "id": sid, "headline": headline, "commentary": commentary, "alt": alt,
+            "config": {"x": T, "series": C, "y": M, "highlight": [new]},
+        }, rows)
+        self.reasons.append(f"scene-race: bump-chart of {C} rank by {M} -- the top {C} changed "
+                            f"({old} in {t0}, {new} in {t1})")
         return True
 
     def _waffle_scene(self, C, M, values: list[tuple[str, float]], period: Optional[str],
@@ -612,7 +736,7 @@ class _Drafter:
         T = times[0] if times else None
 
         tokens = set(re.split(r"[^a-z0-9]+", M.lower()))
-        additive = not (tokens & _NON_ADDITIVE_TOKENS)
+        additive = not (tokens & _NON_ADDITIVE_TOKENS) and not self.series_melt
         work = df.dropna(subset=[M]).copy()
         work[M] = pd.to_numeric(work[M], errors="coerce")
         work = work.dropna(subset=[M])
@@ -632,8 +756,10 @@ class _Drafter:
                 grouped = work.groupby(["__t", C])[M].agg(agg)
                 wide = grouped.unstack(C)          # index: period, columns: category
                 sums = grouped.groupby(level=0).sum()
-                shares = bool((work[M] >= 0).all()) and (
-                    bool(sums.between(97, 103).all()) or bool(sums.between(0.97, 1.03).all()))
+                nonneg = bool((work[M] >= 0).all())
+                share_scale = (1.0 if nonneg and bool(sums.between(97, 103).all()) else
+                               100.0 if nonneg and bool(sums.between(0.97, 1.03).all()) else None)
+                shares = share_scale is not None
                 last_vals = wide.loc[periods[-1]].dropna()
                 # 1. time x measure
                 if room():
@@ -645,20 +771,27 @@ class _Drafter:
                     else:
                         leader = str(last_vals.idxmax())
                         self.featured.add(leader)
-                        subject = f"{leader} share" if shares else f"{leader} {_humanize(M)}"
+                        subject = (f"{leader} share" if shares else leader if self.series_melt
+                                   else f"{leader} {_humanize(M)}")
+                        kind = ("a share, compared in percentage points" if shares else
+                                "one column per series (not summed)" if self.series_melt else
+                                "not additive")
                         ok = self._line_scene(
                             T.name, M, list(wide[last_vals.idxmax()].items()), iso, label,
-                            subject, f"time series detected; {M} is "
-                            f"{'a share' if shares else 'not additive'}, so it follows the "
-                            f"largest {C} in {label(periods[-1])} ({leader})", proper=True)
+                            subject, f"time series detected; {M} is {kind}, so it follows the "
+                            f"largest {C} in {label(periods[-1])} ({leader})", proper=True,
+                            share_scale=share_scale)
                     planned += ok
                     if not ok:
                         self.reasons.append(f"(skipped) line-reveal: fewer than 3 {T.name} "
                                             "periods.")
                 # 2. category x first/last period
                 if room() and len(periods) >= 2:
-                    planned += self._slope_scene(C, M, wide.T, periods, label, shares)
-                # 3. shares
+                    planned += self._slope_scene(C, M, wide.T, periods, label, share_scale)
+                # 3. a change at the top of the ranking
+                if room() and not self.series_melt:
+                    planned += self._bump_scene(T.name, C, M, wide, periods, label)
+                # 4. shares
                 if shares and room():
                     planned += self._waffle_scene(
                         C, M, [(str(k), float(v)) for k, v in last_vals.items()],
@@ -721,6 +854,7 @@ class _Drafter:
         meta: dict[str, Any] = {
             "title": self.title, "theme": self.theme or "editorial-noir",
             "audience": self.audience, "mode": self.mode,
+            "published": date.today().isoformat(),
         }
         if self.source:
             meta["sources"] = [{"name": self.source}]

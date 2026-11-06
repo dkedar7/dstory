@@ -123,7 +123,21 @@ PHRASE_RULES: list[tuple[re.Pattern, callable]] = [
 MAJORITY_RULE = (re.compile(r"\bmajority\b", re.I), lambda v: v >= 0.50)
 PHRASE_RULES.append(MAJORITY_RULE)
 PCT_TOLERANCE_PP = 0.5
-_PCT_RE = re.compile(r"(?:\b(increas|decreas)\w*\s+(?:by\s+)?)?(\d+(?:\.\d+)?)\s*%", re.I)
+# A direction verb directly before the number ("rose 12%", "decreased by 4%")
+# makes the sign part of the check; without one only the magnitude is compared.
+_UP_STEMS = ("increas", "rose", "rise", "risen", "grew", "grow", "gain", "climb", "jump")
+_DOWN_STEMS = ("decreas", "fell", "fall", "drop", "declin", "lost", "lose", "shrank",
+               "shrunk", "slid", "slump")
+_DIRECTION = "|".join(_UP_STEMS + _DOWN_STEMS)
+_PCT_RE = re.compile(rf"(?:\b({_DIRECTION})\w*\s+(?:by\s+)?)?(\d+(?:\.\d+)?)\s*%", re.I)
+_POINTS_RE = re.compile(rf"(?:\b({_DIRECTION})\w*\s+(?:by\s+)?)?(\d+(?:\.\d+)?)\s*"
+                        r"(?:percentage[- ]points?|points?|pp)\b", re.I)
+_FOLD_RE = re.compile(r"\b(\d+(?:\.\d+)?)[- ]?fold\b", re.I)
+
+
+def _signed(direction: Optional[str], stated: float) -> float:
+    d = (direction or "").lower()
+    return -stated if any(d.startswith(s) for s in _DOWN_STEMS) else stated
 
 SLOP_PHRASES = [
     "lorem ipsum", "[placeholder]", "[todo]", "TODO:", "as you can see",
@@ -235,6 +249,9 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
 
         unit = c.get("unit")
         # Normalise the value to the two scales the rules need.
+        if unit == "pp":
+            _check_points_claim(r, cid, text, value)
+            continue
         if value is None:
             as_ratio = actual_pct = None
         elif unit == "ratio":
@@ -256,18 +273,47 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
                            f"{f' ({unit})' if unit else ''} fails check for "
                            f"'{pattern.pattern}'. Either rephrase or fix the data.")
 
+        if value is not None and unit in ("pct", "ratio") and actual_pct < -100:
+            r.fail(f"Claim {cid!r}: a {actual_pct:.0f}% change means the value changed sign; "
+                   "a percent change across zero misleads readers. Describe the swing "
+                   "instead (e.g. 'turned negative').")
+
         m = _PCT_RE.search(text)
         if m and value is not None:
-            direction, stated = (m.group(1) or "").lower(), float(m.group(2))
-            if direction == "decreas":
-                stated = -stated
+            direction, stated = m.group(1), float(m.group(2))
+            stated = _signed(direction, stated)
             # Without an explicit direction word, compare magnitudes only.
             got = actual_pct if direction else abs(actual_pct)
             if abs(got - stated) > PCT_TOLERANCE_PP:
                 r.fail(f"Claim {cid!r}: prose says {m.group(0).strip()}, derived value is "
                        f"{actual_pct:+.2f}% (tolerance {PCT_TOLERANCE_PP}pp).")
 
+        f = _FOLD_RE.search(text)
+        if f and value is not None and abs(as_ratio - float(f.group(1))) > 0.5:
+            r.fail(f"Claim {cid!r}: prose says {f.group(0)}, but the ratio is "
+                   f"{as_ratio:.2f}.")
+
     return r
+
+
+def _check_points_claim(r: "Dimension", cid: str, text: str, value: Optional[float]) -> None:
+    """A "pp" claim: the text states a change in percentage points."""
+    if value is None:
+        r.fail(f"Claim {cid!r} has unit 'pp' but no numeric value.")
+        return
+    for pattern, _ in PHRASE_RULES:
+        if pattern.search(text):
+            r.fail(f"Claim {cid!r}: '{pattern.pattern}' describes a ratio, but the value is a "
+                   "change in percentage points.")
+    m = _POINTS_RE.search(text)
+    if not m:
+        r.note(f"Claim {cid!r} (unit 'pp') states no 'N points' figure to check.")
+        return
+    direction, stated = m.group(1), float(m.group(2))
+    got = value if direction else abs(value)
+    if abs(got - _signed(direction, stated)) > PCT_TOLERANCE_PP:
+        r.fail(f"Claim {cid!r}: prose says {m.group(0).strip()}, value is "
+               f"{value:+.2f} points (tolerance {PCT_TOLERANCE_PP}).")
 
 
 _OVERDRAW_GEOMETRIES = (None, "rectangle", "area")

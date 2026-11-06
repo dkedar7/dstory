@@ -123,8 +123,13 @@ def bundle(slug: str, no_validate: bool, vendor: bool, no_check_claims: bool) ->
 def vet(html_path: str, data_path: str, no_browser: bool) -> None:
     """Vet a bundled HTML against the 5-dimension rubric."""
     report = vet_story(html_path, data=data_path, browser=not no_browser)
+    if not _print_report(report, Path(html_path).name):
+        sys.exit(1)
 
-    table = Table(title=f"Vetting Report — {Path(html_path).name}", show_header=True)
+
+def _print_report(report, name: str) -> bool:
+    """Render a vet Report as a table plus the overall verdict; True if it passed."""
+    table = Table(title=f"Vetting Report — {name}", show_header=True)
     table.add_column("Dimension")
     table.add_column("Status")
     table.add_column("Issues / Notes")
@@ -151,7 +156,85 @@ def vet(html_path: str, data_path: str, no_browser: bool) -> None:
         console.print("[green bold]OVERALL: PASS[/green bold] — safe to deliver.")
     else:
         console.print("[red bold]OVERALL: BLOCKED[/red bold] — fix the issues above.")
+    return report.passed
+
+
+_READERS = {".csv": "read_csv", ".tsv": "read_csv", ".txt": "read_csv", ".json": "read_json",
+            ".parquet": "read_parquet", ".xlsx": "read_excel", ".xls": "read_excel"}
+
+
+@cli.command()
+@click.argument("data_file", type=click.Path(exists=True, dir_okay=False))
+@click.option("--out", "-o", "out", default=None,
+              help="Project directory to write (default: the data file's name, e.g. sales.csv -> sales/).")
+@click.option("--title", default=None, help="Story title (default: from the file name).")
+@click.option("--theme", "-t", default=None, type=click.Choice(list_presets()),
+              help="Theme preset (default: editorial-noir).")
+@click.option("--mode", "-m", default="scroll", type=click.Choice(["scroll", "slides"]))
+@click.option("--audience", "-a", default="general-public",
+              type=click.Choice(["executive", "general-public", "technical-peer", "student", "policymaker"]))
+@click.option("--source", default=None, help="Data citation, shown under each chart.")
+@click.option("--max-scenes", default=5, show_default=True, help="Cap on drafted scenes.")
+@click.option("--vendor", is_flag=True, help="Inline the runtime libs for a fully offline file.")
+@click.option("--no-vet", is_flag=True, help="Skip vetting the drafted story.")
+@click.option("--no-browser", is_flag=True, help="Vet with static checks only.")
+@click.option("--overwrite", is_flag=True, help="Allow writing into an existing directory.")
+def draft(data_file: str, out: str | None, title: str | None, theme: str | None, mode: str,
+          audience: str, source: str | None, max_scenes: int, vendor: bool, no_vet: bool,
+          no_browser: bool, overwrite: bool) -> None:
+    """Draft a vetted story straight from a data file (CSV, TSV, JSON, Parquet, Excel).
+
+    Picks the charts, writes headlines and alt text from the data, bundles one
+    self-contained HTML and vets it, with no configuration. The project it
+    writes is a normal dstory project: edit data.json and re-run `dstory bundle`.
+    """
+    try:
+        import pandas as pd
+    except ImportError:
+        console.print(f'[red]{CROSS}[/red] dstory draft needs pandas: pip install "dstory[prep]"')
         sys.exit(1)
+    from .api import build
+    from .draft import draft as draft_df
+
+    path = Path(data_file)
+    reader = _READERS.get(path.suffix.lower())
+    if reader is None:
+        console.print(f"[red]{CROSS}[/red] Unsupported file type {path.suffix!r}. "
+                      f"Use one of: {', '.join(sorted(_READERS))}.")
+        sys.exit(1)
+    kwargs = {"sep": "\t"} if path.suffix.lower() == ".tsv" else {}
+    try:
+        df = getattr(pd, reader)(path, **kwargs)
+    except Exception as e:  # pandas raises many types; surface the message
+        console.print(f"[red]{CROSS}[/red] Could not read {path.name}: {e}")
+        sys.exit(1)
+
+    slug = out or path.stem.lower().replace(" ", "-")
+    if title is None:
+        title = path.stem.replace("_", " ").replace("-", " ").strip().capitalize() or "Untitled story"
+    target = Path(slug)
+    if target.exists() and any(target.iterdir()) and not overwrite:
+        console.print(f"[red]{CROSS}[/red] {target} already exists. Pass --overwrite or --out.")
+        sys.exit(1)
+
+    try:
+        d = draft_df(df, title=title, theme=theme, audience=audience, mode=mode,
+                     max_scenes=max_scenes, source=source)
+    except (ValueError, TypeError) as e:
+        console.print(f"[red]{CROSS} Draft failed:[/red] {e}")
+        sys.exit(1)
+    console.print(d.explain(), markup=False, highlight=False)
+
+    try:
+        result = build(d.story, target, scenes=d.scenes, vendor=vendor, vet=not no_vet,
+                       browser=False if no_browser else None, overwrite=True)
+    except (FileNotFoundError, ValueError) as e:
+        console.print(f"[red]{CROSS} Build failed:[/red] {e}")
+        sys.exit(1)
+    console.print(f"[green]{CHECK}[/green] Wrote {result.html} ({result.bundle.size_bytes/1024:.1f} KB)")
+    if result.report is not None and not _print_report(result.report, result.html.name):
+        sys.exit(1)
+    console.print(f"  Edit {target / 'data.json'}, then: dstory bundle {target}")
 
 
 @cli.command()
