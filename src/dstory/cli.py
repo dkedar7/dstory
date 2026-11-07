@@ -112,6 +112,9 @@ def bundle(slug: str, no_validate: bool, vendor: bool, no_check_claims: bool) ->
     console.print(f"  inlined: {result.inlined_styles} styles, {result.inlined_scripts} scripts, {result.inlined_images} images")
     for w in result.warnings:
         console.print(f"  [yellow]{WARN}[/yellow] {w}")
+    if not result.self_contained:
+        console.print(f"[red]{CROSS} The bundle is not self-contained[/red] (see above).")
+        sys.exit(1)
 
 
 @cli.command()
@@ -253,6 +256,22 @@ def scene(slug: str, scene_id: str, kind: str, recipe: str | None) -> None:
     --from, copies a complete cookbook recipe — a finished, themed chart you
     then own and edit.
     """
+    if kind == "vizzu" and not recipe:
+        # Vizzu scenes are declarative: a JS file would override (and blank)
+        # the built-in renderer, so write nothing and show the data.json shape.
+        snippet = {"id": scene_id, "kind": "vizzu", "dataset": "<dataset key>",
+                   "alt": "<one sentence: what the chart shows>",
+                   "series": [{"name": "<x column>", "type": "dimension"},
+                              {"name": "<y column>", "type": "measure"}],
+                   "frames": [{"headline": "<the insight>",
+                               "config": {"channels": {"x": "<x column>", "y": "<y column>"},
+                                          "geometry": "rectangle"}}]}
+        console.print(f"[green]{CHECK}[/green] Vizzu scenes need no JS file; nothing written. "
+                      f"Add this to scenes[] in {slug}/data.json:")
+        console.print(json.dumps(snippet, indent=2), markup=False, highlight=False)
+        console.print("[dim]Each frames[] entry is one animated state. For manual control "
+                      "of the chart, use --kind custom.[/dim]")
+        return
     try:
         if recipe:
             js, kind = recipe_js(recipe, scene_id), recipe_kind(recipe)

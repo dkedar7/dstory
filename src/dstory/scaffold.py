@@ -379,9 +379,11 @@ window.STORY.register("{id}", (mount, data, scene) => {{
 
 _STARTER_VIZZU = '''\
 // scenes/{id}.js — kind: "vizzu".
-// NOTE: vizzu scenes are fully declarative — define `series` and `frames[]`
-// in data.json and DELETE this file. Keep it only to take manual control of
-// the chart (registering a renderer overrides the default vizzu behavior).
+// NOTE: vizzu scenes are fully declarative: define `series` and `frames[]`
+// in data.json and you need no JS file at all (`dstory scene --kind vizzu`
+// no longer writes one). Registering a renderer here REPLACES the built-in
+// Vizzu renderer, so an empty function leaves the chart blank. To remove this
+// file, delete it; `dstory bundle` drops its dangling <script> tag.
 window.STORY.register("{id}", (mount, data, scene) => {{
   // TODO: drive your own Vizzu instance, or delete this file.
 }});

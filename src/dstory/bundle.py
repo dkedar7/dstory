@@ -29,6 +29,12 @@ class BundleResult:
     inlined_images: int
     warnings: list[str]
 
+    @property
+    def self_contained(self) -> bool:
+        """False when a local file reference survived bundling: the HTML
+        would depend on files that don't ship with it."""
+        return not any(w.startswith("Local reference survived bundling") for w in self.warnings)
+
 
 class ClaimDriftError(ValueError):
     """A claim's text contradicts its value ("tripled" for 1.2). Raised by
@@ -120,8 +126,11 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
             return full
         p = (project / src).resolve()
         if not p.exists():
-            warnings.append(f"Script file not found: {src}")
-            return full
+            # A tag pointing at a deleted file would 404 in every reader's
+            # browser; drop it so the output stays self-contained.
+            warnings.append(f"Script file not found: {src} — dropped its <script> tag. "
+                            "Remove the tag from index.html to silence this.")
+            return ""
         counts["scripts"] += 1
         is_module = 'type="module"' in full or "type='module'" in full
         return _inline_script(p, is_module=is_module)

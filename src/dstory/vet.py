@@ -503,6 +503,30 @@ PAINT_AUDIT_JS = r"""
   const data = window.__STORY_DATA__;
   if (!data || !Array.isArray(data.scenes)) return [];
   const marks = 'path, rect, circle, line, polyline, polygon, ellipse, text, image, use';
+  // A canvas counts only if it holds ink: more than 1% of its pixels differ
+  // from its dominant (background) colour. A blank Vizzu canvas carries only
+  // a tiny watermark, which stays well under that.
+  const canvasInked = (c) => {
+    if (!(c.width > 0 && c.height > 0)) return false;
+    try {
+      const W = 120, H = Math.max(1, Math.round(120 * c.height / c.width));
+      const o = document.createElement('canvas'); o.width = W; o.height = H;
+      const ctx = o.getContext('2d');
+      ctx.drawImage(c, 0, 0, W, H);
+      const px = ctx.getImageData(0, 0, W, H).data;
+      const counts = new Map();
+      const keys = new Array(W * H);
+      for (let i = 0, j = 0; i < px.length; i += 4, j++) {
+        const k = (px[i] >> 4) << 12 | (px[i + 1] >> 4) << 8 | (px[i + 2] >> 4) << 4 | (px[i + 3] >> 4);
+        keys[j] = k; counts.set(k, (counts.get(k) || 0) + 1);
+      }
+      let bg = 0, best = -1;
+      for (const [k, n] of counts) if (n > best) { best = n; bg = k; }
+      return (keys.length - best) / keys.length > 0.01;
+    } catch (e) {
+      return true;  // unreadable (tainted / WebGL): can't tell, don't fail it
+    }
+  };
   const unpainted = [];
   for (const s of data.scenes) {
     if (!s || !s.id) continue;
@@ -512,12 +536,12 @@ PAINT_AUDIT_JS = r"""
     if (!mount) { unpainted.push(s.id); continue; }
     const svgs = Array.from(mount.querySelectorAll('svg'));
     const svgPainted = svgs.some(svg => svg.querySelector(marks));
-    const canvasPainted = Array.from(mount.querySelectorAll('canvas'))
-      .some(c => c.width > 0 && c.height > 0);
+    const canvases = Array.from(mount.querySelectorAll('canvas'));
+    const canvasPainted = canvases.some(canvasInked);
     const imgPainted = !!mount.querySelector('img');
-    // An HTML-only chart (no svg at all) counts if it built any elements.
+    // An HTML-only chart (no svg or canvas) counts if it built any elements.
     // Mounts start empty (for kind:"custom" the mount is the bare section).
-    const htmlPainted = svgs.length === 0 && mount.children.length > 0;
+    const htmlPainted = svgs.length === 0 && canvases.length === 0 && mount.children.length > 0;
     if (!(svgPainted || canvasPainted || imgPainted || htmlPainted)) unpainted.push(s.id);
   }
   return unpainted;
