@@ -102,6 +102,15 @@ and Excel; `--mode slides`, `--vendor`, `--max-scenes` and `--no-vet` work as
 elsewhere. The output is a normal project: edit `mix/data.json`, then
 `dstory bundle mix`.
 
+Real exports are messy, and `draft` copes:
+
+- Numbers stored as text ("$1,200", "12%", "(300)") are read as numbers.
+- A stray typo or blank cell is dropped and named in `explain()`
+  (`(cleaned) sales: read as numbers; 1 non-numeric value dropped ('abc')`),
+  rather than aborting the draft.
+- Time columns are recognised from their values: "Jan 2024", "2024 Q1" or
+  "Q1 2024", and evenly spaced years in a column with any name.
+
 The same thing from Python, with a DataFrame:
 
 ```python
@@ -132,6 +141,7 @@ Rules today:
 
 | Data | Scene |
 |---|---|
+| an additive measure over time, split by 2 to 7 categories | an animated **Vizzu opener**: the total as stacked bars, which morph into one line per category as you scroll |
 | time x measure | `line-reveal` |
 | category x first/last period | `slope-chart` |
 | the top-ranked category changed over time | `bump-chart` ("Gas overtook Coal to rank first by 2024") |
@@ -147,6 +157,13 @@ The prose follows newsroom conventions so a reader can't be misled:
   a percent.
 - Daily dates read "on Jan 2, 2024".
 - Separate columns (Signups, Churn) are never summed into a total.
+- The opener only stacks when the total is real: no gaps, no negative values,
+  and a measure that adds up.
+
+Vizzu loads WebAssembly from its CDN, so it can't be inlined. An offline
+build (`--vendor`, or `build(df, vendor=True)`) therefore keeps the D3 line
+chart instead of the opener. Pass `--no-opener` (`opener=False`) to always use
+the line chart.
 
 The vetter enforces the same rules for hand-written claims:
 

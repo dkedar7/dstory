@@ -92,7 +92,7 @@ def build(
         .report / .passed when vet=True.
     """
     from .draft import _maybe_draft  # a pandas DataFrame → dstory.draft() first
-    story, scenes = _maybe_draft(story, path, brand=brand, scenes=scenes)
+    story, scenes = _maybe_draft(story, path, brand=brand, scenes=scenes, vendor=vendor)
     story_obj = story if isinstance(story, Story) else Story.model_validate(story)
     meta = story_obj.meta
 

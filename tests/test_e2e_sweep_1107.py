@@ -103,6 +103,48 @@ def test_blank_vizzu_canvas_fails_renders(tmp_path):
     assert any("did not paint" in i and "scene-morph" in i for i in renders.issues), renders.issues
 
 
+def test_drafted_opener_animates_for_the_reader(tmp_path):
+    """#11 milestone 3: `dstory draft` opens with stacked bars that morph into
+    lines; the reader sees an inked canvas and both frame headlines, and the
+    story passes the full browser vet."""
+    _browser_or_skip()
+    pd = pytest.importorskip("pandas")
+    years = list(range(2015, 2025))
+    series = {"Coal": [410, 400, 380, 350, 330, 300, 280, 250, 230, 210],
+              "Gas": [300, 310, 330, 340, 360, 370, 380, 390, 395, 400],
+              "Solar": [20, 28, 40, 55, 75, 100, 130, 165, 200, 240]}
+    pd.DataFrame([{"year": y, "source": s, "twh": v} for s, vals in series.items()
+                  for y, v in zip(years, vals)]).to_csv(tmp_path / "grid.csv", index=False)
+    proc = _cli("draft", "grid.csv", "--source", "Synthetic grid data", cwd=tmp_path)
+    out = proc.stdout.decode("utf-8")
+    assert proc.returncode == 0, out
+    assert "scene-opener: vizzu opener" in out and "OVERALL: PASS" in out
+    assert "PASS (partial)" not in out
+
+    from playwright.sync_api import sync_playwright
+    from dstory.vet import PAINT_AUDIT_JS
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        page = b.new_page(viewport={"width": 1280, "height": 800})
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto((tmp_path / "grid" / "dist" / "story.html").as_uri(), wait_until="load")
+        page.evaluate("document.querySelector('#scene-opener .step[data-step=\"0\"]')"
+                      ".scrollIntoView({block: 'center'})")
+        page.wait_for_function(f"!{PAINT_AUDIT_JS.strip()}.includes('scene-opener')", timeout=10000)
+        text = page.inner_text("#scene-opener")
+        assert "Total twh rose 16% between 2015 and 2024" in text
+        assert "In 2024, Gas made up 47% of the total" in text
+        shot0 = page.locator('[data-mount="scene-opener"]').screenshot()
+        page.evaluate("document.querySelector('#scene-opener .step[data-step=\"1\"]')"
+                      ".scrollIntoView({block: 'center'})")
+        page.wait_for_timeout(2500)                     # the morph to lines
+        shot1 = page.locator('[data-mount="scene-opener"]').screenshot()
+        assert shot0 != shot1, "the opener did not morph to its second frame"
+        assert not errors, errors
+        b.close()
+
+
 def test_real_vizzu_chart_passes_paint_check(tmp_path):
     _browser_or_skip()
     proj = _project(tmp_path, "real")

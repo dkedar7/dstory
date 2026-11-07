@@ -58,12 +58,21 @@ _NON_ADDITIVE_TOKENS = {"rate", "rates", "pct", "percent", "percentage", "share"
                         "per", "expectancy", "temperature", "temp", "age", "density", "yield"}
 _ID_TOKENS = {"id", "uuid", "guid", "key"}
 _YEAR_STR = re.compile(r"^\d{4}$")
+_MONTH_STR = re.compile(r"^[A-Za-z]{3,9}\.? \d{4}$")            # "Jan 2024", "March 2024"
+_QUARTER_STR = re.compile(r"^(?:(\d{4})\s*-?\s*Q([1-4])|Q([1-4])\s*-?\s*(\d{4}))$", re.I)
+# Spreadsheet number formatting to strip before parsing: "$1,200", "12%", "(5)".
+_NUM_JUNK = re.compile(r"[\s,$\u00a3\u20ac\u00a5%]")
+# A text column becomes a measure when at least this share of its non-blank
+# values parse as numbers; the rest are dropped and reported.
+NUMERIC_COERCE_MIN = 0.8
 _DATE_STR = re.compile(r"^\d{4}-\d{2}(-\d{2})?([T ].*)?$")
 
 MAX_SLOPE_CATEGORIES = 10
 MAX_WAFFLE_CATEGORIES = 7     # the waffle palette has 7 categorical colors
 MAX_BAR_ROWS = 12
 MAX_BUMP_CATEGORIES = 10
+MAX_OPENER_CATEGORIES = 7
+MAX_OPENER_PERIODS = 20
 MAX_BUMP_PERIODS = 12
 
 
@@ -103,8 +112,10 @@ class Draft:
         """Human-readable account of the profile and why each scene was chosen."""
         lines = [f"Profile: {self.shape}"]
         lines += [f"  {p.describe()}" for p in self.profile]
+        cleaned = [r for r in self.reasons if r.startswith("(cleaned)")]
+        lines += [f"  {r}" for r in cleaned]
         lines.append("Scenes:")
-        lines += [f"  {r}" for r in self.reasons]
+        lines += [f"  {r}" for r in self.reasons if r not in cleaned]
         claims = self.story.get("claims", [])
         if claims:
             lines.append(f"Claims ({len(claims)}), each checked by the vetter:")
@@ -145,6 +156,7 @@ def draft(
     audience: str = "general-public",
     mode: str = "scroll",
     max_scenes: int = 5,
+    opener: bool = True,
     source: Optional[str] = None,
 ) -> Draft:
     """Draft a vetted story from a DataFrame, with no configuration.
@@ -156,6 +168,9 @@ def draft(
         theme: a bundled theme preset name (see dstory.list_presets()).
         audience, mode: written to meta, as in data.json.
         max_scenes: cap on the number of scenes (rules run in a fixed order).
+        opener: open with an animated Vizzu scene when the measure is additive
+                across categories over time (the total stacks, then splits
+                into one line per category). False keeps the D3 line chart.
         source: citation for the data; written to meta.sources and each
                 scene's source_line.
 
@@ -172,7 +187,7 @@ def draft(
     if max_scenes < 1:
         raise ValueError("max_scenes must be at least 1.")
     return _Drafter(pd, df, title=title, theme=theme, audience=audience, mode=mode,
-                    max_scenes=max_scenes, source=source).run()
+                    max_scenes=max_scenes, source=source, opener=opener).run()
 
 
 def _is_dataframe(obj: Any) -> bool:
@@ -181,7 +196,8 @@ def _is_dataframe(obj: Any) -> bool:
 
 
 def _maybe_draft(story: Any, path: str | Path, *, brand: Any,
-                 scenes: Optional[dict[str, str]]) -> tuple[Any, Optional[dict[str, str]]]:
+                 scenes: Optional[dict[str, str]],
+                 vendor: bool = False) -> tuple[Any, Optional[dict[str, str]]]:
     """build() hook: a DataFrame becomes draft().story + draft().scenes.
 
     Anything else is returned untouched, so dict / Story input is unchanged.
@@ -191,7 +207,9 @@ def _maybe_draft(story: Any, path: str | Path, *, brand: Any,
         return story, scenes
     theme = brand if isinstance(brand, str) and brand in list_presets() else None
     title = re.sub(r"[-_]+", " ", Path(path).name).strip() or "Untitled story"
-    d = draft(story, title=_sentence_case(title), theme=theme)
+    # Vizzu can't be inlined (it streams WebAssembly), so an offline build
+    # keeps the D3 line chart instead of the animated opener.
+    d = draft(story, title=_sentence_case(title), theme=theme, opener=not vendor)
     return d.story, {**d.scenes, **(scenes or {})}
 
 
@@ -317,7 +335,9 @@ def _drift(v0: float, v1: float) -> str:
 # ---------- the drafter ----------
 
 class _Drafter:
-    def __init__(self, pd, df, *, title, theme, audience, mode, max_scenes, source):
+    def __init__(self, pd, df, *, title, theme, audience, mode, max_scenes, source,
+                 opener=True):
+        self.opener = opener
         self.pd = pd
         self.raw = df
         self.title = title
@@ -333,6 +353,7 @@ class _Drafter:
         self.js: dict[str, str] = {}
         self.featured: set[str] = set()   # labels already headlined by a scene
         self.series_melt = False          # wide-by-series table melted to long
+        self.cleaning: list[str] = []     # what _coerce_numeric_text changed
         self.daily = False                # time labels are calendar days
 
     # ----- profiling -----
@@ -355,6 +376,13 @@ class _Drafter:
             integral = bool((nonnull == nonnull.round()).all())
             if integral and tokens & _TIME_TOKENS and nonnull.between(1000, 2200).all():
                 return ColumnProfile(name, "temporal", card, "year")
+            if integral and card >= 3 and nonnull.between(1800, 2100).all() \
+                    and not tokens & _ID_TOKENS:
+                # No time-like name, but the values are evenly spaced years
+                # (2015, 2016, ... or 2000, 2005, ...): a measure almost never is.
+                gaps = set(pd.Series(sorted(nonnull.unique())).diff().dropna().astype(int))
+                if len(gaps) == 1 and next(iter(gaps)) <= 10:
+                    return ColumnProfile(name, "temporal", card, "year (from values)")
             if tokens & _ID_TOKENS:
                 return ColumnProfile(name, "id", card)
             if integral and card == n and n > 12:
@@ -372,6 +400,14 @@ class _Drafter:
                 return ColumnProfile(name, "temporal", card, "datetime")
             except (ValueError, TypeError):
                 pass
+        if as_str.str.strip().str.match(_QUARTER_STR).all():
+            return ColumnProfile(name, "temporal", card, "quarter")
+        if as_str.str.strip().str.match(_MONTH_STR).all():
+            try:
+                pd.to_datetime(as_str.str.strip(), format="mixed")
+                return ColumnProfile(name, "temporal", card, "month")
+            except (ValueError, TypeError):
+                pass
         if tokens & _ID_TOKENS or (card == n and n > 50):
             return ColumnProfile(name, "id", card)
         return ColumnProfile(name, "categorical", card)
@@ -384,6 +420,7 @@ class _Drafter:
         pd = self.pd
         df = self.raw.copy()
         df.columns = [str(c) for c in df.columns]
+        df = self._coerce_numeric_text(df)
         prof = self._profile(df)
         by_role = lambda role: [p.name for p in prof if p.role == role]  # noqa: E731
         measures, cats, times = by_role("measure"), by_role("categorical"), by_role("temporal")
@@ -417,15 +454,62 @@ class _Drafter:
             shape += " (several measures on different scales; using the first)"
         return df, prof, f"{shape}, long format"
 
+    def _coerce_numeric_text(self, df):
+        """Text columns that are really numbers ("$1,200", "12%", one typo in
+        a spreadsheet export) become numeric. Unparseable cells are dropped
+        and reported in explain(), never silently guessed."""
+        pd = self.pd
+        for c in df.columns:
+            s = df[c]
+            if not (pd.api.types.is_object_dtype(s) or pd.api.types.is_string_dtype(s)):
+                continue
+            text = s.dropna().astype(str).str.strip()
+            text = text[text != ""]
+            if len(text) < 2 or text.str.match(_YEAR_STR).all() \
+                    or text.str.match(_DATE_STR).all() or text.str.match(_QUARTER_STR).all():
+                continue
+            neg = text.str.match(r"^\(.*\)$")            # accounting negatives: (5)
+            cleaned = text.str.replace(r"^\((.*)\)$", r"\1", regex=True).str.replace(
+                _NUM_JUNK, "", regex=True)
+            nums = pd.to_numeric(cleaned, errors="coerce")
+            nums[neg] = -nums[neg]
+            ok = nums.notna()
+            # One stray typo is tolerated even in a short column.
+            if ok.sum() < 2 or (ok.mean() < NUMERIC_COERCE_MIN and (~ok).sum() > 1):
+                continue
+            bad = text[~ok]
+            blanks = int(s.isna().sum() + (s.dropna().astype(str).str.strip() == "").sum())
+            df[c] = nums.reindex(s.index)
+            parts = []
+            if len(bad):
+                shown = ", ".join(repr(v) for v in bad.head(3))
+                more = f" and {len(bad) - 3} more" if len(bad) > 3 else ""
+                parts.append(f"{len(bad)} non-numeric value{'s' if len(bad) > 1 else ''} "
+                             f"dropped ({shown}{more})")
+            if blanks:
+                parts.append(f"{blanks} blank{'s' if blanks > 1 else ''} skipped")
+            note = f"read as numbers; {'; '.join(parts)}" if parts else "read as numbers"
+            self.cleaning.append(f"(cleaned) {c}: {note}")
+        return df
+
     # ----- time helpers -----
 
     def _time_keys(self, s, detail):
         """(keys, iso(key), label(key)) for a temporal column."""
         pd = self.pd
-        if detail == "year":
-            keys = s.astype(str).astype(int)
+        if detail.startswith("year"):
+            keys = s.astype(str).str.replace(r"\.0$", "", regex=True).astype(int)
             return keys, (lambda k: f"{int(k):04d}-01-01"), (lambda k: str(int(k)))
-        keys = pd.to_datetime(s)
+        if detail == "quarter":
+            def qstart(v):
+                m = _QUARTER_STR.match(str(v).strip())
+                y, q = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+                return pd.Timestamp(int(y), 3 * (int(q) - 1) + 1, 1)
+            keys = s.map(qstart)
+            return (keys, (lambda k: k.strftime("%Y-%m-%d")),
+                    (lambda k: f"Q{(k.month - 1) // 3 + 1} {k.year}"))
+        keys = (pd.to_datetime(s.astype(str).str.strip(), format="mixed") if detail == "month"
+                else pd.to_datetime(s))
         if getattr(keys.dt, "tz", None) is not None:
             keys = keys.dt.tz_localize(None)
         jan1 = bool(((keys.dt.month == 1) & (keys.dt.day == 1)).all())
@@ -489,6 +573,31 @@ class _Drafter:
         (k0, v0), (k1, v1) = pts[0], pts[-1]
         t0, t1 = label(k0), label(k1)
         values = [v for _, v in pts]
+        headline, commentary, ipk, peak_drop = self._trend_text(pts, label, subject,
+                                                               share_scale, sid)
+
+        alt = (f"Line chart of {in_text} from {t0} to {t1}: "
+               f"it goes from {_fmt_value(v0)} to {_fmt_value(v1)}")
+        annotation = None
+        if peak_drop:
+            alt += f", peaking at {_fmt_value(values[ipk])} in {label(pts[ipk][0])}"
+            annotation = {"x": iso(pts[ipk][0]), "y": _clean(values[ipk]),
+                          "text": f"Peak: {_fmt_value(values[ipk])}"}
+        self._add_scene("line-reveal", {
+            "id": sid, "headline": headline, "commentary": commentary, "alt": alt + ".",
+            "config": {"x": T, "y": M, "parse": "%Y-%m-%d", "format": _d3_format(values)},
+            "annotation": annotation,
+        }, [{T: iso(k), M: v} for k, v in pts])
+        self.reasons.append(f"scene-trend: line-reveal over {T} x {M} -- {why}")
+        return True
+
+    def _trend_text(self, pts, label, subject: str, share_scale, sid: str):
+        """Headline + commentary for a series of (key, value) points, with
+        their claims registered against scene `sid`. Returns (headline,
+        commentary, index of the peak, whether a drop from the peak is told)."""
+        (k0, v0), (k1, v1) = pts[0], pts[-1]
+        t0, t1 = label(k0), label(k1)
+        values = [v for _, v in pts]
         change = _delta(v1, v0, share_scale)
         crossed = None   # the last period where the series crossed zero
         for i in range(1, len(values)):
@@ -517,26 +626,85 @@ class _Drafter:
             steps = [(i, _delta(values[i], values[i - 1], share_scale))
                      for i in range(1, len(values))]
             # "Sharpest" only holds when every step could be measured.
-            if all(p is not None for _, p in steps):
+            # ...and only when something actually moved.
+            if all(p is not None for _, p in steps) and any(abs(p) >= 0.05 for _, p in steps):
                 i, p = max(steps, key=lambda ip: abs(ip[1]))
                 commentary = self._claim(
                     "c-trend-step",
                     f"The sharpest move came {self._at(label(pts[i][0]))}, when it {_move(p)} "
                     f"from {label(pts[i - 1][0])}.", p, sid)
+        return headline, commentary, ipk, peak_drop
 
-        alt = (f"Line chart of {in_text} from {t0} to {t1}: "
-               f"it goes from {_fmt_value(v0)} to {_fmt_value(v1)}")
-        annotation = None
-        if peak_drop:
-            alt += f", peaking at {_fmt_value(values[ipk])} in {label(pts[ipk][0])}"
-            annotation = {"x": iso(pts[ipk][0]), "y": _clean(values[ipk]),
-                          "text": f"Peak: {_fmt_value(values[ipk])}"}
-        self._add_scene("line-reveal", {
-            "id": sid, "headline": headline, "commentary": commentary, "alt": alt + ".",
-            "config": {"x": T, "y": M, "parse": "%Y-%m-%d", "format": _d3_format(values)},
-            "annotation": annotation,
-        }, [{T: iso(k), M: v} for k, v in pts])
-        self.reasons.append(f"scene-trend: line-reveal over {T} x {M} -- {why}")
+    def _opener_scene(self, T, C, M, wide, periods, label, why: str) -> bool:
+        """An animated Vizzu opener: the total as stacked bars, which then
+        morph into one line per category. Additive measures only (the stack
+        must mean something). wide: index period, columns category."""
+        sid = "scene-opener"
+        gaps = [(str(c), label(p)) for c in wide.columns for p in periods
+                if wide[c].isna().get(p, True)]
+        if gaps:
+            # A stacked "total" missing one category in one period undercounts
+            # it; don't animate a number that isn't the total.
+            c, t = gaps[0]
+            self.reasons.append(f"(skipped) vizzu opener: {c} has no {M} in {t}"
+                                + (f" (and {len(gaps) - 1} more gaps)" if len(gaps) > 1 else "")
+                                + "; a stacked total would undercount.")
+            return False
+        full = wide
+        ncat, nper = full.shape[1], len(periods)
+        if not (2 <= ncat <= MAX_OPENER_CATEGORIES and 3 <= nper <= MAX_OPENER_PERIODS):
+            self.reasons.append(
+                f"(skipped) vizzu opener: needs 2-{MAX_OPENER_CATEGORIES} {C} values in every "
+                f"{T} and 3-{MAX_OPENER_PERIODS} periods (found {ncat} and {nper}).")
+            return False
+        if bool((full < 0).any().any()):
+            self.reasons.append("(skipped) vizzu opener: negative values can't stack.")
+            return False
+        totals = full.sum(axis=1)
+        pts = [(k, float(totals.loc[k])) for k in periods]
+        t0, t1 = label(periods[0]), label(periods[-1])
+        subject = f"Total {_humanize(M)}"
+        h1, c1, _, _ = self._trend_text(pts, label, subject, None, sid)
+        last = full.loc[periods[-1]].sort_values(ascending=False)
+        total1 = float(last.sum())
+        frame2 = {"headline": "", "commentary": ""}
+        if total1 > 0:
+            (lead, vl), (second, vs) = (str(last.index[0]), float(last.iloc[0])), \
+                                       (str(last.index[1]), float(last.iloc[1]))
+            frame2["headline"] = self._share_claim(
+                "c-opener-lead", f"In {t1}, {lead} made up {_pct_str(vl / total1 * 100)}% "
+                                 f"of the total", vl / total1, sid)
+            frame2["commentary"] = self._share_claim(
+                "c-opener-next", f"{second} was next, at {_pct_str(vs / total1 * 100)}%.",
+                vs / total1, sid)
+            self.featured.add(lead)
+        else:
+            frame2["headline"] = _sentence_case(f"Each {_humanize(C)} on its own")
+        stacked = {"channels": {"x": T, "y": [C, M], "color": C, "label": None},
+                   "geometry": "rectangle"}
+        split = {"channels": {"x": T, "y": M, "color": C, "label": None}, "geometry": "line"}
+        rows = [{T: label(p), C: str(c), M: _clean(full.loc[p, c])}
+                for p in periods for c in full.columns]
+        cname = _humanize(C)
+        alt = (f"Animated chart of {subject.lower()} by {T}, {t0} to {t1}, as bars stacked by "
+               f"{cname} (from {_fmt_value(pts[0][1])} to {_fmt_value(pts[-1][1])}), which then "
+               f"split into one line per {cname}"
+               + (f"; in {t1} {lead} is the largest part" if total1 > 0 else "") + ".")
+        scene = {
+            "id": sid, "kind": "vizzu", "dataset": sid.removeprefix("scene-"),
+            "source_line": self._source_line(), "alt": alt,
+            "series": [{"name": T, "type": "dimension"}, {"name": C, "type": "dimension"},
+                       {"name": M, "type": "measure"}],
+            "frames": [{"headline": h1, "commentary": c1, "config": stacked},
+                       {**frame2, "config": split}],
+        }
+        scene = {k: v for k, v in scene.items() if v not in (None, "")}
+        scene["frames"] = [{k: v for k, v in f.items() if v not in (None, "")}
+                           for f in scene["frames"]]
+        self.scene_list.append(scene)
+        self.datasets[scene["dataset"]] = rows
+        self.reasons.append(f"scene-opener: vizzu opener, {M} stacked by {C} per {T}, then one "
+                            f"line per {C} -- {why}")
         return True
 
     def _slope_scene(self, C, M, wide, periods, label, share_scale: Optional[float]) -> bool:
@@ -763,7 +931,14 @@ class _Drafter:
                 last_vals = wide.loc[periods[-1]].dropna()
                 # 1. time x measure
                 if room():
-                    if additive and not shares:
+                    ok = False
+                    if additive and not shares and self.opener:
+                        ok = self._opener_scene(
+                            T.name, C, M, wide, periods, label,
+                            f"time series detected; {M} is additive, so the total stacks by {C}")
+                    if ok:
+                        pass
+                    elif additive and not shares:
                         total = work.groupby("__t")[M].sum()
                         ok = self._line_scene(
                             T.name, M, list(total.items()), iso, label, f"Total {_humanize(M)}",
@@ -851,6 +1026,7 @@ class _Drafter:
     def run(self) -> Draft:
         df, prof, shape = self._normalize()
         self._plan(df, prof)
+        self.reasons = self.cleaning + self.reasons
         meta: dict[str, Any] = {
             "title": self.title, "theme": self.theme or "editorial-noir",
             "audience": self.audience, "mode": self.mode,

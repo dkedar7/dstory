@@ -64,7 +64,7 @@ FIXTURES = {
 }
 
 EXPECTED_RECIPES = {
-    "timeseries-long": ["scene-trend", "scene-shift", "scene-race"],
+    "timeseries-long": ["scene-opener", "scene-shift", "scene-race"],
     "timeseries-wide": ["scene-trend", "scene-shift"],
     "before-after": ["scene-shift"],
     "shares": ["scene-mix"],
@@ -83,7 +83,7 @@ def _prose(story: dict) -> list[str]:
         for k in ("headline", "commentary"):
             if s.get(k):
                 out.append(s[k])
-        for step in s.get("steps") or []:
+        for step in (s.get("steps") or []) + (s.get("frames") or []):
             for k in ("headline", "commentary"):
                 if step.get(k):
                     out.append(step[k])
@@ -101,7 +101,8 @@ def test_draft_story_validates_and_picks_expected_scenes(name):
     Story.model_validate(d.story)
     ids = [s["id"] for s in d.story["scenes"]]
     assert ids == EXPECTED_RECIPES[name]
-    assert set(d.scenes) == set(ids)
+    # Vizzu scenes are declarative: no JS renderer ships for them.
+    assert set(d.scenes) == {s["id"] for s in d.story["scenes"] if s.get("kind") != "vizzu"}
     for s in d.story["scenes"]:
         assert s["alt"] and s["dataset"] in d.story["datasets"]
         assert d.story["datasets"][s["dataset"]], "drafted dataset is empty"
@@ -151,22 +152,24 @@ def test_long_and_wide_time_series_agree():
     # The long table's measure is additive, so the trend is the total; the wide
     # table's columns are separate series, so the trend follows the largest one
     # instead of summing them (dogfood note on #11).
-    assert a.story["scenes"][0]["headline"].startswith("Total twh")
+    assert a.story["scenes"][0]["frames"][0]["headline"].startswith("Total twh")
     assert b.story["scenes"][0]["headline"].lower().startswith("gas ")
 
 
 def test_explain_mentions_rules_and_profile():
     text = draft(_timeseries_long(), title="t").explain()
     assert "year: temporal" in text and "source: categorical" in text
-    assert "line-reveal over year x twh" in text
+    assert "vizzu opener, twh stacked by source per year" in text
+    assert "line-reveal over year x twh" in draft(_timeseries_long(), title="t",
+                                                   opener=False).explain()
     assert "slope-chart of source, 2015 vs 2024" in text
     assert "(skipped) waffle" in text
 
 
 def test_max_scenes_caps_output():
     d = draft(_timeseries_long(), title="t", max_scenes=1)
-    assert [s["id"] for s in d.story["scenes"]] == ["scene-trend"]
-    assert all(c["scene"] == "scene-trend" for c in d.story["claims"])
+    assert [s["id"] for s in d.story["scenes"]] == ["scene-opener"]
+    assert all(c["scene"] == "scene-opener" for c in d.story["claims"])
 
 
 def test_meta_fields_and_theme_validation():
@@ -242,7 +245,8 @@ def test_vendored_offline_bundle_paints_every_scene(name, tmp_path):
     _need_browser()
     from playwright.sync_api import sync_playwright
 
-    d = draft(FIXTURES[name](), title="Offline", source="Synthetic")
+    # Vizzu streams WebAssembly and can't be vendored: offline means no opener.
+    d = draft(FIXTURES[name](), title="Offline", source="Synthetic", opener=False)
     try:
         result = build(d.story, tmp_path / name, scenes=d.scenes, vendor=True)
     except Exception as e:  # vendoring downloads the libs at build time

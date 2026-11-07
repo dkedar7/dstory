@@ -3,6 +3,51 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **The animated opener** (#11, milestone 3). When a measure adds up across 2
+  to 7 categories over time, `draft()` and `dstory draft` open with a Vizzu
+  scene. The first frame shows the total as stacked bars ("Total gwh rose 29%
+  between 2015 and 2024"). It then morphs into one line per category ("In
+  2024, Gas made up 38% of the total"). Every number is a vetted claim.
+  - It is skipped when the stack wouldn't be a real total: a missing value,
+    negative values, shares, or a measure that doesn't add up.
+  - It is also skipped for `--vendor` builds, because Vizzu can't be inlined.
+  - Opt out with `opener=False` or `--no-opener`.
+- **Messy spreadsheet numbers.**
+  - `draft()` reads text columns that are numbers ("$1,200", "12%", "(300)")
+    as numbers.
+  - It drops a stray typo or blank cell and names it in `explain()`, instead
+    of failing with "no numeric measure column".
+  - A column becomes a measure when at least 80% of its non-blank values
+    parse, or when only one value doesn't.
+- **Time columns from values.** Month names ("Jan 2024"), quarters ("2024 Q1",
+  "Q1 2024", "2024-Q1") and evenly spaced years in a column of any name are
+  read as time. Quarters are labelled "Q1 2024" in the prose.
+- `BundleResult.self_contained`: False when a local file reference survived
+  bundling.
+- Docs: a second drafted gallery example (`docs/drafted/generation.html`), a
+  spreadsheet export with the animated opener.
+
+### Changed
+- `dstory scene <slug> <id> --kind vizzu` no longer writes a JS stub (#18).
+  Vizzu scenes are declarative, and a registered renderer replaced the
+  built-in one and left the chart blank. The command now prints the data.json
+  snippet to add. `starter_scene_js(id, "vizzu")` is unchanged for API users;
+  its comment now warns about the override.
+- `dstory bundle` exits 1 when the output is not self-contained.
+- "The sharpest move" commentary is skipped when nothing moved.
+
+### Fixed
+- **A blank Vizzu canvas now fails "Renders correctly"** (#18). The paint
+  audit samples each canvas and requires real ink: more than 1% of pixels
+  differ from the background. Previously any canvas with a size counted as
+  painted, so a blank chart passed the vet.
+- **Deleting a scene's JS file no longer breaks the bundle** (#18). `bundle()`
+  drops a `<script src>` tag whose file is missing and warns, instead of
+  shipping a tag that fails to load in every reader's browser.
+
 ## [0.8.0] - 2026-11-06
 
 ### Added

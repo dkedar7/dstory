@@ -179,12 +179,15 @@ _READERS = {".csv": "read_csv", ".tsv": "read_csv", ".txt": "read_csv", ".json":
 @click.option("--source", default=None, help="Data citation, shown under each chart.")
 @click.option("--max-scenes", default=5, show_default=True, help="Cap on drafted scenes.")
 @click.option("--vendor", is_flag=True, help="Inline the runtime libs for a fully offline file.")
+@click.option("--no-opener", is_flag=True,
+              help="Skip the animated Vizzu opener (always skipped with --vendor: "
+                   "Vizzu needs network).")
 @click.option("--no-vet", is_flag=True, help="Skip vetting the drafted story.")
 @click.option("--no-browser", is_flag=True, help="Vet with static checks only.")
 @click.option("--overwrite", is_flag=True, help="Allow writing into an existing directory.")
 def draft(data_file: str, out: str | None, title: str | None, theme: str | None, mode: str,
-          audience: str, source: str | None, max_scenes: int, vendor: bool, no_vet: bool,
-          no_browser: bool, overwrite: bool) -> None:
+          audience: str, source: str | None, max_scenes: int, vendor: bool, no_opener: bool,
+          no_vet: bool, no_browser: bool, overwrite: bool) -> None:
     """Draft a vetted story straight from a data file (CSV, TSV, JSON, Parquet, Excel).
 
     Picks the charts, writes headlines and alt text from the data, bundles one
@@ -198,6 +201,7 @@ def draft(data_file: str, out: str | None, title: str | None, theme: str | None,
         sys.exit(1)
     from .api import build
     from .draft import draft as draft_df
+    opener = not no_opener
 
     path = Path(data_file)
     reader = _READERS.get(path.suffix.lower())
@@ -222,7 +226,7 @@ def draft(data_file: str, out: str | None, title: str | None, theme: str | None,
 
     try:
         d = draft_df(df, title=title, theme=theme, audience=audience, mode=mode,
-                     max_scenes=max_scenes, source=source)
+                     max_scenes=max_scenes, source=source, opener=opener and not vendor)
     except (ValueError, TypeError) as e:
         console.print(f"[red]{CROSS} Draft failed:[/red] {e}")
         sys.exit(1)
