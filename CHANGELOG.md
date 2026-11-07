@@ -3,7 +3,7 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.9.0] - 2026-11-07
 
 ### Added
 - **The animated opener** (#11, milestone 3). When a measure adds up across 2
