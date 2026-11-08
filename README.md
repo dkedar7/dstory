@@ -143,7 +143,8 @@ Rules today:
 |---|---|
 | an additive measure over time, split by 2 to 7 categories | an animated **Vizzu opener**: the total as stacked bars, which morph into one line per category as you scroll |
 | time x measure | `line-reveal` |
-| category x first/last period | `slope-chart` |
+| 3 to 8 categories over 4+ periods (when the opener didn't already split them) | `small-multiples`, one panel per category ("Every metro peaked in 2021") |
+| category x first/last period | `slope-chart`, or `range-dots` past 7 categories, where slope labels collide |
 | the top-ranked category changed over time | `bump-chart` ("Gas overtook Coal to rank first by 2024") |
 | shares summing to ~100 (or ~1) | `waffle` |
 | anything else | one safe `bar-steps` scene |
@@ -159,6 +160,13 @@ The prose follows newsroom conventions so a reader can't be misled:
 - Separate columns (Signups, Churn) are never summed into a total.
 - The opener only stacks when the total is real: no gaps, no negative values,
   and a measure that adds up.
+- A summed "Total" line covers only periods where every category reports. A
+  missing or dropped cell never shows up as a fall. With fewer than 3 complete
+  periods, the trend follows the largest category instead, and `explain()`
+  names the gap.
+- Small-multiple panels share one scale, so heights compare. When the largest
+  panel is 10x the smallest (or the columns are separate series), each panel
+  gets its own labelled scale and the text says "compare shapes, not heights".
 
 Vizzu loads WebAssembly from its CDN, so it can't be inlined. An offline
 build (`--vendor`, or `build(df, vendor=True)`) therefore keeps the D3 line

@@ -3,6 +3,39 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Small multiples in drafts** (#11, final milestone). With 3 to 8
+  categories over 4 or more periods, `draft()` and `dstory draft` add a
+  `scene-panels` scene: one mini line chart per category. The headline is
+  the shape the panels share ("Every metro peaked in 2021", "Every city but
+  Tulsa rose between 2018 and 2023"). The scene is skipped when the Vizzu
+  opener already splits the lines.
+- **Independent scales.** The `small-multiples` recipe takes
+  `config.scale: "independent"`. Each panel then gets its own y-range,
+  labelled with its min and max. `draft()` uses it when the largest panel is
+  10x the smallest, or when the columns are separate series. The commentary
+  then says so: "Each panel has its own scale, so compare shapes, not
+  heights." The default stays `"shared"`.
+- **Range-dots for many categories.** The before/after scene uses
+  `range-dots` instead of `slope-chart` past 7 categories, where slope labels
+  collide. It keeps up to 15, sorted by change.
+- Docs: a third drafted gallery example (`docs/drafted/metros.html`). It shows
+  8 metros of very different sizes, built offline with `--vendor`.
+
+### Changed
+- `draft()` now hands 8 to 10 categories to `range-dots`; 0.9.0 used
+  `slope-chart` for them.
+
+### Fixed
+- **A missing cell no longer reads as a fall in the "Total" headline** (#19).
+  A period where one category had no value (a blank, a missing row, or a
+  typo `draft()` dropped) used to be summed anyway. That gave headlines like
+  "Total sales fell 40%" while every region grew. The total now covers only
+  periods where every category reports. With fewer than 3 such periods, it
+  follows the largest category instead, and `explain()` names the gap.
+
 ## [0.9.0] - 2026-11-07
 
 ### Added

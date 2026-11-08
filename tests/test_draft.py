@@ -65,7 +65,7 @@ FIXTURES = {
 
 EXPECTED_RECIPES = {
     "timeseries-long": ["scene-opener", "scene-shift", "scene-race"],
-    "timeseries-wide": ["scene-trend", "scene-shift"],
+    "timeseries-wide": ["scene-trend", "scene-panels", "scene-shift"],
     "before-after": ["scene-shift"],
     "shares": ["scene-mix"],
     "fallback": ["scene-rank"],
@@ -145,8 +145,10 @@ def test_long_and_wide_time_series_agree():
     a = draft(_timeseries_long(), title="t")
     b = draft(_timeseries_wide(), title="t")
     # Same facts: Solar is the biggest mover in both shapes.
-    assert "Solar" in a.story["scenes"][1]["headline"]
-    assert "solar" in b.story["scenes"][1]["headline"].lower()
+    head = lambda d: next(s["headline"] for s in d.story["scenes"]  # noqa: E731
+                          if s["id"] == "scene-shift")
+    assert "Solar" in head(a)
+    assert "solar" in head(b).lower()
     shift = lambda d: next(c["value"] for c in d.story["claims"] if c["id"] == "c-shift")  # noqa: E731
     assert shift(a) == shift(b)
     # The long table's measure is additive, so the trend is the total; the wide

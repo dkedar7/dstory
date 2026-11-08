@@ -6,7 +6,9 @@
 // scene.config (all optional):
 //   { "x": "x", "series": "series", "y": "y",
 //     "columns": 4, "parse": null,           // set parse (e.g. "%Y-%m-%d") for date x
-//     "highlight": ["Norway"], "format": "," }
+//     "highlight": ["Norway"], "format": ",",
+//     "scale": "shared" }                    // "independent": each panel gets its own
+//                                            // y-axis, labelled with its min and max
 //
 // Set scene.alt in data.json — one sentence: what the chart shows and the takeaway.
 
@@ -40,14 +42,26 @@ STORY.register("__SCENE_ID__", function draw(mount, data, scene) {
     .attr("aria-hidden", "true")
     .style("width", "100%").style("height", "auto").style("display", "block");
 
-  // Shared scales: honest comparison across panels.
-  const xDomain = parse ? d3.extent(raw, d => d.x) : d3.extent(raw, d => d.x);
+  // Shared scales by default: honest comparison across panels. "independent"
+  // gives each panel its own y-range (for series of very different sizes or
+  // units) and labels that range, so the reader compares shapes, not heights.
+  const independent = cfg.scale === "independent";
+  const gutter = independent ? 34 : 0;
+  const xDomain = d3.extent(raw, d => d.x);
   const xScale = (parse ? d3.scaleUtc() : d3.scaleLinear())
-    .domain(xDomain).range([0, cellW - 8]);
-  const yScale = d3.scaleLinear()
-    .domain([Math.min(0, d3.min(raw, d => d.y)), d3.max(raw, d => d.y)]).nice()
-    .range([cellH - 28, 8]);
-  const line = d3.line().x(d => xScale(d.x)).y(d => yScale(d.y)).curve(d3.curveMonotoneX);
+    .domain(xDomain).range([gutter, cellW - 8]);
+  const yFor = rows => {
+    let [lo, hi] = d3.extent(rows, d => d.y);
+    if (!independent) lo = Math.min(0, lo);
+    else {
+      // Its own range, but never so tight that a 1% wobble fills the panel.
+      const minSpan = 0.1 * Math.max(Math.abs(lo), Math.abs(hi));
+      if (hi - lo < minSpan) { const mid = (hi + lo) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
+      if (lo >= 0 && lo - (hi - lo) * 0.25 < 0) lo = 0;   // near zero: keep the baseline
+    }
+    return d3.scaleLinear().domain([lo, hi]).nice().range([cellH - 28, 8]);
+  };
+  const shared = yFor(raw);
 
   names.forEach((name, i) => {
     const px = (i % cols) * (cellW + gapX) + 8;
@@ -55,9 +69,19 @@ STORY.register("__SCENE_ID__", function draw(mount, data, scene) {
     const cell = svg.append("g").attr("transform", `translate(${px},${py})`);
     const pts = bySeries.get(name).slice().sort((a, b) => a.x - b.x);
     const hero = highlight.size === 0 || highlight.has(name);
+    const yScale = independent ? yFor(pts) : shared;
+    const line = d3.line().x(d => xScale(d.x)).y(d => yScale(d.y)).curve(d3.curveMonotoneX);
+    if (independent) {
+      const [lo, hi] = yScale.domain();
+      [[hi, 8], [lo, cellH - 28]].forEach(([v, y]) => cell.append("text")
+        .attr("class", "annotation scale-tick")
+        .attr("x", gutter - 6).attr("y", y).attr("dy", "0.32em")
+        .attr("text-anchor", "end").attr("fill", "var(--ink-faint)")
+        .style("font-size", "10px").text(fmt(v)));
+    }
 
     cell.append("line")
-      .attr("x1", 0).attr("x2", cellW - 8)
+      .attr("x1", gutter).attr("x2", cellW - 8)
       .attr("y1", cellH - 28).attr("y2", cellH - 28)
       .attr("stroke", "var(--rule)").attr("stroke-opacity", 0.5);
 

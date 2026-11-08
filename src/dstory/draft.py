@@ -15,8 +15,10 @@ Deterministic, offline, and keyless: no model calls, no network.
     dstory.build(d.story, "grid", scenes=d.scenes, vet=True)
 
 Rules:
-  * time x measure                    -> line-reveal
-  * category x first/last period      -> slope-chart
+  * time x measure                    -> line-reveal (a summed total only over
+                                         periods where every category reports)
+  * 3-8 categories over time          -> small-multiples (own scales when sizes differ 10x)
+  * category x first/last period      -> slope-chart (range-dots past 7 categories)
   * the top-ranked category changed   -> bump-chart
   * shares summing to ~100 (or ~1)    -> waffle
   * nothing matched                   -> one bar-steps scene (always safe)
@@ -67,7 +69,11 @@ _NUM_JUNK = re.compile(r"[\s,$\u00a3\u20ac\u00a5%]")
 NUMERIC_COERCE_MIN = 0.8
 _DATE_STR = re.compile(r"^\d{4}-\d{2}(-\d{2})?([T ].*)?$")
 
-MAX_SLOPE_CATEGORIES = 10
+MAX_SLOPE_CATEGORIES = 7      # beyond this, slope-chart labels collide: use range-dots
+MAX_RANGE_CATEGORIES = 15
+MIN_PANELS, MAX_PANELS = 3, 8  # small multiples: one panel per category
+MIN_PANEL_PERIODS = 4
+INDEPENDENT_SCALE_RATIO = 10   # panels this far apart in size get their own scales
 MAX_WAFFLE_CATEGORIES = 7     # the waffle palette has 7 categorical colors
 MAX_BAR_ROWS = 12
 MAX_BUMP_CATEGORIES = 10
@@ -222,6 +228,11 @@ def _require_pandas():
 
 
 # ---------- prose helpers ----------
+
+def _and(items: list[str]) -> str:
+    """'A', 'A and B', 'A, B and C'."""
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
 
 def _sentence_case(s: str) -> str:
     return s[:1].upper() + s[1:] if s else s
@@ -591,6 +602,42 @@ class _Drafter:
         self.reasons.append(f"scene-trend: line-reveal over {T} x {M} -- {why}")
         return True
 
+    def _total_or_leader(self, T, C, M, wide, periods, iso, label, last_vals) -> bool:
+        """The summed total over time, but only where it is a real total (#19).
+        A period missing one category undercounts, so the total keeps only the
+        periods where every category reports. With fewer than 3 such periods it
+        follows the largest category instead. Either way explain() names the gap."""
+        gaps = [(str(c), label(p)) for p in periods for c in wide.columns
+                if wide[c].isna().get(p, True)]
+        why = f"time series detected; {M} summed across {C} per {T}"
+        if not gaps:
+            return self._line_scene(T, M, list(wide.sum(axis=1).loc[periods].items()), iso,
+                                    label, f"Total {_humanize(M)}", why)
+        c, t = gaps[0]
+        more = f" (and {len(gaps) - 1} more gaps)" if len(gaps) > 1 else ""
+        complete = [p for p in periods if not wide.loc[p].isna().any()]
+        if len(complete) >= 3:
+            span = f"{label(complete[0])} to {label(complete[-1])}"
+            dropped = [label(p) for p in periods if p not in complete]
+            self.reasons.append(
+                f"(gap) {c} has no {M} in {t}{more}; the total covers only periods where "
+                f"every {C} reports ({span}; left out: {', '.join(dropped[:4])}"
+                f"{', ...' if len(dropped) > 4 else ''}).")
+            totals = wide.loc[complete].sum(axis=1)
+            return self._line_scene(T, M, list(totals.items()), iso, label,
+                                    f"Total {_humanize(M)}",
+                                    why + f", complete periods only ({span})")
+        leader = str(last_vals.idxmax())
+        self.featured.add(leader)
+        self.reasons.append(
+            f"(gap) {c} has no {M} in {t}{more}; a summed total would undercount, so the "
+            f"trend follows the largest {C} ({leader}) instead.")
+        return self._line_scene(
+            T, M, list(wide[last_vals.idxmax()].items()), iso, label,
+            f"{leader} {_humanize(M)}",
+            f"time series detected; {M} has gaps across {C}, so it follows the largest {C} "
+            f"in {label(periods[-1])} ({leader})", proper=True)
+
     def _trend_text(self, pts, label, subject: str, share_scale, sid: str):
         """Headline + commentary for a series of (key, value) points, with
         their claims registered against scene `sid`. Returns (headline,
@@ -717,9 +764,10 @@ class _Drafter:
                                 f"{t0} and {t1}.")
             return False
         trimmed = ""
-        if len(both) > MAX_SLOPE_CATEGORIES:
-            both = both.sort_values(p1, ascending=False).head(MAX_SLOPE_CATEGORIES)
-            trimmed = f"; kept the {MAX_SLOPE_CATEGORIES} largest in {t1}"
+        recipe = "slope-chart" if len(both) <= MAX_SLOPE_CATEGORIES else "range-dots"
+        if len(both) > MAX_RANGE_CATEGORIES:
+            both = both.sort_values(p1, ascending=False).head(MAX_RANGE_CATEGORIES)
+            trimmed = f"; kept the {MAX_RANGE_CATEGORIES} largest in {t1}"
         rows = [(str(lab), float(r[p0]), float(r[p1])) for lab, r in both.iterrows()]
         measured = [(lab, _delta(e, s, share_scale)) for lab, s, e in rows]
         movers = [(lab, p) for lab, p in measured if p is not None]
@@ -771,18 +819,111 @@ class _Drafter:
             headline = f"Where each {cname} stood in {t0} and {t1}"
         by_label = {lab: (s, e) for lab, s, e in rows}
         focus = highlight or [rows[0][0]]
-        alt = (f"Slope chart of {_humanize(M)} by {cname}, {t0} versus {t1}: " + "; ".join(
+        chart = "Slope chart" if recipe == "slope-chart" else "Dot chart, sorted by change,"
+        alt = (f"{chart} of {_humanize(M)} by {cname}, {t0} versus {t1}: " + "; ".join(
             f"{lab} goes from {_fmt_value(by_label[lab][0])} to {_fmt_value(by_label[lab][1])}"
             for lab in focus) + ".")
         values = [v for _, s, e in rows for v in (s, e)]
-        self._add_scene("slope-chart", {
+        self._add_scene(recipe, {
             "id": sid, "headline": headline, "commentary": commentary, "alt": alt,
             "config": {"label": C, "start": "start", "end": "end", "start_label": t0,
                        "end_label": t1, "highlight": highlight, "format": _d3_format(values)},
         }, [{C: lab, "start": s, "end": e} for lab, s, e in rows])
         self.reasons.append(
-            f"scene-shift: slope-chart of {C}, {t0} vs {t1} -- category x first/last period "
-            f"({len(rows)} {C} values present in both{trimmed})")
+            f"scene-shift: {recipe} of {C}, {t0} vs {t1} -- category x first/last period "
+            f"({len(rows)} {C} values present in both{trimmed}"
+            + (f"; range-dots past {MAX_SLOPE_CATEGORIES}, where slope labels collide"
+               if recipe == "range-dots" else "") + ")")
+        return True
+
+    def _panels_scene(self, T, C, M, wide, periods, iso, label) -> bool:
+        """Small multiples: one mini line chart per category. Panels share one
+        scale unless their sizes differ by INDEPENDENT_SCALE_RATIO or more (or
+        the columns are separate series), and the commentary says which.
+        wide: index period, columns category."""
+        sid = "scene-panels"
+        cats = [c for c in wide.columns if wide[c].notna().sum() >= 2]
+        if not MIN_PANELS <= len(cats) <= MAX_PANELS or len(periods) < MIN_PANEL_PERIODS:
+            self.reasons.append(
+                f"(skipped) small-multiples: needs {MIN_PANELS}-{MAX_PANELS} {C} values and "
+                f"{MIN_PANEL_PERIODS}+ {T} periods (found {len(cats)} and {len(periods)}).")
+            return False
+        p0, p1 = periods[0], periods[-1]
+        t0, t1 = label(p0), label(p1)
+        cname = _humanize(C)
+        peaks = {str(c): float(wide[c].abs().max()) for c in cats}
+        small, big = min(peaks.values()), max(peaks.values())
+        independent = bool(self.series_melt) or small == 0 or (
+            big / small >= INDEPENDENT_SCALE_RATIO)
+
+        # The direction of each panel, first to last period. It is numberless,
+        # so it needs no claim. A move under 0.5% of the panel's size is flat.
+        ends = wide.loc[[p0, p1], cats].T.dropna()
+        rose, fell = [], []
+        for c, (v0, v1) in ends.iterrows():
+            tol = 0.005 * max(abs(v0), abs(v1), 1e-12)
+            if v1 - v0 > tol:
+                rose.append(str(c))
+            elif v0 - v1 > tol:
+                fell.append(str(c))
+        n = len(ends)
+        span = f"between {t0} and {t1}"
+        highlight: list[str] = []
+        # A shared turning point is the strongest shape story: the same interior
+        # peak (or trough) in every panel, or in all but one.
+        turns = []
+        for word, pick in (("peaked", "idxmax"), ("bottomed out", "idxmin")):
+            at = {str(c): getattr(wide[c].dropna(), pick)() for c in cats}
+            for p in periods[1:-1]:
+                hit = [c for c, k in at.items() if k == p]
+                if len(hit) >= len(cats) - 1 and len(cats) >= 3:
+                    odd = [c for c in at if c not in hit]
+                    turns.append((len(odd), word, p, odd))
+        if turns:
+            _, word, p, odd = min(turns, key=lambda t: t[0])
+            but = f" but {odd[0]}" if odd else ""
+            headline = f"Every {cname}{but} {word} {self._at(label(p))}"
+            highlight = odd
+        elif n >= 2 and len(rose) == n:
+            headline = f"Every {cname} rose {span}"
+        elif n >= 2 and len(fell) == n:
+            headline = f"Every {cname} fell {span}"
+        elif n >= 3 and rose and fell and len(rose) + len(fell) == n and len(fell) == 1:
+            headline = f"Every {cname} but {fell[0]} rose {span}"
+            highlight = fell
+        elif n >= 3 and rose and fell and len(rose) + len(fell) == n and len(rose) == 1:
+            headline = f"Every {cname} but {rose[0]} fell {span}"
+            highlight = rose
+        elif n >= 3 and rose and len(rose) <= 2 and not fell:
+            headline = f"Only {_and(rose)} rose {span}"
+            highlight = rose
+        elif n >= 3 and fell and len(fell) <= 2 and not rose:
+            headline = f"Only {_and(fell)} fell {span}"
+            highlight = fell
+        else:
+            headline = f"{_humanize(M)} by {cname} from {t0} to {t1}, one panel each"
+        headline = _sentence_case(headline)
+        commentary = ("Each panel has its own scale, so compare shapes, not heights."
+                      if independent else
+                      "All panels share one scale, so heights compare directly.")
+        rows = [{T: iso(p), C: str(c), M: float(wide.at[p, c])}
+                for c in cats for p in periods if wide.at[p, c] == wide.at[p, c]]
+        alt = (f"Small multiples, one line chart of {_humanize(M)} per {cname} from {t0} to "
+               f"{t1}" + (", each on its own scale" if independent else "") + ": " + "; ".join(
+                   f"{c} goes from {_fmt_value(v0)} to {_fmt_value(v1)}"
+                   for c, (v0, v1) in ends.iterrows()) + ".")
+        self._add_scene("small-multiples", {
+            "id": sid, "headline": headline, "commentary": commentary, "alt": alt,
+            "config": {"x": T, "series": C, "y": M, "parse": "%Y-%m-%d",
+                       "highlight": highlight, "format": _d3_format([r[M] for r in rows]),
+                       "scale": "independent" if independent else "shared"},
+        }, rows)
+        why = ("separate series, so each panel has its own scale" if self.series_melt else
+               f"the largest panel is {INDEPENDENT_SCALE_RATIO}x or more the smallest, so "
+               "each has its own scale" if independent else
+               "one shared scale")
+        self.reasons.append(f"scene-panels: small-multiples of {M} by {C} over {T} -- "
+                            f"{len(cats)} {C} values; {why}")
         return True
 
     def _bump_scene(self, T, C, M, wide, periods, label) -> bool:
@@ -939,10 +1080,8 @@ class _Drafter:
                     if ok:
                         pass
                     elif additive and not shares:
-                        total = work.groupby("__t")[M].sum()
-                        ok = self._line_scene(
-                            T.name, M, list(total.items()), iso, label, f"Total {_humanize(M)}",
-                            f"time series detected; {M} summed across {C} per {T.name}")
+                        ok = self._total_or_leader(T.name, C, M, wide, periods, iso, label,
+                                                   last_vals)
                     else:
                         leader = str(last_vals.idxmax())
                         self.featured.add(leader)
@@ -960,13 +1099,19 @@ class _Drafter:
                     if not ok:
                         self.reasons.append(f"(skipped) line-reveal: fewer than 3 {T.name} "
                                             "periods.")
-                # 2. category x first/last period
+                # 2. one panel per category, unless the opener already split them
+                if any(sc["id"] == "scene-opener" for sc in self.scene_list):
+                    self.reasons.append("(skipped) small-multiples: the opener already "
+                                        f"shows one line per {C}.")
+                elif room():
+                    planned += self._panels_scene(T.name, C, M, wide, periods, iso, label)
+                # 3. category x first/last period
                 if room() and len(periods) >= 2:
                     planned += self._slope_scene(C, M, wide.T, periods, label, share_scale)
-                # 3. a change at the top of the ranking
+                # 4. a change at the top of the ranking
                 if room() and not self.series_melt:
                     planned += self._bump_scene(T.name, C, M, wide, periods, label)
-                # 4. shares
+                # 5. shares
                 if shares and room():
                     planned += self._waffle_scene(
                         C, M, [(str(k), float(v)) for k, v in last_vals.items()],
