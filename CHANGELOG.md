@@ -3,7 +3,7 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.10.0] - 2026-11-08
 
 ### Added
 - **Small multiples in drafts** (#11, final milestone). With 3 to 8
