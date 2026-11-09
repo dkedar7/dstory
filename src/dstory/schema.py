@@ -22,6 +22,14 @@ class Source(BaseModel):
     accessed: Optional[str] = None
 
 
+class A11yOptions(BaseModel):
+    """The reader-facing data layer under each chart. Every option defaults to
+    on; set one to false in meta.a11y (whole story) or scene.a11y (one scene)."""
+    model_config = ConfigDict(extra="forbid")
+    table: Optional[bool] = None      # a "Data" disclosure with an accessible <table>
+    download: Optional[bool] = None   # a "Download CSV" link built from the inlined rows
+
+
 class Meta(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str
@@ -49,6 +57,9 @@ class Meta(BaseModel):
     # a data URI at bundle time; an absolute URL is left as-is. Decorative —
     # the hero text carries the content, so no alt is needed.
     hero_image: Optional[str] = None
+
+    # The data panel under every chart (table + CSV download); all on by default.
+    a11y: Optional[A11yOptions] = None
 
 
 class Claim(BaseModel):
@@ -136,6 +147,11 @@ class Scene(BaseModel):
     annotation: Optional[Annotation] = None
     config: Optional[dict[str, Any]] = None
 
+    # The data panel: per-scene overrides of meta.a11y, and which dataset
+    # columns its table and CSV show (default: every column, in row order).
+    a11y: Optional[A11yOptions] = None
+    table_columns: Optional[list[str]] = None
+
     @field_validator("id")
     @classmethod
     def _id_is_slug(cls, v: str) -> str:
@@ -181,6 +197,13 @@ class Story(BaseModel):
         for s in self.scenes:
             if s.dataset and s.dataset not in self.datasets:
                 issues.append(f"Scene {s.id!r} references dataset {s.dataset!r} which is not in data.datasets.")
+            elif s.dataset and s.table_columns:
+                rows = self.datasets.get(s.dataset) or []
+                present = {k for r in rows if isinstance(r, dict) for k in r}
+                missing = [c for c in s.table_columns if c not in present]
+                if rows and missing:
+                    issues.append(f"Scene {s.id!r} table_columns {missing} are not columns of "
+                                  f"dataset {s.dataset!r} (it has {sorted(present)}).")
             issues.extend(_vizzu_channel_issues(s))
         return issues
 

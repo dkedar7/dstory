@@ -609,7 +609,96 @@ body.story-mode--slides .atmosphere--vignette { opacity: 0.5; }
 }
 
 </style>
-<script>window.__STORY_DATA__ = {"meta": {"title": "Solar and wind filled the gap coal left", "subtitle": "", "deck": "", "author": "", "published": "2026-11-08", "theme": "editorial-noir", "audience": "general-public", "mode": "scroll", "sources": [{"name": "Illustrative generation by source (synthetic data)"}], "lang": "en", "dir": "ltr", "description": ""}, "claims": [{"id": "c-trend", "text": "Total gwh rose 29% between 2015 and 2024", "value": 29.2683, "unit": "pct", "scene": "scene-opener"}, {"id": "c-trend-step", "text": "The sharpest move came in 2024, when it rose 3.9% from 2023.", "value": 3.9216, "unit": "pct", "scene": "scene-opener"}, {"id": "c-opener-lead", "text": "In 2024, Gas made up 38% of the total", "value": 0.377358, "scene": "scene-opener"}, {"id": "c-opener-next", "text": "Solar was next, at 23%.", "value": 0.226415, "scene": "scene-opener"}, {"id": "c-shift", "text": "Solar rose 12-fold between 2015 and 2024, the biggest shift of any source", "value": 1100.0, "unit": "pct", "scene": "scene-shift"}, {"id": "c-shift-contrast", "text": "Coal, by contrast, halved.", "value": -48.7805, "unit": "pct", "scene": "scene-shift"}], "scenes": [{"id": "scene-opener", "kind": "vizzu", "headline": "", "commentary": "", "source_line": "Source: Illustrative generation by source (synthetic data).", "dataset": "opener", "alt": "Animated chart of total gwh by year, 2015 to 2024, as bars stacked by source (from 820K to 1.1M), which then split into one line per source; in 2024 Gas is the largest part.", "width": "default", "chrome": true, "series": [{"name": "year", "type": "dimension"}, {"name": "source", "type": "dimension"}, {"name": "gwh", "type": "measure"}], "frames": [{"headline": "Total gwh rose 29% between 2015 and 2024", "commentary": "The sharpest move came in 2024, when it rose 3.9% from 2023.", "config": {"channels": {"x": "year", "y": ["source", "gwh"], "color": "source", "label": null}, "geometry": "rectangle"}}, {"headline": "In 2024, Gas made up 38% of the total", "commentary": "Solar was next, at 23%.", "config": {"channels": {"x": "year", "y": "gwh", "color": "source", "label": null}, "geometry": "line"}}]}, {"id": "scene-shift", "kind": "simple", "headline": "Solar rose 12-fold between 2015 and 2024, the biggest shift of any source", "commentary": "Coal, by contrast, halved.", "source_line": "Source: Illustrative generation by source (synthetic data).", "dataset": "shift", "alt": "Slope chart of gwh by source, 2015 versus 2024: Solar goes from 20K to 240K; Coal goes from 410K to 210K.", "width": "default", "chrome": true, "config": {"label": "source", "start": "start", "end": "end", "start_label": "2015", "end_label": "2024", "highlight": ["Solar", "Coal"], "format": ",.3~s"}}, {"id": "scene-race", "kind": "simple", "headline": "Gas overtook Coal to rank first by 2024", "commentary": "Coal led in 2015; Gas has held the top spot since 2019.", "source_line": "Source: Illustrative generation by source (synthetic data).", "dataset": "race", "alt": "Bump chart ranking each source by gwh from 2015 to 2024: Gas climbs from rank 2 to rank 1, and Coal slips from rank 1 to rank 3.", "width": "default", "chrome": true, "config": {"x": "year", "series": "source", "y": "gwh", "highlight": ["Gas"]}}], "datasets": {"opener": [{"year": "2015", "source": "Coal", "gwh": 410000}, {"year": "2015", "source": "Gas", "gwh": 300000}, {"year": "2015", "source": "Solar", "gwh": 20000}, {"year": "2015", "source": "Wind", "gwh": 90000}, {"year": "2016", "source": "Coal", "gwh": 400000}, {"year": "2016", "source": "Gas", "gwh": 310000}, {"year": "2016", "source": "Solar", "gwh": 28000}, {"year": "2016", "source": "Wind", "gwh": 100000}, {"year": "2017", "source": "Coal", "gwh": 380000}, {"year": "2017", "source": "Gas", "gwh": 330000}, {"year": "2017", "source": "Solar", "gwh": 40000}, {"year": "2017", "source": "Wind", "gwh": 115000}, {"year": "2018", "source": "Coal", "gwh": 350000}, {"year": "2018", "source": "Gas", "gwh": 340000}, {"year": "2018", "source": "Solar", "gwh": 55000}, {"year": "2018", "source": "Wind", "gwh": 130000}, {"year": "2019", "source": "Coal", "gwh": 330000}, {"year": "2019", "source": "Gas", "gwh": 360000}, {"year": "2019", "source": "Solar", "gwh": 75000}, {"year": "2019", "source": "Wind", "gwh": 140000}, {"year": "2020", "source": "Coal", "gwh": 300000}, {"year": "2020", "source": "Gas", "gwh": 370000}, {"year": "2020", "source": "Solar", "gwh": 100000}, {"year": "2020", "source": "Wind", "gwh": 155000}, {"year": "2021", "source": "Coal", "gwh": 280000}, {"year": "2021", "source": "Gas", "gwh": 380000}, {"year": "2021", "source": "Solar", "gwh": 130000}, {"year": "2021", "source": "Wind", "gwh": 170000}, {"year": "2022", "source": "Coal", "gwh": 250000}, {"year": "2022", "source": "Gas", "gwh": 390000}, {"year": "2022", "source": "Solar", "gwh": 165000}, {"year": "2022", "source": "Wind", "gwh": 180000}, {"year": "2023", "source": "Coal", "gwh": 230000}, {"year": "2023", "source": "Gas", "gwh": 395000}, {"year": "2023", "source": "Solar", "gwh": 200000}, {"year": "2023", "source": "Wind", "gwh": 195000}, {"year": "2024", "source": "Coal", "gwh": 210000}, {"year": "2024", "source": "Gas", "gwh": 400000}, {"year": "2024", "source": "Solar", "gwh": 240000}, {"year": "2024", "source": "Wind", "gwh": 210000}], "shift": [{"source": "Coal", "start": 410000, "end": 210000}, {"source": "Gas", "start": 300000, "end": 400000}, {"source": "Solar", "start": 20000, "end": 240000}, {"source": "Wind", "start": 90000, "end": 210000}], "race": [{"year": "2015", "source": "Coal", "gwh": 410000}, {"year": "2015", "source": "Gas", "gwh": 300000}, {"year": "2015", "source": "Solar", "gwh": 20000}, {"year": "2015", "source": "Wind", "gwh": 90000}, {"year": "2016", "source": "Coal", "gwh": 400000}, {"year": "2016", "source": "Gas", "gwh": 310000}, {"year": "2016", "source": "Solar", "gwh": 28000}, {"year": "2016", "source": "Wind", "gwh": 100000}, {"year": "2017", "source": "Coal", "gwh": 380000}, {"year": "2017", "source": "Gas", "gwh": 330000}, {"year": "2017", "source": "Solar", "gwh": 40000}, {"year": "2017", "source": "Wind", "gwh": 115000}, {"year": "2018", "source": "Coal", "gwh": 350000}, {"year": "2018", "source": "Gas", "gwh": 340000}, {"year": "2018", "source": "Solar", "gwh": 55000}, {"year": "2018", "source": "Wind", "gwh": 130000}, {"year": "2019", "source": "Coal", "gwh": 330000}, {"year": "2019", "source": "Gas", "gwh": 360000}, {"year": "2019", "source": "Solar", "gwh": 75000}, {"year": "2019", "source": "Wind", "gwh": 140000}, {"year": "2020", "source": "Coal", "gwh": 300000}, {"year": "2020", "source": "Gas", "gwh": 370000}, {"year": "2020", "source": "Solar", "gwh": 100000}, {"year": "2020", "source": "Wind", "gwh": 155000}, {"year": "2021", "source": "Coal", "gwh": 280000}, {"year": "2021", "source": "Gas", "gwh": 380000}, {"year": "2021", "source": "Solar", "gwh": 130000}, {"year": "2021", "source": "Wind", "gwh": 170000}, {"year": "2022", "source": "Coal", "gwh": 250000}, {"year": "2022", "source": "Gas", "gwh": 390000}, {"year": "2022", "source": "Solar", "gwh": 165000}, {"year": "2022", "source": "Wind", "gwh": 180000}, {"year": "2023", "source": "Coal", "gwh": 230000}, {"year": "2023", "source": "Gas", "gwh": 395000}, {"year": "2023", "source": "Solar", "gwh": 200000}, {"year": "2023", "source": "Wind", "gwh": 195000}, {"year": "2024", "source": "Coal", "gwh": 210000}, {"year": "2024", "source": "Gas", "gwh": 400000}, {"year": "2024", "source": "Solar", "gwh": 240000}, {"year": "2024", "source": "Wind", "gwh": 210000}]}};</script>
+<script>window.__STORY_DATA__ = {"meta": {"title": "Solar and wind filled the gap coal left", "subtitle": "", "deck": "", "author": "", "published": "2026-11-09", "theme": "editorial-noir", "audience": "general-public", "mode": "scroll", "sources": [{"name": "Illustrative generation by source (synthetic data)"}], "lang": "en", "dir": "ltr", "description": ""}, "claims": [{"id": "c-trend", "text": "Total gwh rose 29% between 2015 and 2024", "value": 29.2683, "unit": "pct", "scene": "scene-opener"}, {"id": "c-trend-step", "text": "The sharpest move came in 2024, when it rose 3.9% from 2023.", "value": 3.9216, "unit": "pct", "scene": "scene-opener"}, {"id": "c-opener-lead", "text": "In 2024, Gas made up 38% of the total", "value": 0.377358, "scene": "scene-opener"}, {"id": "c-opener-next", "text": "Solar was next, at 23%.", "value": 0.226415, "scene": "scene-opener"}, {"id": "c-shift", "text": "Solar rose 12-fold between 2015 and 2024, the biggest shift of any source", "value": 1100.0, "unit": "pct", "scene": "scene-shift"}, {"id": "c-shift-contrast", "text": "Coal, by contrast, halved.", "value": -48.7805, "unit": "pct", "scene": "scene-shift"}], "scenes": [{"id": "scene-opener", "kind": "vizzu", "headline": "", "commentary": "", "source_line": "Source: Illustrative generation by source (synthetic data).", "dataset": "opener", "alt": "Animated chart of total gwh by year, 2015 to 2024, as bars stacked by source (from 820K to 1.1M), which then split into one line per source; in 2024 Gas is the largest part.", "width": "default", "chrome": true, "series": [{"name": "year", "type": "dimension"}, {"name": "source", "type": "dimension"}, {"name": "gwh", "type": "measure"}], "frames": [{"headline": "Total gwh rose 29% between 2015 and 2024", "commentary": "The sharpest move came in 2024, when it rose 3.9% from 2023.", "config": {"channels": {"x": "year", "y": ["source", "gwh"], "color": "source", "label": null}, "geometry": "rectangle"}}, {"headline": "In 2024, Gas made up 38% of the total", "commentary": "Solar was next, at 23%.", "config": {"channels": {"x": "year", "y": "gwh", "color": "source", "label": null}, "geometry": "line"}}]}, {"id": "scene-shift", "kind": "simple", "headline": "Solar rose 12-fold between 2015 and 2024, the biggest shift of any source", "commentary": "Coal, by contrast, halved.", "source_line": "Source: Illustrative generation by source (synthetic data).", "dataset": "shift", "alt": "Slope chart of gwh by source, 2015 versus 2024: Solar goes from 20K to 240K; Coal goes from 410K to 210K.", "width": "default", "chrome": true, "config": {"label": "source", "start": "start", "end": "end", "start_label": "2015", "end_label": "2024", "highlight": ["Solar", "Coal"], "format": ",.3~s"}}, {"id": "scene-race", "kind": "simple", "headline": "Gas overtook Coal to rank first by 2024", "commentary": "Coal led in 2015; Gas has held the top spot since 2019.", "source_line": "Source: Illustrative generation by source (synthetic data).", "dataset": "race", "alt": "Bump chart ranking each source by gwh from 2015 to 2024: Gas climbs from rank 2 to rank 1, and Coal slips from rank 1 to rank 3.", "width": "default", "chrome": true, "config": {"x": "year", "series": "source", "y": "gwh", "highlight": ["Gas"]}}], "datasets": {"opener": [{"year": "2015", "source": "Coal", "gwh": 410000}, {"year": "2015", "source": "Gas", "gwh": 300000}, {"year": "2015", "source": "Solar", "gwh": 20000}, {"year": "2015", "source": "Wind", "gwh": 90000}, {"year": "2016", "source": "Coal", "gwh": 400000}, {"year": "2016", "source": "Gas", "gwh": 310000}, {"year": "2016", "source": "Solar", "gwh": 28000}, {"year": "2016", "source": "Wind", "gwh": 100000}, {"year": "2017", "source": "Coal", "gwh": 380000}, {"year": "2017", "source": "Gas", "gwh": 330000}, {"year": "2017", "source": "Solar", "gwh": 40000}, {"year": "2017", "source": "Wind", "gwh": 115000}, {"year": "2018", "source": "Coal", "gwh": 350000}, {"year": "2018", "source": "Gas", "gwh": 340000}, {"year": "2018", "source": "Solar", "gwh": 55000}, {"year": "2018", "source": "Wind", "gwh": 130000}, {"year": "2019", "source": "Coal", "gwh": 330000}, {"year": "2019", "source": "Gas", "gwh": 360000}, {"year": "2019", "source": "Solar", "gwh": 75000}, {"year": "2019", "source": "Wind", "gwh": 140000}, {"year": "2020", "source": "Coal", "gwh": 300000}, {"year": "2020", "source": "Gas", "gwh": 370000}, {"year": "2020", "source": "Solar", "gwh": 100000}, {"year": "2020", "source": "Wind", "gwh": 155000}, {"year": "2021", "source": "Coal", "gwh": 280000}, {"year": "2021", "source": "Gas", "gwh": 380000}, {"year": "2021", "source": "Solar", "gwh": 130000}, {"year": "2021", "source": "Wind", "gwh": 170000}, {"year": "2022", "source": "Coal", "gwh": 250000}, {"year": "2022", "source": "Gas", "gwh": 390000}, {"year": "2022", "source": "Solar", "gwh": 165000}, {"year": "2022", "source": "Wind", "gwh": 180000}, {"year": "2023", "source": "Coal", "gwh": 230000}, {"year": "2023", "source": "Gas", "gwh": 395000}, {"year": "2023", "source": "Solar", "gwh": 200000}, {"year": "2023", "source": "Wind", "gwh": 195000}, {"year": "2024", "source": "Coal", "gwh": 210000}, {"year": "2024", "source": "Gas", "gwh": 400000}, {"year": "2024", "source": "Solar", "gwh": 240000}, {"year": "2024", "source": "Wind", "gwh": 210000}], "shift": [{"source": "Coal", "start": 410000, "end": 210000}, {"source": "Gas", "start": 300000, "end": 400000}, {"source": "Solar", "start": 20000, "end": 240000}, {"source": "Wind", "start": 90000, "end": 210000}], "race": [{"year": "2015", "source": "Coal", "gwh": 410000}, {"year": "2015", "source": "Gas", "gwh": 300000}, {"year": "2015", "source": "Solar", "gwh": 20000}, {"year": "2015", "source": "Wind", "gwh": 90000}, {"year": "2016", "source": "Coal", "gwh": 400000}, {"year": "2016", "source": "Gas", "gwh": 310000}, {"year": "2016", "source": "Solar", "gwh": 28000}, {"year": "2016", "source": "Wind", "gwh": 100000}, {"year": "2017", "source": "Coal", "gwh": 380000}, {"year": "2017", "source": "Gas", "gwh": 330000}, {"year": "2017", "source": "Solar", "gwh": 40000}, {"year": "2017", "source": "Wind", "gwh": 115000}, {"year": "2018", "source": "Coal", "gwh": 350000}, {"year": "2018", "source": "Gas", "gwh": 340000}, {"year": "2018", "source": "Solar", "gwh": 55000}, {"year": "2018", "source": "Wind", "gwh": 130000}, {"year": "2019", "source": "Coal", "gwh": 330000}, {"year": "2019", "source": "Gas", "gwh": 360000}, {"year": "2019", "source": "Solar", "gwh": 75000}, {"year": "2019", "source": "Wind", "gwh": 140000}, {"year": "2020", "source": "Coal", "gwh": 300000}, {"year": "2020", "source": "Gas", "gwh": 370000}, {"year": "2020", "source": "Solar", "gwh": 100000}, {"year": "2020", "source": "Wind", "gwh": 155000}, {"year": "2021", "source": "Coal", "gwh": 280000}, {"year": "2021", "source": "Gas", "gwh": 380000}, {"year": "2021", "source": "Solar", "gwh": 130000}, {"year": "2021", "source": "Wind", "gwh": 170000}, {"year": "2022", "source": "Coal", "gwh": 250000}, {"year": "2022", "source": "Gas", "gwh": 390000}, {"year": "2022", "source": "Solar", "gwh": 165000}, {"year": "2022", "source": "Wind", "gwh": 180000}, {"year": "2023", "source": "Coal", "gwh": 230000}, {"year": "2023", "source": "Gas", "gwh": 395000}, {"year": "2023", "source": "Solar", "gwh": 200000}, {"year": "2023", "source": "Wind", "gwh": 195000}, {"year": "2024", "source": "Coal", "gwh": 210000}, {"year": "2024", "source": "Gas", "gwh": 400000}, {"year": "2024", "source": "Solar", "gwh": 240000}, {"year": "2024", "source": "Wind", "gwh": 210000}]}};</script>
+<style data-dstory="data-panel">
+/* dstory data panel (see data-panel.js). Quiet by default, like the source
+   line; colours inherit from the scene so contrast follows the theme. */
+.scene-data {
+  margin: 0.75rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--step--1, 0.85rem);
+  color: inherit;
+}
+.scene-data > summary {
+  cursor: pointer;
+  width: max-content;
+  max-width: 100%;
+  color: inherit;
+  opacity: 0.85;
+}
+.scene-data > summary:hover, .scene-data[open] > summary { opacity: 1; }
+.scene-data > summary:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 3px; }
+.scene-data__count { font-variant-numeric: tabular-nums; }
+.scene-data__body { margin-top: 0.6rem; }
+.scene-data__scroll {
+  max-height: 24rem;
+  overflow: auto;
+  border-top: 1px solid var(--rule, currentColor);
+}
+.scene-data__scroll:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; }
+.scene-data table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+.scene-data caption {
+  caption-side: top;
+  text-align: start;
+  padding: 0.5rem 0;
+  font-weight: 600;
+}
+.scene-data th, .scene-data td {
+  text-align: start;
+  padding: 0.3rem 1rem 0.3rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--rule, currentColor) 60%, transparent);
+  color: inherit;
+  white-space: nowrap;
+}
+.scene-data thead th { position: sticky; top: 0; background: var(--bg-elev, var(--bg, Canvas)); }
+.scene-data tbody th { font-weight: 400; }
+.scene-data .num { text-align: end; }
+.scene-data__actions { margin: 0.75rem 0 0; }
+.scene-data__csv, .scene-data__all {
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--accent, currentColor);
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+.scene-data__all { display: block; margin-top: 0.6rem; }
+.scene--scrolly > .scene-data, .scene--pinned > .scene-data { grid-column: 1 / -1; }
+.scene--pinned > .scene-data { padding: 0 1.5rem; }
+
+/* Slides: a small "Data" tab in the slide's corner; open, it floats above
+   the chart. Press "t" to toggle it. */
+body.story-mode--slides .scene > .scene-data,
+body.story-mode--slides .scene__bleedinner > .scene-data {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  z-index: 5;
+  margin: 0;
+  max-width: min(42rem, calc(100vw - 3rem));
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  background: var(--bg-elev, var(--bg, Canvas));
+  color: var(--ink, CanvasText);
+  border: 1px solid color-mix(in srgb, var(--rule, currentColor) 70%, transparent);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+body.story-mode--slides .scene-data[open] .scene-data__scroll { max-height: 60vh; }
+
+@media print {
+  .scene-data__scroll { max-height: none; overflow: visible; }
+  .scene-data__csv, .scene-data__all { display: none; }
+  .scene-data thead th { position: static; }
+}
+
+</style>
 <meta property="og:title" content="Solar and wind filled the gap coal left">
 <meta name="twitter:title" content="Solar and wind filled the gap coal left">
 <meta property="og:type" content="article">
@@ -1568,5 +1657,202 @@ STORY.register("scene-race", function draw(mount, data, scene) {
 
 </script>
 
+<script data-dstory="data-panel">
+// dstory data panel: every chart ships its own data.
+//
+// Injected by `dstory bundle` (and build()) into every story. Under each scene
+// that has a `dataset`, it adds a collapsed "Data" disclosure holding a real
+// <table> (screen-reader and keyboard friendly) and a "Download CSV" link built
+// from the inlined data, so it works offline. It is renderer-agnostic: it reads
+// window.__STORY_DATA__ and never looks inside a chart.
+//
+// Turn parts off in data.json:  "meta": {"a11y": {"table": false, "download": false}}
+// or per scene:                 {"id": "s1", "a11y": {"table": false}, "table_columns": ["month", "value"]}
+// or for the whole bundle:      dstory bundle my-story --no-a11y-extras
+(() => {
+  "use strict";
+  if (window.__DSTORY_DATA_PANEL__) return;
+  const MAX_ROWS = 50;
+  const attached = {};
+
+  const dataOf = () => window.__STORY_DATA__ || null;
+  const option = (data, scene, key) => {
+    const s = (scene && scene.a11y) || {};
+    const m = (data && data.meta && data.meta.a11y) || {};
+    const v = s[key] !== undefined && s[key] !== null ? s[key]
+      : m[key] !== undefined && m[key] !== null ? m[key] : true;
+    return v !== false;
+  };
+  const slides = () => document.body.classList.contains("story-mode--slides");
+
+  const rowsOf = (data, scene) => {
+    const rows = scene && scene.dataset && data.datasets ? data.datasets[scene.dataset] : null;
+    return Array.isArray(rows) && rows.length ? rows : null;
+  };
+  const columnsOf = (rows, scene) => {
+    if (Array.isArray(scene.table_columns) && scene.table_columns.length) return scene.table_columns.slice();
+    const cols = [];
+    for (const r of rows.slice(0, 500)) {
+      if (r && typeof r === "object") for (const k of Object.keys(r)) if (!cols.includes(k)) cols.push(k);
+    }
+    return cols;
+  };
+
+  let nf = null;
+  const fmt = (v) => {
+    if (v === null || v === undefined) return "";
+    if (typeof v === "number") {
+      if (!nf) {
+        const lang = (dataOf() && dataOf().meta && dataOf().meta.lang) || undefined;
+        try { nf = new Intl.NumberFormat(lang, { maximumFractionDigits: 6 }); }
+        catch (e) { nf = new Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }); }
+      }
+      return nf.format(v);
+    }
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  };
+  // CSV: raw values (not locale-formatted), RFC 4180 quoting. Text that a
+  // spreadsheet would run as a formula (=, +, @) is prefixed with a quote.
+  const csvCell = (v) => {
+    if (v === null || v === undefined) return "";
+    let t = typeof v === "object" ? JSON.stringify(v) : String(v);
+    if (typeof v === "string" && /^[=+@\t\r]/.test(t)) t = "'" + t;
+    return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  };
+  const csvRow = (r, cols) => cols.map(c => csvCell(r ? r[c] : "")).join(",");
+  const toCSV = (rows, cols) => [cols.map(csvCell).join(","), ...rows.map(r => csvRow(r, cols))].join("\r\n");
+
+  const headlineOf = (s) => s.headline
+    || (s.steps && s.steps[0] && s.steps[0].headline)
+    || (s.frames && s.frames[0] && s.frames[0].headline) || s.id;
+
+  function h(tag, attrs, ...kids) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+    for (const k of kids) if (k != null) n.append(typeof k === "string" ? document.createTextNode(k) : k);
+    return n;
+  }
+
+  function fillBody(tbody, rows, cols, numeric, upto) {
+    const frag = document.createDocumentFragment();
+    for (const r of rows.slice(tbody.rows.length, upto)) {
+      const tr = h("tr");
+      cols.forEach((c, i) => {
+        const cell = h(i === 0 ? "th" : "td", i === 0 ? { scope: "row" } : {}, fmt(r ? r[c] : ""));
+        if (numeric[i]) cell.classList.add("num");
+        tr.append(cell);
+      });
+      frag.append(tr);
+    }
+    tbody.append(frag);
+  }
+
+  function panelFor(data, scene) {
+    const rows = rowsOf(data, scene);
+    if (!rows) return null;
+    const wantTable = option(data, scene, "table");
+    const wantCsv = option(data, scene, "download");
+    if (!wantTable && !wantCsv) return null;
+    const cols = columnsOf(rows, scene);
+    const n = rows.length;
+    const label = `${n.toLocaleString()} row${n === 1 ? "" : "s"}`;
+    const details = h("details", { class: "scene-data", "data-scene-data": scene.id });
+    details.append(h("summary", {}, wantTable ? "Data" : "Get the data",
+      h("span", { class: "scene-data__count" }, ` · ${label}`)));
+    const body = h("div", { class: "scene-data__body" });
+    if (wantTable) {
+      const numeric = cols.map(c => rows.every(r => !r || r[c] == null || typeof r[c] === "number")
+        && rows.some(r => r && typeof r[c] === "number"));
+      const table = h("table", { "data-rows": String(n), "data-cols": cols.join("\u001f") });
+      table.append(h("caption", {}, `Underlying data: ${headlineOf(scene)} (${label})`));
+      const hr = h("tr");
+      cols.forEach((c, i) => hr.append(h("th", { scope: "col", class: numeric[i] ? "num" : "" }, c)));
+      table.append(h("thead", {}, hr));
+      const tbody = h("tbody");
+      table.append(tbody);
+      fillBody(tbody, rows, cols, numeric, Math.min(n, MAX_ROWS));
+      body.append(h("div", { class: "scene-data__scroll", tabindex: "0", role: "region",
+        "aria-label": `Data table: ${headlineOf(scene)}` }, table));
+      if (n > MAX_ROWS) {
+        const more = h("button", { type: "button", class: "scene-data__all" }, `Show all ${label}`);
+        more.addEventListener("click", () => { fillBody(tbody, rows, cols, numeric, n); more.remove(); });
+        body.append(more);
+      }
+    }
+    if (wantCsv) {
+      const href = "data:text/csv;charset=utf-8," + encodeURIComponent("﻿" + toCSV(rows, cols));
+      body.append(h("p", { class: "scene-data__actions" },
+        h("a", { class: "scene-data__csv", href, download: `${scene.id}.csv` }, "Download CSV")));
+    }
+    details.append(body);
+    // In slides mode a click anywhere advances the deck; the panel is not "anywhere".
+    details.addEventListener("click", e => e.stopPropagation());
+    return details;
+  }
+
+  function place(scene, section, panel) {
+    if (scene.kind === "custom") {
+      // A custom renderer owns its whole <section>: sit after it, never inside.
+      if (slides()) return false;
+      section.after(panel);
+      return true;
+    }
+    const inner = scene.kind === "bleed" ? section.querySelector(".scene__bleedinner") : null;
+    (inner || section).append(panel);
+    return true;
+  }
+
+  function attachAll() {
+    const data = dataOf();
+    if (!data || !Array.isArray(data.scenes)) return true;
+    let done = true;
+    for (const scene of data.scenes) {
+      if (!scene || !scene.id || attached[scene.id] !== undefined) continue;
+      if (!rowsOf(data, scene)) { attached[scene.id] = null; continue; }
+      const section = document.getElementById(scene.id);
+      if (!section || !section.matches("[data-scene]")) { done = false; continue; }
+      const panel = panelFor(data, scene);
+      attached[scene.id] = panel && place(scene, section, panel) ? panel : null;
+    }
+    return done;
+  }
+
+  function start() {
+    if (attachAll()) return;
+    const obs = new MutationObserver(() => { if (attachAll()) obs.disconnect(); });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => obs.disconnect(), 15000);
+  }
+
+  // Slides: "t" opens or closes the current slide's data.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "t" || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target && e.target.matches && e.target.matches("input, textarea, [contenteditable]")) return;
+    if (!slides()) return;
+    const cur = document.querySelector(".scene.is-current .scene-data");
+    if (cur) { cur.open = !cur.open; e.preventDefault(); }
+  });
+
+  // Print: a PDF handout carries the data.
+  const reopened = [];
+  window.addEventListener("beforeprint", () => {
+    document.querySelectorAll("details.scene-data:not([open])").forEach(d => { d.open = true; reopened.push(d); });
+  });
+  window.addEventListener("afterprint", () => { while (reopened.length) reopened.pop().open = false; });
+
+  window.__DSTORY_DATA_PANEL__ = {
+    MAX_ROWS, attached, option, fmt, csvRow, columnsOf, rowsOf,
+    expected: (scene) => {
+      const data = dataOf();
+      return { table: option(data, scene, "table"), download: option(data, scene, "download"),
+               placed: scene.kind !== "custom" || !slides() };
+    },
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
+})();
+
+</script>
 </body>
 </html>

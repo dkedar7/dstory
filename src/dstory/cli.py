@@ -99,11 +99,15 @@ def init(slug: str, theme: str, audience: str, mode: str, title: str, overwrite:
                    "story works fully offline. Needs network now; adds ~300 KB.")
 @click.option("--no-check-claims", is_flag=True,
               help="Bundle even when a claim's text contradicts its value.")
-def bundle(slug: str, no_validate: bool, vendor: bool, no_check_claims: bool) -> None:
+@click.option("--no-a11y-extras", is_flag=True,
+              help="Leave out the Data panel (table + CSV download) under each chart.")
+def bundle(slug: str, no_validate: bool, vendor: bool, no_check_claims: bool,
+           no_a11y_extras: bool) -> None:
     """Bundle SLUG into a single self-contained HTML file."""
     try:
         result = bundle_story(slug, validate=not no_validate, vendor=vendor,
-                              check_claims=not no_check_claims)
+                              check_claims=not no_check_claims,
+                              a11y_extras=not no_a11y_extras)
     except (FileNotFoundError, ValueError) as e:
         console.print(f"[red]{CROSS} Bundle failed:[/red] {e}")
         sys.exit(1)

@@ -43,7 +43,7 @@ class ClaimDriftError(ValueError):
 
 
 def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
-           check_claims: bool = True) -> BundleResult:
+           check_claims: bool = True, a11y_extras: bool = True) -> BundleResult:
     """Bundle <slug>/index.html → <slug>/dist/story.html.
 
     Args:
@@ -59,6 +59,10 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
         check_claims: if True (default), run the static claim cross-check
                 and raise ClaimDriftError when a claim's text contradicts its
                 value. Nothing is written in that case.
+        a11y_extras: if True (default), every scene with a dataset gets a
+                collapsed "Data" panel: an accessible table of its rows and a
+                "Download CSV" link built from the inlined data. Tune it with
+                meta.a11y / scene.a11y in data.json; False leaves it out.
     """
     project = Path(slug)
     if not project.is_dir():
@@ -163,6 +167,18 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
     else:
         html = inject + html
 
+    # 3-post. The data panel: a table + CSV download under every data scene.
+    # It is injected here (not shipped in the project's story.js) so projects
+    # created by older versions get it too when they are re-bundled.
+    if a11y_extras:
+        css, js = _data_panel_assets()
+        style = f'<style data-dstory="data-panel">\n{css}\n</style>'
+        html = (html.replace("</head>", f"{style}\n</head>", 1) if "</head>" in html
+                else style + html)
+        script = f'<script data-dstory="data-panel">\n{js}\n</script>'
+        cut = html.rfind("</body>")     # the last one: inlined JS may mention "</body>"
+        html = html[:cut] + f"{script}\n" + html[cut:] if cut >= 0 else html + script
+
     # 3a. If data.json includes Story.extra_css, append it as a final <style>
     # block so it overrides anything in story.css. This is the supported way
     # to ship custom layout overrides without touching theme/brand CSS.
@@ -248,6 +264,13 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
 
 
 # ---------- helpers ----------
+
+def _data_panel_assets() -> tuple[str, str]:
+    from importlib import resources
+    base = resources.files("dstory.runtime")
+    return (base.joinpath("data-panel.css").read_text(encoding="utf-8"),
+            base.joinpath("data-panel.js").read_text(encoding="utf-8"))
+
 
 def _json_for_script(obj: object) -> str:
     """Serialize `obj` as JSON that is inert inside an inline <script>.

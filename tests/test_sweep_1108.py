@@ -132,3 +132,28 @@ def test_shared_turning_point_is_the_panel_headline():
     p = _panels(draft(tulsa_late, title="x"))
     assert p["headline"] == "Every metro but Tulsa peaked in 2021"
     assert p["config"]["highlight"] == ["Tulsa"]
+
+
+# ---------- #20: superlatives hold over every category, not the trimmed chart ----------
+
+def _many_cities():
+    rows = []
+    for i in range(19):
+        base = 1000 + 100 * i
+        rows += [(2019, f"City{i:02d}", base), (2023, f"City{i:02d}", round(base * (1.05 + 0.01 * i)))]
+    rows += [(2019, "Smallville", 10), (2023, "Smallville", 80)]
+    return pd.DataFrame(rows, columns=["year", "city", "pop"])
+
+
+def test_superlatives_cover_every_category_when_the_chart_is_trimmed():
+    d = draft(_many_cities(), title="x")
+    s = next(s for s in d.story["scenes"] if s["id"] == "scene-shift")
+    assert s["headline"] == "Smallville rose 8-fold between 2019 and 2023, the biggest shift of any city"
+    assert s["commentary"].startswith("City00 changed least: it rose 5%.")
+    assert "limited to the largest by pop in 2023, plus Smallville and City00" in s["commentary"]
+    shown = {r["city"] for r in d.story["datasets"]["shift"]}
+    assert len(shown) == 15 and {"Smallville", "City00", "City18"} <= shown
+    assert "It shows 15 of 20 city values" in s["alt"]
+    text = d.explain()
+    assert "20 city values present in both" in text and "text compares all 20" in text
+    assert check_data_fidelity("", d.story).passed

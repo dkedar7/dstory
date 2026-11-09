@@ -763,11 +763,9 @@ class _Drafter:
             self.reasons.append(f"(skipped) slope-chart: fewer than 2 {C} values in both "
                                 f"{t0} and {t1}.")
             return False
-        trimmed = ""
         recipe = "slope-chart" if len(both) <= MAX_SLOPE_CATEGORIES else "range-dots"
-        if len(both) > MAX_RANGE_CATEGORIES:
-            both = both.sort_values(p1, ascending=False).head(MAX_RANGE_CATEGORIES)
-            trimmed = f"; kept the {MAX_RANGE_CATEGORIES} largest in {t1}"
+        # Every fact (biggest, least, crossers) is computed over ALL categories
+        # present in both periods; only the chart is trimmed afterwards (#20).
         rows = [(str(lab), float(r[p0]), float(r[p1])) for lab, r in both.iterrows()]
         measured = [(lab, _delta(e, s, share_scale)) for lab, s, e in rows]
         movers = [(lab, p) for lab, p in measured if p is not None]
@@ -819,10 +817,32 @@ class _Drafter:
             headline = f"Where each {cname} stood in {t0} and {t1}"
         by_label = {lab: (s, e) for lab, s, e in rows}
         focus = highlight or [rows[0][0]]
+        trimmed, shown_note = "", ""
+        if len(rows) > MAX_RANGE_CATEGORIES:
+            # Show the largest in the last period, but never drop a category
+            # the text names; tell the reader the chart is a subset.
+            n_all = len(rows)
+            named = [r for r in rows if r[0] in highlight]
+            others = sorted((r for r in rows if r[0] not in highlight), key=lambda r: -r[2])
+            keep = {r[0] for r in named + others[:MAX_RANGE_CATEGORIES - len(named)]}
+            extra = [lab for lab in highlight
+                     if lab not in {r[0] for r in others[:MAX_RANGE_CATEGORIES]}]
+            rows = [r for r in rows if r[0] in keep]
+            plus = f", plus {_and(extra)}" if extra else ""
+            commentary = (commentary + " " if commentary else "") + _sentence_case(
+                f"The chart is limited to the largest by {_humanize(M)} in {t1}{plus}; the "
+                f"text compares every {cname}.")
+            shown_note = (f" It shows {len(rows)} of {n_all} {cname} values: the largest in "
+                          f"{t1}{plus}.")
+            trimmed = (f"; the chart keeps {len(rows)}: the largest in {t1}{plus}, while the "
+                       f"text compares all {n_all}")
+            rows_present = n_all
+        else:
+            rows_present = len(rows)
         chart = "Slope chart" if recipe == "slope-chart" else "Dot chart, sorted by change,"
         alt = (f"{chart} of {_humanize(M)} by {cname}, {t0} versus {t1}: " + "; ".join(
             f"{lab} goes from {_fmt_value(by_label[lab][0])} to {_fmt_value(by_label[lab][1])}"
-            for lab in focus) + ".")
+            for lab in focus) + "." + shown_note)
         values = [v for _, s, e in rows for v in (s, e)]
         self._add_scene(recipe, {
             "id": sid, "headline": headline, "commentary": commentary, "alt": alt,
@@ -831,7 +851,7 @@ class _Drafter:
         }, [{C: lab, "start": s, "end": e} for lab, s, e in rows])
         self.reasons.append(
             f"scene-shift: {recipe} of {C}, {t0} vs {t1} -- category x first/last period "
-            f"({len(rows)} {C} values present in both{trimmed}"
+            f"({rows_present} {C} values present in both{trimmed}"
             + (f"; range-dots past {MAX_SLOPE_CATEGORIES}, where slope labels collide"
                if recipe == "range-dots" else "") + ")")
         return True

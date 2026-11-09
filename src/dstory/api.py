@@ -63,6 +63,7 @@ def build(
     browser: Optional[bool] = None,
     overwrite: bool = True,
     check_claims: bool = True,
+    a11y_extras: bool = True,
 ) -> BuildResult:
     """Scaffold + write + bundle (+ vet) a story in one call.
 
@@ -86,6 +87,9 @@ def build(
                    notebook cells re-run).
         check_claims: refuse to bundle when a claim's text contradicts its
                       value (e.g. "tripled" for 1.2). Default True.
+        a11y_extras: add a collapsed "Data" panel (an accessible table plus a
+                     "Download CSV" link) under every scene with a dataset.
+                     Default True; tune it per scene with scene.a11y.
 
     Returns:
         BuildResult with .html (the bundled file), .bundle stats, and
@@ -117,7 +121,7 @@ def build(
         write_scene(project, scene_id, js)
 
     bundle_result = bundle_project(project, validate=True, vendor=vendor,
-                                   check_claims=check_claims)
+                                   check_claims=check_claims, a11y_extras=a11y_extras)
 
     report: Optional[Report] = None
     if vet:

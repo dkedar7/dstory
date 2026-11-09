@@ -53,6 +53,7 @@ include = [
     "src/dstory/themes/**",
     "src/dstory/references/**",
     "src/dstory/cookbook/**",
+    "src/dstory/runtime/**",
 ]
 
 [tool.hatch.build.targets.wheel]

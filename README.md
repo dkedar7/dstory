@@ -345,6 +345,36 @@ skip-to-content link, a reading progress bar, `prefers-reduced-motion`
 support, a print stylesheet (browser print → clean PDF handout), and
 `#slide-N` deep links in slides mode.
 
+### Every chart ships its data
+
+Under every scene that has a `dataset`, the bundled story carries a collapsed
+**Data** panel, with no code from you:
+
+- a real `<table>` of the rows behind the chart, with a caption and column
+  headers. Screen-reader users can read every number; sighted readers can check
+  a claim. Long tables show 50 rows, then "Show all".
+- a **Download CSV** link built from the inlined rows as a `data:` URL, so it
+  works offline. Text that a spreadsheet would run as a formula is quoted.
+- numbers formatted for `meta.lang` (`"de"` reads `1.000,5`).
+- in slides mode, a small tab in the corner; press `t` to open it.
+- in print, every table opens, so a PDF handout carries the data.
+
+It is renderer-agnostic, so it works for your own D3 and for Vizzu scenes too,
+and projects made by older versions get it when you re-bundle them. The vetter
+opens each story in Chromium and checks that every table and CSV matches
+`data.json` (row count, columns, first and last rows).
+
+Tune it in `data.json`:
+
+```json
+"meta":   {"a11y": {"table": true, "download": false}},
+"scenes": [{"id": "s1", "a11y": {"table": false}, "table_columns": ["month", "value"]}]
+```
+
+or leave it out of a bundle with `dstory bundle my-story --no-a11y-extras`
+(`build(..., a11y_extras=False)`). A chart scene with no `alt` *and* its table
+turned off fails the vet: a screen-reader user would get nothing.
+
 The vetter is audience-aware too: it scores the story's prose (Flesch reading
 ease) against `meta.audience` and notes when the writing is harder than that
 audience should have to work for.

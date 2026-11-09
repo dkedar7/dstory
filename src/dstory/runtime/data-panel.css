@@ -1,0 +1,86 @@
+/* dstory data panel (see data-panel.js). Quiet by default, like the source
+   line; colours inherit from the scene so contrast follows the theme. */
+.scene-data {
+  margin: 0.75rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--step--1, 0.85rem);
+  color: inherit;
+}
+.scene-data > summary {
+  cursor: pointer;
+  width: max-content;
+  max-width: 100%;
+  color: inherit;
+  opacity: 0.85;
+}
+.scene-data > summary:hover, .scene-data[open] > summary { opacity: 1; }
+.scene-data > summary:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 3px; }
+.scene-data__count { font-variant-numeric: tabular-nums; }
+.scene-data__body { margin-top: 0.6rem; }
+.scene-data__scroll {
+  max-height: 24rem;
+  overflow: auto;
+  border-top: 1px solid var(--rule, currentColor);
+}
+.scene-data__scroll:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; }
+.scene-data table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+.scene-data caption {
+  caption-side: top;
+  text-align: start;
+  padding: 0.5rem 0;
+  font-weight: 600;
+}
+.scene-data th, .scene-data td {
+  text-align: start;
+  padding: 0.3rem 1rem 0.3rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--rule, currentColor) 60%, transparent);
+  color: inherit;
+  white-space: nowrap;
+}
+.scene-data thead th { position: sticky; top: 0; background: var(--bg-elev, var(--bg, Canvas)); }
+.scene-data tbody th { font-weight: 400; }
+.scene-data .num { text-align: end; }
+.scene-data__actions { margin: 0.75rem 0 0; }
+.scene-data__csv, .scene-data__all {
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--accent, currentColor);
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+.scene-data__all { display: block; margin-top: 0.6rem; }
+.scene--scrolly > .scene-data, .scene--pinned > .scene-data { grid-column: 1 / -1; }
+.scene--pinned > .scene-data { padding: 0 1.5rem; }
+
+/* Slides: a small "Data" tab in the slide's corner; open, it floats above
+   the chart. Press "t" to toggle it. */
+body.story-mode--slides .scene > .scene-data,
+body.story-mode--slides .scene__bleedinner > .scene-data {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  z-index: 5;
+  margin: 0;
+  max-width: min(42rem, calc(100vw - 3rem));
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  background: var(--bg-elev, var(--bg, Canvas));
+  color: var(--ink, CanvasText);
+  border: 1px solid color-mix(in srgb, var(--rule, currentColor) 70%, transparent);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+body.story-mode--slides .scene-data[open] .scene-data__scroll { max-height: 60vh; }
+
+@media print {
+  .scene-data__scroll { max-height: none; overflow: visible; }
+  .scene-data__csv, .scene-data__all { display: none; }
+  .scene-data thead th { position: static; }
+}

@@ -453,9 +453,20 @@ def check_static_a11y(html: str, data: dict[str, Any]) -> Dimension:
         r.note("<html> has no lang attribute — set meta.lang so screen readers pick the right voice.")
 
     # Chart-bearing scenes should carry an alt text (scene.alt → aria-label).
+    # The data panel's table is the other way in; with neither, a screen-reader
+    # user gets nothing at all, so that fails.
+    meta_a11y = (data.get("meta") or {}).get("a11y") or {}
     for s in data.get("scenes", []):
         references_data = bool(s.get("dataset")) or bool(s.get("frames"))
-        if references_data and not s.get("alt"):
+        if not references_data or s.get("alt"):
+            continue
+        scene_a11y = s.get("a11y") or {}
+        table = scene_a11y.get("table", meta_a11y.get("table"))
+        if table is False and s.get("dataset"):
+            r.fail(f"Scene {s.get('id', '?')} has no 'alt' text and its data table is turned "
+                   "off (a11y.table: false), so screen-reader users get nothing. Add "
+                   "scene.alt or turn the table back on.")
+        else:
             r.note(f"Scene {s.get('id', '?')} has a chart but no 'alt' text — "
                    "screen-reader users get a silent <div>. Add scene.alt.")
     return r
@@ -562,6 +573,61 @@ OVERFLOW_AUDIT_JS = r"""
     }
   }
   return out;
+})()
+"""
+
+# The data panel (bundle a11y extras): every data scene's table and CSV must
+# match the inlined dataset, so the numbers a reader can inspect are exactly
+# the numbers the author supplied. Returns null when the bundle has no panel
+# runtime (bundled by an older dstory, or with --no-a11y-extras).
+DATA_TABLE_AUDIT_JS = r"""
+(() => {
+  const api = window.__DSTORY_DATA_PANEL__, data = window.__STORY_DATA__;
+  if (!api || !data || !Array.isArray(data.scenes)) return null;
+  const issues = [];
+  const norm = t => (t || '').replace(/\s+/g, ' ').trim();
+  for (const s of data.scenes) {
+    if (!s || !s.id) continue;
+    const rows = api.rowsOf(data, s);
+    if (!rows) continue;
+    const want = api.expected(s);
+    if (!want.placed || (!want.table && !want.download)) continue;
+    const panel = document.querySelector(`[data-scene-data="${CSS.escape(s.id)}"]`);
+    if (!panel) { issues.push(`${s.id}: no Data panel under the chart.`); continue; }
+    const cols = api.columnsOf(rows, s);
+    if (want.table) {
+      const t = panel.querySelector('table');
+      if (!t) { issues.push(`${s.id}: the Data panel has no table.`); continue; }
+      if (+t.dataset.rows !== rows.length)
+        issues.push(`${s.id}: table says ${t.dataset.rows} rows, the dataset has ${rows.length}.`);
+      const body = Array.from(t.tBodies[0]?.rows || []);
+      if (body.length !== Math.min(rows.length, api.MAX_ROWS))
+        issues.push(`${s.id}: table shows ${body.length} rows, expected ${Math.min(rows.length, api.MAX_ROWS)}.`);
+      const head = Array.from(t.tHead?.rows[0]?.cells || []).map(c => norm(c.textContent));
+      if (head.join('|') !== cols.join('|'))
+        issues.push(`${s.id}: table columns ${JSON.stringify(head)} differ from ${JSON.stringify(cols)}.`);
+      const check = (i) => {
+        const cells = Array.from(body[i]?.cells || []).map(c => norm(c.textContent));
+        const exp = cols.map(c => norm(api.fmt(rows[i] ? rows[i][c] : '')));
+        if (cells.join('|') !== exp.join('|'))
+          issues.push(`${s.id}: table row ${i + 1} reads ${JSON.stringify(cells)}, the data says ${JSON.stringify(exp)}.`);
+      };
+      if (body.length) { check(0); check(body.length - 1); }
+    }
+    if (want.download) {
+      const a = panel.querySelector('a[download]');
+      if (!a) { issues.push(`${s.id}: no Download CSV link.`); continue; }
+      let text = '';
+      try { text = decodeURIComponent(a.getAttribute('href').split(',').slice(1).join(',')); }
+      catch (e) { issues.push(`${s.id}: the CSV link does not decode.`); continue; }
+      const lines = text.replace(/^﻿/, '').split('\r\n');
+      if (lines.length !== rows.length + 1)
+        issues.push(`${s.id}: the CSV has ${lines.length - 1} rows, the dataset has ${rows.length}.`);
+      else if (lines[lines.length - 1] !== api.csvRow(rows[rows.length - 1], cols))
+        issues.push(`${s.id}: the CSV's last row differs from the dataset's.`);
+    }
+  }
+  return issues;
 })()
 """
 
@@ -676,6 +742,15 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
                         f"viewport {w}x{h}: {s['selector']} contrast {ratio:.2f} "
                         f"(needs ≥ {threshold:.1f}). color={s['color']} bg={s['background']}"
                     )
+
+            if w == 1440:
+                try:
+                    table_issues = page.evaluate(DATA_TABLE_AUDIT_JS)
+                except Exception as e:
+                    table_issues = None
+                    extra_notes.append(f"data-table check skipped — {e}")
+                for issue in table_issues or []:
+                    extras.append(f"Data panel: {issue}")
 
             if facts["imgsWithoutAlt"] > 0:
                 extras.append(f"viewport {w}x{h}: {facts['imgsWithoutAlt']} <img> without alt text.")

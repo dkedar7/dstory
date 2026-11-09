@@ -3,6 +3,41 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Every chart ships its data** (#14, milestone 1). Every scene with a
+  `dataset` now gets a collapsed **Data** panel in the bundled story, with no
+  code changes:
+  - an accessible `<table>` of its rows: caption, column headers, row
+    headers, 50 rows then "Show all", numbers formatted for `meta.lang`;
+  - a **Download CSV** link built from the inlined rows (a `data:` URL, so it
+    works offline). Text a spreadsheet would run as a formula is quoted.
+  - In slides mode it is a corner tab, and `t` toggles it. Print opens every
+    table.
+  - It is injected by the bundler, so it works for custom D3 and Vizzu scenes,
+    and for projects made by older versions once they are re-bundled.
+- `meta.a11y` / `scene.a11y` (`{"table": bool, "download": bool}`) and
+  `scene.table_columns` to tune it. `validate_dataset_refs()` reports
+  `table_columns` that aren't in the dataset.
+- `dstory bundle --no-a11y-extras`, `bundle(a11y_extras=False)` and
+  `build(a11y_extras=False)` leave the panel out.
+- **The vetter checks the data a reader sees.** In Chromium, every data
+  scene's table and CSV must match `data.json`: row count, columns, and the
+  first and last rows. A scene with no `alt` and its table turned off now
+  fails "Accessibility & ethics": a screen-reader user would get nothing.
+
+### Fixed
+- **No false superlatives when range-dots trims categories** (#20). Past 15
+  categories, "the biggest shift of any city" and "changed least" were
+  computed over the 15 shown, so a dropped city that rose 8-fold went unseen.
+  They are now computed over every category in both periods. The chart keeps
+  the 15 largest in the last period, plus any category the text names. The
+  commentary and alt text say the chart is a subset, and `explain()` reports
+  the real count. (0.10.0's CHANGELOG said range-dots "keeps up to 15, sorted
+  by change". It kept the 15 largest by final value, then sorted those by
+  change.)
+
 ## [0.10.0] - 2026-11-08
 
 ### Added
