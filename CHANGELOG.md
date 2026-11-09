@@ -3,7 +3,7 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.11.0] - 2026-11-09
 
 ### Added
 - **Every chart ships its data** (#14, milestone 1). Every scene with a
