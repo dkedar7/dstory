@@ -455,20 +455,30 @@ def check_static_a11y(html: str, data: dict[str, Any]) -> Dimension:
     # Chart-bearing scenes should carry an alt text (scene.alt → aria-label).
     # The data panel's table is the other way in; with neither, a screen-reader
     # user gets nothing at all, so that fails.
+    # "Table present" is decided by what shipped, not by data.json alone: a
+    # bundle made with --no-a11y-extras carries a marker and no panel runtime.
+    # (A bundle from a dstory older than 0.11 has neither; it keeps the old
+    # note rather than starting to fail.)
     meta_a11y = (data.get("meta") or {}).get("a11y") or {}
+    panel_shipped = not re.search(r'<meta\s+name="dstory:a11y-extras"\s+content="off"', html)
     for s in data.get("scenes", []):
         references_data = bool(s.get("dataset")) or bool(s.get("frames"))
         if not references_data or s.get("alt"):
             continue
         scene_a11y = s.get("a11y") or {}
         table = scene_a11y.get("table", meta_a11y.get("table"))
-        if table is False and s.get("dataset"):
-            r.fail(f"Scene {s.get('id', '?')} has no 'alt' text and its data table is turned "
-                   "off (a11y.table: false), so screen-reader users get nothing. Add "
-                   "scene.alt or turn the table back on.")
+        if s.get("dataset") and (table is False or not panel_shipped):
+            why = ("its data table is turned off (a11y.table: false)" if table is False else
+                   "the bundle ships no data table (built with --no-a11y-extras / "
+                   "a11y_extras=False)")
+            r.fail(f"Scene {s.get('id', '?')} has no 'alt' text and {why}, so screen-reader "
+                   "users get nothing. Add scene.alt or turn the table back on.")
         else:
             r.note(f"Scene {s.get('id', '?')} has a chart but no 'alt' text — "
                    "screen-reader users get a silent <div>. Add scene.alt.")
+            if s.get("dataset") and "__DSTORY_DATA_PANEL__" not in html and table is not False:
+                r.note(f"Scene {s.get('id', '?')}: this bundle predates the data panel; "
+                       "re-bundle to give it an accessible data table.")
     return r
 
 
@@ -608,7 +618,8 @@ DATA_TABLE_AUDIT_JS = r"""
         issues.push(`${s.id}: table columns ${JSON.stringify(head)} differ from ${JSON.stringify(cols)}.`);
       const check = (i) => {
         const cells = Array.from(body[i]?.cells || []).map(c => norm(c.textContent));
-        const exp = cols.map(c => norm(api.fmt(rows[i] ? rows[i][c] : '')));
+        const exp = (api.cellText ? api.cellText(rows, i, cols, s)
+                     : cols.map(c => api.fmt(rows[i] ? rows[i][c] : ''))).map(norm);
         if (cells.join('|') !== exp.join('|'))
           issues.push(`${s.id}: table row ${i + 1} reads ${JSON.stringify(cells)}, the data says ${JSON.stringify(exp)}.`);
       };
@@ -627,6 +638,41 @@ DATA_TABLE_AUDIT_JS = r"""
         issues.push(`${s.id}: the CSV's last row differs from the dataset's.`);
     }
   }
+  return issues;
+})()
+"""
+
+# The keyboard explorer: every data chart is focusable and, driven with the
+# keys a reader would press, speaks numbers that are in its dataset. Returns
+# null when the bundle has no explorer runtime.
+EXPLORER_AUDIT_JS = r"""
+(() => {
+  const ex = window.__DSTORY_EXPLORER__, api = window.__DSTORY_DATA_PANEL__, data = window.__STORY_DATA__;
+  if (!ex || !api || !data || !Array.isArray(data.scenes)) return null;
+  const live = () => (document.getElementById('dstory-explore-live') || {}).textContent || '';
+  const key = (el, k) => el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  const issues = [];
+  const before = document.activeElement;
+  for (const s of data.scenes) {
+    if (!s || !s.id || !api.rowsOf(data, s) || !ex.expected(s)) continue;
+    const m = document.querySelector(`[data-explore="${CSS.escape(s.id)}"]`);
+    if (!m) { issues.push(`${s.id}: the chart cannot be explored with the keyboard.`); continue; }
+    if (m.tabIndex !== 0) issues.push(`${s.id}: the chart is not in the tab order.`);
+    m.focus({ preventScroll: true });
+    if (!live().trim()) issues.push(`${s.id}: focusing the chart announces nothing.`);
+    key(m, 'Home');
+    const said = live(), want = ex.describe(s.id, 0, 0);
+    if (said !== want) issues.push(`${s.id}: Home announces ${JSON.stringify(said)}, expected ${JSON.stringify(want)}.`);
+    const rows = api.rowsOf(data, s), roles = ex.rolesOf(rows, api.columnsOf(rows, s), s);
+    const g = ex.groupsOf(rows, roles)[0], r0 = rows[g.idx[0]] || {};
+    for (const c of roles.measures)
+      if (typeof r0[c] === 'number' && !said.includes(api.fmt(r0[c])))
+        issues.push(`${s.id}: the first point is read as ${JSON.stringify(said)}, without its ${c} (${api.fmt(r0[c])}).`);
+    key(m, 'End');
+    if (g.idx.length > 1 && live() === said) issues.push(`${s.id}: End does not move to the last point.`);
+    m.blur();
+  }
+  if (before && before.focus) before.focus({ preventScroll: true });
   return issues;
 })()
 """
@@ -751,6 +797,13 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
                     extra_notes.append(f"data-table check skipped — {e}")
                 for issue in table_issues or []:
                     extras.append(f"Data panel: {issue}")
+                try:
+                    explorer_issues = page.evaluate(EXPLORER_AUDIT_JS)
+                except Exception as e:
+                    explorer_issues = None
+                    extra_notes.append(f"keyboard-explorer check skipped — {e}")
+                for issue in explorer_issues or []:
+                    extras.append(f"Chart explorer: {issue}")
 
             if facts["imgsWithoutAlt"] > 0:
                 extras.append(f"viewport {w}x{h}: {facts['imgsWithoutAlt']} <img> without alt text.")

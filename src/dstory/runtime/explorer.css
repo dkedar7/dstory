@@ -1,0 +1,34 @@
+/* dstory chart explorer (see explorer.js). A focus ring on the chart, and one
+   live readout pinned to the bottom of the viewport while a chart has focus. */
+[data-explore]:focus { outline: none; }
+[data-explore]:focus-visible {
+  outline: 2px solid var(--accent, currentColor);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+.scene__bleedbg[data-explore]:focus-visible { outline-offset: -6px; }
+.scene-explore__live {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 50;
+  max-width: min(46rem, calc(100vw - 2rem));
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  background: var(--ink, CanvasText);
+  color: var(--bg, Canvas);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--step--1, 0.85rem);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+/* Visually hidden (still spoken) unless a chart has keyboard focus. */
+.scene-explore__live:not(.is-visible) {
+  clip-path: inset(50%);
+  width: 1px; height: 1px; overflow: hidden; white-space: nowrap;
+  padding: 0; box-shadow: none;
+}
+@media print { .scene-explore__live { display: none; } }

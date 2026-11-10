@@ -104,9 +104,14 @@ def test_scroll_mode_runtime(browser, scroll_story: Path):
     img = page.evaluate("document.querySelector('.hero__bg').style.backgroundImage")
     assert img.startswith('url("data:image/png')
 
-    # scene.alt wired to role="img" + aria-label on the mount.
+    # scene.alt wired to aria-label on the mount. With a dataset, the keyboard
+    # explorer makes it an interactive chart (role="application" so screen
+    # readers pass the arrow keys through); without one it stays role="img".
     mount = page.locator('[data-mount="scene-one"]')
-    assert mount.get_attribute("role") == "img"
+    page.wait_for_function("window.__DSTORY_EXPLORER__ && "
+                           "'scene-one' in window.__DSTORY_EXPLORER__.attached")
+    explored = page.evaluate("!!window.__DSTORY_EXPLORER__.attached['scene-one']")
+    assert mount.get_attribute("role") == ("application" if explored else "img")
     assert mount.get_attribute("aria-label") == "A circle filled with the accent color."
 
     # Skip link present and pointing at the story.

@@ -38,26 +38,54 @@
     return cols;
   };
 
-  let nf = null;
-  const fmt = (v) => {
+  let nf = null, nfRaw = null;
+  const lang = () => (dataOf() && dataOf().meta && dataOf().meta.lang) || undefined;
+  const numberFormat = (grouping) => {
+    try { return new Intl.NumberFormat(lang(), { maximumFractionDigits: 6, useGrouping: grouping }); }
+    catch (e) { return new Intl.NumberFormat(undefined, { maximumFractionDigits: 6, useGrouping: grouping }); }
+  };
+  // fmt(v, raw): raw drops the thousands separator (years, IDs, codes) but
+  // keeps the locale's decimal mark.
+  const fmt = (v, raw) => {
     if (v === null || v === undefined) return "";
     if (typeof v === "number") {
-      if (!nf) {
-        const lang = (dataOf() && dataOf().meta && dataOf().meta.lang) || undefined;
-        try { nf = new Intl.NumberFormat(lang, { maximumFractionDigits: 6 }); }
-        catch (e) { nf = new Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }); }
-      }
-      return nf.format(v);
+      if (raw) return (nfRaw || (nfRaw = numberFormat(false))).format(v);
+      return (nf || (nf = numberFormat(true))).format(v);
     }
     if (typeof v === "object") return JSON.stringify(v);
     return String(v);
   };
+  // Columns whose numbers are labels, not quantities: "2020" is a year, not
+  // two thousand and twenty. Override per scene with
+  // "table_format": {"col": "raw" | "number"}.
+  const ID_NAME = /(^|[_\s-])(year|yr|fy|id|code|fips|zip|zipcode|postcode|postal|geoid|isbn|sku|ean|upc)s?$/i;
+  const isRawColumn = (rows, col, scene) => {
+    const o = scene && scene.table_format && scene.table_format[col];
+    if (o === "raw") return true;
+    if (o === "number") return false;
+    const vals = rows.map(r => r ? r[col] : null).filter(v => typeof v === "number");
+    if (!vals.length || !vals.every(Number.isInteger)) return false;
+    if (ID_NAME.test(String(col)) || /^id$/i.test(String(col))) return true;
+    return vals.every(v => v >= 1000 && v <= 2999);          // looks like years
+  };
+  const rawColumns = (rows, cols, scene) => cols.map(c => isRawColumn(rows, c, scene));
+  const cellText = (rows, i, cols, scene) => {
+    const raw = rawColumns(rows, cols, scene);
+    return cols.map((c, j) => fmt(rows[i] ? rows[i][c] : "", raw[j]));
+  };
   // CSV: raw values (not locale-formatted), RFC 4180 quoting. Text that a
-  // spreadsheet would run as a formula (=, +, @) is prefixed with a quote.
+  // spreadsheet would run as a formula (OWASP: = + - @ tab CR, and their
+  // full-width forms) is prefixed with a quote; a plain number stored as text
+  // ("-5", "+1.2%") is left alone.
+  const FORMULA = /^[=+\-@\t\r\uFF1D\uFF0B\uFF0D\uFE63\u2212\uFF20]/;
+  const PLAIN_NUMBER = /^[+\-\u2212]?(\d[\d,]*)?(\.\d+)?([eE][+-]?\d+)?%?$/;
   const csvCell = (v) => {
     if (v === null || v === undefined) return "";
     let t = typeof v === "object" ? JSON.stringify(v) : String(v);
-    if (typeof v === "string" && /^[=+@\t\r]/.test(t)) t = "'" + t;
+    if (typeof v === "string") {
+      const lead = t.replace(/^[ \u00A0]+/, "");
+      if (FORMULA.test(lead) && !(PLAIN_NUMBER.test(lead) && /\d/.test(lead))) t = "'" + t;
+    }
     return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
   };
   const csvRow = (r, cols) => cols.map(c => csvCell(r ? r[c] : "")).join(",");
@@ -74,12 +102,12 @@
     return n;
   }
 
-  function fillBody(tbody, rows, cols, numeric, upto) {
+  function fillBody(tbody, rows, cols, numeric, raw, upto) {
     const frag = document.createDocumentFragment();
     for (const r of rows.slice(tbody.rows.length, upto)) {
       const tr = h("tr");
       cols.forEach((c, i) => {
-        const cell = h(i === 0 ? "th" : "td", i === 0 ? { scope: "row" } : {}, fmt(r ? r[c] : ""));
+        const cell = h(i === 0 ? "th" : "td", i === 0 ? { scope: "row" } : {}, fmt(r ? r[c] : "", raw[i]));
         if (numeric[i]) cell.classList.add("num");
         tr.append(cell);
       });
@@ -111,12 +139,13 @@
       table.append(h("thead", {}, hr));
       const tbody = h("tbody");
       table.append(tbody);
-      fillBody(tbody, rows, cols, numeric, Math.min(n, MAX_ROWS));
+      const raw = rawColumns(rows, cols, scene);
+      fillBody(tbody, rows, cols, numeric, raw, Math.min(n, MAX_ROWS));
       body.append(h("div", { class: "scene-data__scroll", tabindex: "0", role: "region",
         "aria-label": `Data table: ${headlineOf(scene)}` }, table));
       if (n > MAX_ROWS) {
         const more = h("button", { type: "button", class: "scene-data__all" }, `Show all ${label}`);
-        more.addEventListener("click", () => { fillBody(tbody, rows, cols, numeric, n); more.remove(); });
+        more.addEventListener("click", () => { fillBody(tbody, rows, cols, numeric, raw, n); more.remove(); });
         body.append(more);
       }
     }
@@ -182,7 +211,7 @@
   window.addEventListener("afterprint", () => { while (reopened.length) reopened.pop().open = false; });
 
   window.__DSTORY_DATA_PANEL__ = {
-    MAX_ROWS, attached, option, fmt, csvRow, columnsOf, rowsOf,
+    MAX_ROWS, attached, option, fmt, csvRow, csvCell, columnsOf, rowsOf, rawColumns, cellText,
     expected: (scene) => {
       const data = dataOf();
       return { table: option(data, scene, "table"), download: option(data, scene, "download"),

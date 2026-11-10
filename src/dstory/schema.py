@@ -28,6 +28,7 @@ class A11yOptions(BaseModel):
     model_config = ConfigDict(extra="forbid")
     table: Optional[bool] = None      # a "Data" disclosure with an accessible <table>
     download: Optional[bool] = None   # a "Download CSV" link built from the inlined rows
+    explorer: Optional[bool] = None   # keyboard chart explorer + aria-live readout
 
 
 class Meta(BaseModel):
@@ -151,6 +152,10 @@ class Scene(BaseModel):
     # columns its table and CSV show (default: every column, in row order).
     a11y: Optional[A11yOptions] = None
     table_columns: Optional[list[str]] = None
+    # How the table shows a numeric column: "raw" (no thousands separator, for
+    # years, IDs and codes) or "number". Default: integer columns named like
+    # year/id/code/fips/zip, or holding only values 1000-2999, are raw.
+    table_format: Optional[dict[str, Literal["raw", "number"]]] = None
 
     @field_validator("id")
     @classmethod
@@ -197,13 +202,15 @@ class Story(BaseModel):
         for s in self.scenes:
             if s.dataset and s.dataset not in self.datasets:
                 issues.append(f"Scene {s.id!r} references dataset {s.dataset!r} which is not in data.datasets.")
-            elif s.dataset and s.table_columns:
+            elif s.dataset and (s.table_columns or s.table_format):
                 rows = self.datasets.get(s.dataset) or []
                 present = {k for r in rows if isinstance(r, dict) for k in r}
-                missing = [c for c in s.table_columns if c not in present]
-                if rows and missing:
-                    issues.append(f"Scene {s.id!r} table_columns {missing} are not columns of "
-                                  f"dataset {s.dataset!r} (it has {sorted(present)}).")
+                for field, named in (("table_columns", s.table_columns or []),
+                                     ("table_format", list(s.table_format or {}))):
+                    missing = [c for c in named if c not in present]
+                    if rows and missing:
+                        issues.append(f"Scene {s.id!r} {field} {missing} are not columns of "
+                                      f"dataset {s.dataset!r} (it has {sorted(present)}).")
             issues.extend(_vizzu_channel_issues(s))
         return issues
 

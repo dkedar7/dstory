@@ -354,8 +354,13 @@ Under every scene that has a `dataset`, the bundled story carries a collapsed
   headers. Screen-reader users can read every number; sighted readers can check
   a claim. Long tables show 50 rows, then "Show all".
 - a **Download CSV** link built from the inlined rows as a `data:` URL, so it
-  works offline. Text that a spreadsheet would run as a formula is quoted.
-- numbers formatted for `meta.lang` (`"de"` reads `1.000,5`).
+  works offline. Text that a spreadsheet would run as a formula (a leading
+  `=`, `+`, `-`, `@`, tab or their full-width forms) gets a `'` prefix, so a
+  scraped `-2+3+cmd|...` cell cannot run; plain numbers like `-5` are kept.
+- numbers formatted for `meta.lang` (`"de"` reads `1.000,5`). Years, IDs and
+  codes stay ungrouped (`2020`, not `2,020`): integer columns named like
+  `year`, `*_id`, `code`, `fips` or `zip`, or holding only values 1000 to 2999.
+  Override per column with `"table_format": {"sold": "raw"}` (or `"number"`).
 - in slides mode, a small tab in the corner; press `t` to open it.
 - in print, every table opens, so a PDF handout carries the data.
 
@@ -367,13 +372,43 @@ opens each story in Chromium and checks that every table and CSV matches
 Tune it in `data.json`:
 
 ```json
-"meta":   {"a11y": {"table": true, "download": false}},
+"meta":   {"a11y": {"table": true, "download": false, "explorer": true}},
 "scenes": [{"id": "s1", "a11y": {"table": false}, "table_columns": ["month", "value"]}]
 ```
 
 or leave it out of a bundle with `dstory bundle my-story --no-a11y-extras`
-(`build(..., a11y_extras=False)`). A chart scene with no `alt` *and* its table
-turned off fails the vet: a screen-reader user would get nothing.
+(`build(..., a11y_extras=False)`). A chart scene with no `alt` *and* no table
+fails the vet, however the table was turned off: a screen-reader user would get
+nothing.
+
+### Every chart reads out loud
+
+Every chart with a `dataset` can also be read with the keyboard, again with no
+code from you. Tab to a chart (it gets a focus ring) and a readout pinned to the
+bottom of the screen, also announced to screen readers through an `aria-live`
+region, summarises it:
+
+> Growth was a coastal story. West, 6 points, from 100 to 171, rising; Northeast,
+> 6 points, from 100 to 158, rising; …
+
+Then:
+
+| Key | Does |
+|---|---|
+| `←` `→` | previous / next point: "2020: index 108 (West), 2 of 6" |
+| `↑` `↓` | previous / next series, at the same x |
+| `Home` `End` | first / last point |
+| `Enter` | the summary again |
+| `Esc` | leave the chart (in slides mode the arrows go back to the deck) |
+
+It reads the data, not the drawing, so it works for every recipe, your own D3
+and Vizzu. It picks the columns from `scene.config` (`x`, `y`, `label`, `series`,
+`start`, `end`…) or, failing that, from the data: dates become "May 2024", text
+columns name the points, and a repeating text column becomes the series. The
+vetter tabs into each chart, presses `Home` and `End`, and fails the story if a
+chart cannot be reached or reads numbers that are not in its dataset. Turn it off
+with `"a11y": {"explorer": false}` in `meta` or a scene; `--no-a11y-extras`
+leaves it out along with the tables.
 
 The vetter is audience-aware too: it scores the story's prose (Flesch reading
 ease) against `meta.audience` and notes when the writing is harder than that

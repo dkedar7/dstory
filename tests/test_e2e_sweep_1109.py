@@ -102,7 +102,6 @@ def test_every_recipe_gets_a_table_and_csv_that_match_its_data(pw, tmp_path):
     page, errors, requests = _offline_page(pw, r.html)
     page.wait_for_function("document.querySelectorAll('details.scene-data').length >= 10",
                            timeout=15000)
-    fmt = "(v) => window.__DSTORY_DATA_PANEL__.fmt(v)"
     for s in story["scenes"]:
         rows = story["datasets"][s["dataset"]]
         cols = list(dict.fromkeys(k for row in rows for k in row))
@@ -121,7 +120,8 @@ def test_every_recipe_gets_a_table_and_csv_that_match_its_data(pw, tmp_path):
         assert body.count() == min(len(rows), 50)
         for i in (0, min(len(rows), 50) - 1):
             got = [c.strip() for c in body.nth(i).locator("th, td").all_text_contents()]
-            want = [page.evaluate(fmt, rows[i].get(c)) for c in cols]
+            want = page.evaluate("([rows, i, cols, s]) => window.__DSTORY_DATA_PANEL__"
+                                 ".cellText(rows, i, cols, s)", [rows, i, cols, s])
             assert got == want, (s["id"], i)
         href = panel.locator("a[download]").get_attribute("href")
         lines = unquote(href.split(",", 1)[1]).lstrip("﻿").split("\r\n")

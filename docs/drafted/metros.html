@@ -609,7 +609,7 @@ body.story-mode--slides .atmosphere--vignette { opacity: 0.5; }
 }
 
 </style>
-<script>window.__STORY_DATA__ = {"meta": {"title": "Every market cooled after 2021", "subtitle": "", "deck": "", "author": "", "published": "2026-11-09", "theme": "minimal-light", "audience": "general-public", "mode": "scroll", "sources": [{"name": "Illustrative home sales by metro, in thousands (synthetic data)"}], "lang": "en", "dir": "ltr", "description": ""}, "claims": [{"id": "c-trend", "text": "Total homes sold rose 5.9% between 2016 and 2024", "value": 5.9121, "unit": "pct", "scene": "scene-trend"}, {"id": "c-trend-peak", "text": "It peaked in 2021, then fell 21% by 2024.", "value": -20.6361, "unit": "pct", "scene": "scene-trend"}, {"id": "c-shift", "text": "Phoenix rose 14% between 2016 and 2024, the biggest shift of any metro", "value": 13.75, "unit": "pct", "scene": "scene-shift"}, {"id": "c-shift-contrast", "text": "Denver, by contrast, fell 3.8%.", "value": -3.8462, "unit": "pct", "scene": "scene-shift"}], "scenes": [{"id": "scene-trend", "kind": "simple", "headline": "Total homes sold rose 5.9% between 2016 and 2024", "commentary": "It peaked in 2021, then fell 21% by 2024.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "trend", "alt": "Line chart of total homes sold from 2016 to 2024: it goes from 198 to 210, peaking at 264 in 2021.", "width": "default", "chrome": true, "annotation": {"text": "Peak: 264", "x": "2021-01-01", "y": 264.1}, "config": {"x": "year", "y": "homes_sold", "parse": "%Y-%m-%d", "format": ",.0f"}}, {"id": "scene-panels", "kind": "simple", "headline": "Every metro peaked in 2021", "commentary": "Each panel has its own scale, so compare shapes, not heights.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "panels", "alt": "Small multiples, one line chart of homes sold per metro from 2016 to 2024, each on its own scale: Austin goes from 30 to 30; Boise goes from 9 to 9.9; Denver goes from 52 to 50; Fargo goes from 3.1 to 3.4; Phoenix goes from 80 to 91; Reno goes from 6 to 5.8; Spokane goes from 6.8 to 7; Tulsa goes from 11 to 12.5.", "width": "default", "chrome": true, "config": {"x": "year", "series": "metro", "y": "homes_sold", "parse": "%Y-%m-%d", "highlight": [], "format": ",.0f", "scale": "independent"}}, {"id": "scene-shift", "kind": "simple", "headline": "Phoenix rose 14% between 2016 and 2024, the biggest shift of any metro", "commentary": "Denver, by contrast, fell 3.8%.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "shift", "alt": "Dot chart, sorted by change, of homes sold by metro, 2016 versus 2024: Phoenix goes from 80 to 91; Denver goes from 52 to 50.", "width": "default", "chrome": true, "config": {"label": "metro", "start": "start", "end": "end", "start_label": "2016", "end_label": "2024", "highlight": ["Phoenix", "Denver"], "format": ",.1f"}}], "datasets": {"trend": [{"year": "2016-01-01", "homes_sold": 197.9}, {"year": "2017-01-01", "homes_sold": 207.2}, {"year": "2018-01-01", "homes_sold": 214.2}, {"year": "2019-01-01", "homes_sold": 224.4}, {"year": "2020-01-01", "homes_sold": 242.4}, {"year": "2021-01-01", "homes_sold": 264.1}, {"year": "2022-01-01", "homes_sold": 224}, {"year": "2023-01-01", "homes_sold": 203.7}, {"year": "2024-01-01", "homes_sold": 209.6}], "panels": [{"year": "2016-01-01", "metro": "Austin", "homes_sold": 30}, {"year": "2017-01-01", "metro": "Austin", "homes_sold": 32}, {"year": "2018-01-01", "metro": "Austin", "homes_sold": 33}, {"year": "2019-01-01", "metro": "Austin", "homes_sold": 35}, {"year": "2020-01-01", "metro": "Austin", "homes_sold": 38}, {"year": "2021-01-01", "metro": "Austin", "homes_sold": 41}, {"year": "2022-01-01", "metro": "Austin", "homes_sold": 33}, {"year": "2023-01-01", "metro": "Austin", "homes_sold": 29}, {"year": "2024-01-01", "metro": "Austin", "homes_sold": 30}, {"year": "2016-01-01", "metro": "Boise", "homes_sold": 9}, {"year": "2017-01-01", "metro": "Boise", "homes_sold": 9.6}, {"year": "2018-01-01", "metro": "Boise", "homes_sold": 10.2}, {"year": "2019-01-01", "metro": "Boise", "homes_sold": 10.8}, {"year": "2020-01-01", "metro": "Boise", "homes_sold": 11.9}, {"year": "2021-01-01", "metro": "Boise", "homes_sold": 12.6}, {"year": "2022-01-01", "metro": "Boise", "homes_sold": 10.4}, {"year": "2023-01-01", "metro": "Boise", "homes_sold": 9.6}, {"year": "2024-01-01", "metro": "Boise", "homes_sold": 9.9}, {"year": "2016-01-01", "metro": "Denver", "homes_sold": 52}, {"year": "2017-01-01", "metro": "Denver", "homes_sold": 54}, {"year": "2018-01-01", "metro": "Denver", "homes_sold": 55}, {"year": "2019-01-01", "metro": "Denver", "homes_sold": 57}, {"year": "2020-01-01", "metro": "Denver", "homes_sold": 61}, {"year": "2021-01-01", "metro": "Denver", "homes_sold": 66}, {"year": "2022-01-01", "metro": "Denver", "homes_sold": 55}, {"year": "2023-01-01", "metro": "Denver", "homes_sold": 49}, {"year": "2024-01-01", "metro": "Denver", "homes_sold": 50}, {"year": "2016-01-01", "metro": "Fargo", "homes_sold": 3.1}, {"year": "2017-01-01", "metro": "Fargo", "homes_sold": 3.2}, {"year": "2018-01-01", "metro": "Fargo", "homes_sold": 3.2}, {"year": "2019-01-01", "metro": "Fargo", "homes_sold": 3.3}, {"year": "2020-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2021-01-01", "metro": "Fargo", "homes_sold": 3.6}, {"year": "2022-01-01", "metro": "Fargo", "homes_sold": 3.5}, {"year": "2023-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2024-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2016-01-01", "metro": "Phoenix", "homes_sold": 80}, {"year": "2017-01-01", "metro": "Phoenix", "homes_sold": 84}, {"year": "2018-01-01", "metro": "Phoenix", "homes_sold": 88}, {"year": "2019-01-01", "metro": "Phoenix", "homes_sold": 93}, {"year": "2020-01-01", "metro": "Phoenix", "homes_sold": 101}, {"year": "2021-01-01", "metro": "Phoenix", "homes_sold": 112}, {"year": "2022-01-01", "metro": "Phoenix", "homes_sold": 96}, {"year": "2023-01-01", "metro": "Phoenix", "homes_sold": 88}, {"year": "2024-01-01", "metro": "Phoenix", "homes_sold": 91}, {"year": "2016-01-01", "metro": "Reno", "homes_sold": 6}, {"year": "2017-01-01", "metro": "Reno", "homes_sold": 6.2}, {"year": "2018-01-01", "metro": "Reno", "homes_sold": 6.3}, {"year": "2019-01-01", "metro": "Reno", "homes_sold": 6.4}, {"year": "2020-01-01", "metro": "Reno", "homes_sold": 6.9}, {"year": "2021-01-01", "metro": "Reno", "homes_sold": 7.2}, {"year": "2022-01-01", "metro": "Reno", "homes_sold": 6.1}, {"year": "2023-01-01", "metro": "Reno", "homes_sold": 5.6}, {"year": "2024-01-01", "metro": "Reno", "homes_sold": 5.8}, {"year": "2016-01-01", "metro": "Spokane", "homes_sold": 6.8}, {"year": "2017-01-01", "metro": "Spokane", "homes_sold": 7}, {"year": "2018-01-01", "metro": "Spokane", "homes_sold": 7.1}, {"year": "2019-01-01", "metro": "Spokane", "homes_sold": 7.3}, {"year": "2020-01-01", "metro": "Spokane", "homes_sold": 7.8}, {"year": "2021-01-01", "metro": "Spokane", "homes_sold": 8.2}, {"year": "2022-01-01", "metro": "Spokane", "homes_sold": 7.4}, {"year": "2023-01-01", "metro": "Spokane", "homes_sold": 6.9}, {"year": "2024-01-01", "metro": "Spokane", "homes_sold": 7}, {"year": "2016-01-01", "metro": "Tulsa", "homes_sold": 11}, {"year": "2017-01-01", "metro": "Tulsa", "homes_sold": 11.2}, {"year": "2018-01-01", "metro": "Tulsa", "homes_sold": 11.4}, {"year": "2019-01-01", "metro": "Tulsa", "homes_sold": 11.6}, {"year": "2020-01-01", "metro": "Tulsa", "homes_sold": 12.4}, {"year": "2021-01-01", "metro": "Tulsa", "homes_sold": 13.5}, {"year": "2022-01-01", "metro": "Tulsa", "homes_sold": 12.6}, {"year": "2023-01-01", "metro": "Tulsa", "homes_sold": 12.2}, {"year": "2024-01-01", "metro": "Tulsa", "homes_sold": 12.5}], "shift": [{"metro": "Austin", "start": 30, "end": 30}, {"metro": "Boise", "start": 9, "end": 9.9}, {"metro": "Denver", "start": 52, "end": 50}, {"metro": "Fargo", "start": 3.1, "end": 3.4}, {"metro": "Phoenix", "start": 80, "end": 91}, {"metro": "Reno", "start": 6, "end": 5.8}, {"metro": "Spokane", "start": 6.8, "end": 7}, {"metro": "Tulsa", "start": 11, "end": 12.5}]}};</script>
+<script>window.__STORY_DATA__ = {"meta": {"title": "Every market cooled after 2021", "subtitle": "", "deck": "", "author": "", "published": "2026-11-10", "theme": "minimal-light", "audience": "general-public", "mode": "scroll", "sources": [{"name": "Illustrative home sales by metro, in thousands (synthetic data)"}], "lang": "en", "dir": "ltr", "description": ""}, "claims": [{"id": "c-trend", "text": "Total homes sold rose 5.9% between 2016 and 2024", "value": 5.9121, "unit": "pct", "scene": "scene-trend"}, {"id": "c-trend-peak", "text": "It peaked in 2021, then fell 21% by 2024.", "value": -20.6361, "unit": "pct", "scene": "scene-trend"}, {"id": "c-shift", "text": "Phoenix rose 14% between 2016 and 2024, the biggest shift of any metro", "value": 13.75, "unit": "pct", "scene": "scene-shift"}, {"id": "c-shift-contrast", "text": "Denver, by contrast, fell 3.8%.", "value": -3.8462, "unit": "pct", "scene": "scene-shift"}], "scenes": [{"id": "scene-trend", "kind": "simple", "headline": "Total homes sold rose 5.9% between 2016 and 2024", "commentary": "It peaked in 2021, then fell 21% by 2024.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "trend", "alt": "Line chart of total homes sold from 2016 to 2024: it goes from 198 to 210, peaking at 264 in 2021.", "width": "default", "chrome": true, "annotation": {"text": "Peak: 264", "x": "2021-01-01", "y": 264.1}, "config": {"x": "year", "y": "homes_sold", "parse": "%Y-%m-%d", "format": ",.0f"}}, {"id": "scene-panels", "kind": "simple", "headline": "Every metro peaked in 2021", "commentary": "Each panel has its own scale, so compare shapes, not heights.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "panels", "alt": "Small multiples, one line chart of homes sold per metro from 2016 to 2024, each on its own scale: Austin goes from 30 to 30; Boise goes from 9 to 9.9; Denver goes from 52 to 50; Fargo goes from 3.1 to 3.4; Phoenix goes from 80 to 91; Reno goes from 6 to 5.8; Spokane goes from 6.8 to 7; Tulsa goes from 11 to 12.5.", "width": "default", "chrome": true, "config": {"x": "year", "series": "metro", "y": "homes_sold", "parse": "%Y-%m-%d", "highlight": [], "format": ",.0f", "scale": "independent"}}, {"id": "scene-shift", "kind": "simple", "headline": "Phoenix rose 14% between 2016 and 2024, the biggest shift of any metro", "commentary": "Denver, by contrast, fell 3.8%.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "shift", "alt": "Dot chart, sorted by change, of homes sold by metro, 2016 versus 2024: Phoenix goes from 80 to 91; Denver goes from 52 to 50.", "width": "default", "chrome": true, "config": {"label": "metro", "start": "start", "end": "end", "start_label": "2016", "end_label": "2024", "highlight": ["Phoenix", "Denver"], "format": ",.1f"}}], "datasets": {"trend": [{"year": "2016-01-01", "homes_sold": 197.9}, {"year": "2017-01-01", "homes_sold": 207.2}, {"year": "2018-01-01", "homes_sold": 214.2}, {"year": "2019-01-01", "homes_sold": 224.4}, {"year": "2020-01-01", "homes_sold": 242.4}, {"year": "2021-01-01", "homes_sold": 264.1}, {"year": "2022-01-01", "homes_sold": 224}, {"year": "2023-01-01", "homes_sold": 203.7}, {"year": "2024-01-01", "homes_sold": 209.6}], "panels": [{"year": "2016-01-01", "metro": "Austin", "homes_sold": 30}, {"year": "2017-01-01", "metro": "Austin", "homes_sold": 32}, {"year": "2018-01-01", "metro": "Austin", "homes_sold": 33}, {"year": "2019-01-01", "metro": "Austin", "homes_sold": 35}, {"year": "2020-01-01", "metro": "Austin", "homes_sold": 38}, {"year": "2021-01-01", "metro": "Austin", "homes_sold": 41}, {"year": "2022-01-01", "metro": "Austin", "homes_sold": 33}, {"year": "2023-01-01", "metro": "Austin", "homes_sold": 29}, {"year": "2024-01-01", "metro": "Austin", "homes_sold": 30}, {"year": "2016-01-01", "metro": "Boise", "homes_sold": 9}, {"year": "2017-01-01", "metro": "Boise", "homes_sold": 9.6}, {"year": "2018-01-01", "metro": "Boise", "homes_sold": 10.2}, {"year": "2019-01-01", "metro": "Boise", "homes_sold": 10.8}, {"year": "2020-01-01", "metro": "Boise", "homes_sold": 11.9}, {"year": "2021-01-01", "metro": "Boise", "homes_sold": 12.6}, {"year": "2022-01-01", "metro": "Boise", "homes_sold": 10.4}, {"year": "2023-01-01", "metro": "Boise", "homes_sold": 9.6}, {"year": "2024-01-01", "metro": "Boise", "homes_sold": 9.9}, {"year": "2016-01-01", "metro": "Denver", "homes_sold": 52}, {"year": "2017-01-01", "metro": "Denver", "homes_sold": 54}, {"year": "2018-01-01", "metro": "Denver", "homes_sold": 55}, {"year": "2019-01-01", "metro": "Denver", "homes_sold": 57}, {"year": "2020-01-01", "metro": "Denver", "homes_sold": 61}, {"year": "2021-01-01", "metro": "Denver", "homes_sold": 66}, {"year": "2022-01-01", "metro": "Denver", "homes_sold": 55}, {"year": "2023-01-01", "metro": "Denver", "homes_sold": 49}, {"year": "2024-01-01", "metro": "Denver", "homes_sold": 50}, {"year": "2016-01-01", "metro": "Fargo", "homes_sold": 3.1}, {"year": "2017-01-01", "metro": "Fargo", "homes_sold": 3.2}, {"year": "2018-01-01", "metro": "Fargo", "homes_sold": 3.2}, {"year": "2019-01-01", "metro": "Fargo", "homes_sold": 3.3}, {"year": "2020-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2021-01-01", "metro": "Fargo", "homes_sold": 3.6}, {"year": "2022-01-01", "metro": "Fargo", "homes_sold": 3.5}, {"year": "2023-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2024-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2016-01-01", "metro": "Phoenix", "homes_sold": 80}, {"year": "2017-01-01", "metro": "Phoenix", "homes_sold": 84}, {"year": "2018-01-01", "metro": "Phoenix", "homes_sold": 88}, {"year": "2019-01-01", "metro": "Phoenix", "homes_sold": 93}, {"year": "2020-01-01", "metro": "Phoenix", "homes_sold": 101}, {"year": "2021-01-01", "metro": "Phoenix", "homes_sold": 112}, {"year": "2022-01-01", "metro": "Phoenix", "homes_sold": 96}, {"year": "2023-01-01", "metro": "Phoenix", "homes_sold": 88}, {"year": "2024-01-01", "metro": "Phoenix", "homes_sold": 91}, {"year": "2016-01-01", "metro": "Reno", "homes_sold": 6}, {"year": "2017-01-01", "metro": "Reno", "homes_sold": 6.2}, {"year": "2018-01-01", "metro": "Reno", "homes_sold": 6.3}, {"year": "2019-01-01", "metro": "Reno", "homes_sold": 6.4}, {"year": "2020-01-01", "metro": "Reno", "homes_sold": 6.9}, {"year": "2021-01-01", "metro": "Reno", "homes_sold": 7.2}, {"year": "2022-01-01", "metro": "Reno", "homes_sold": 6.1}, {"year": "2023-01-01", "metro": "Reno", "homes_sold": 5.6}, {"year": "2024-01-01", "metro": "Reno", "homes_sold": 5.8}, {"year": "2016-01-01", "metro": "Spokane", "homes_sold": 6.8}, {"year": "2017-01-01", "metro": "Spokane", "homes_sold": 7}, {"year": "2018-01-01", "metro": "Spokane", "homes_sold": 7.1}, {"year": "2019-01-01", "metro": "Spokane", "homes_sold": 7.3}, {"year": "2020-01-01", "metro": "Spokane", "homes_sold": 7.8}, {"year": "2021-01-01", "metro": "Spokane", "homes_sold": 8.2}, {"year": "2022-01-01", "metro": "Spokane", "homes_sold": 7.4}, {"year": "2023-01-01", "metro": "Spokane", "homes_sold": 6.9}, {"year": "2024-01-01", "metro": "Spokane", "homes_sold": 7}, {"year": "2016-01-01", "metro": "Tulsa", "homes_sold": 11}, {"year": "2017-01-01", "metro": "Tulsa", "homes_sold": 11.2}, {"year": "2018-01-01", "metro": "Tulsa", "homes_sold": 11.4}, {"year": "2019-01-01", "metro": "Tulsa", "homes_sold": 11.6}, {"year": "2020-01-01", "metro": "Tulsa", "homes_sold": 12.4}, {"year": "2021-01-01", "metro": "Tulsa", "homes_sold": 13.5}, {"year": "2022-01-01", "metro": "Tulsa", "homes_sold": 12.6}, {"year": "2023-01-01", "metro": "Tulsa", "homes_sold": 12.2}, {"year": "2024-01-01", "metro": "Tulsa", "homes_sold": 12.5}], "shift": [{"metro": "Austin", "start": 30, "end": 30}, {"metro": "Boise", "start": 9, "end": 9.9}, {"metro": "Denver", "start": 52, "end": 50}, {"metro": "Fargo", "start": 3.1, "end": 3.4}, {"metro": "Phoenix", "start": 80, "end": 91}, {"metro": "Reno", "start": 6, "end": 5.8}, {"metro": "Spokane", "start": 6.8, "end": 7}, {"metro": "Tulsa", "start": 11, "end": 12.5}]}};</script>
 <style data-dstory="data-panel">
 /* dstory data panel (see data-panel.js). Quiet by default, like the source
    line; colours inherit from the scene so contrast follows the theme. */
@@ -697,6 +697,41 @@ body.story-mode--slides .scene-data[open] .scene-data__scroll { max-height: 60vh
   .scene-data__csv, .scene-data__all { display: none; }
   .scene-data thead th { position: static; }
 }
+
+/* dstory chart explorer (see explorer.js). A focus ring on the chart, and one
+   live readout pinned to the bottom of the viewport while a chart has focus. */
+[data-explore]:focus { outline: none; }
+[data-explore]:focus-visible {
+  outline: 2px solid var(--accent, currentColor);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+.scene__bleedbg[data-explore]:focus-visible { outline-offset: -6px; }
+.scene-explore__live {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 50;
+  max-width: min(46rem, calc(100vw - 2rem));
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  background: var(--ink, CanvasText);
+  color: var(--bg, Canvas);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--step--1, 0.85rem);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+/* Visually hidden (still spoken) unless a chart has keyboard focus. */
+.scene-explore__live:not(.is-visible) {
+  clip-path: inset(50%);
+  width: 1px; height: 1px; overflow: hidden; white-space: nowrap;
+  padding: 0; box-shadow: none;
+}
+@media print { .scene-explore__live { display: none; } }
 
 </style>
 <meta property="og:title" content="Every market cooled after 2021">
@@ -2232,26 +2267,54 @@ STORY.register("scene-shift", function draw(mount, data, scene) {
     return cols;
   };
 
-  let nf = null;
-  const fmt = (v) => {
+  let nf = null, nfRaw = null;
+  const lang = () => (dataOf() && dataOf().meta && dataOf().meta.lang) || undefined;
+  const numberFormat = (grouping) => {
+    try { return new Intl.NumberFormat(lang(), { maximumFractionDigits: 6, useGrouping: grouping }); }
+    catch (e) { return new Intl.NumberFormat(undefined, { maximumFractionDigits: 6, useGrouping: grouping }); }
+  };
+  // fmt(v, raw): raw drops the thousands separator (years, IDs, codes) but
+  // keeps the locale's decimal mark.
+  const fmt = (v, raw) => {
     if (v === null || v === undefined) return "";
     if (typeof v === "number") {
-      if (!nf) {
-        const lang = (dataOf() && dataOf().meta && dataOf().meta.lang) || undefined;
-        try { nf = new Intl.NumberFormat(lang, { maximumFractionDigits: 6 }); }
-        catch (e) { nf = new Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }); }
-      }
-      return nf.format(v);
+      if (raw) return (nfRaw || (nfRaw = numberFormat(false))).format(v);
+      return (nf || (nf = numberFormat(true))).format(v);
     }
     if (typeof v === "object") return JSON.stringify(v);
     return String(v);
   };
+  // Columns whose numbers are labels, not quantities: "2020" is a year, not
+  // two thousand and twenty. Override per scene with
+  // "table_format": {"col": "raw" | "number"}.
+  const ID_NAME = /(^|[_\s-])(year|yr|fy|id|code|fips|zip|zipcode|postcode|postal|geoid|isbn|sku|ean|upc)s?$/i;
+  const isRawColumn = (rows, col, scene) => {
+    const o = scene && scene.table_format && scene.table_format[col];
+    if (o === "raw") return true;
+    if (o === "number") return false;
+    const vals = rows.map(r => r ? r[col] : null).filter(v => typeof v === "number");
+    if (!vals.length || !vals.every(Number.isInteger)) return false;
+    if (ID_NAME.test(String(col)) || /^id$/i.test(String(col))) return true;
+    return vals.every(v => v >= 1000 && v <= 2999);          // looks like years
+  };
+  const rawColumns = (rows, cols, scene) => cols.map(c => isRawColumn(rows, c, scene));
+  const cellText = (rows, i, cols, scene) => {
+    const raw = rawColumns(rows, cols, scene);
+    return cols.map((c, j) => fmt(rows[i] ? rows[i][c] : "", raw[j]));
+  };
   // CSV: raw values (not locale-formatted), RFC 4180 quoting. Text that a
-  // spreadsheet would run as a formula (=, +, @) is prefixed with a quote.
+  // spreadsheet would run as a formula (OWASP: = + - @ tab CR, and their
+  // full-width forms) is prefixed with a quote; a plain number stored as text
+  // ("-5", "+1.2%") is left alone.
+  const FORMULA = /^[=+\-@\t\r\uFF1D\uFF0B\uFF0D\uFE63\u2212\uFF20]/;
+  const PLAIN_NUMBER = /^[+\-\u2212]?(\d[\d,]*)?(\.\d+)?([eE][+-]?\d+)?%?$/;
   const csvCell = (v) => {
     if (v === null || v === undefined) return "";
     let t = typeof v === "object" ? JSON.stringify(v) : String(v);
-    if (typeof v === "string" && /^[=+@\t\r]/.test(t)) t = "'" + t;
+    if (typeof v === "string") {
+      const lead = t.replace(/^[ \u00A0]+/, "");
+      if (FORMULA.test(lead) && !(PLAIN_NUMBER.test(lead) && /\d/.test(lead))) t = "'" + t;
+    }
     return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
   };
   const csvRow = (r, cols) => cols.map(c => csvCell(r ? r[c] : "")).join(",");
@@ -2268,12 +2331,12 @@ STORY.register("scene-shift", function draw(mount, data, scene) {
     return n;
   }
 
-  function fillBody(tbody, rows, cols, numeric, upto) {
+  function fillBody(tbody, rows, cols, numeric, raw, upto) {
     const frag = document.createDocumentFragment();
     for (const r of rows.slice(tbody.rows.length, upto)) {
       const tr = h("tr");
       cols.forEach((c, i) => {
-        const cell = h(i === 0 ? "th" : "td", i === 0 ? { scope: "row" } : {}, fmt(r ? r[c] : ""));
+        const cell = h(i === 0 ? "th" : "td", i === 0 ? { scope: "row" } : {}, fmt(r ? r[c] : "", raw[i]));
         if (numeric[i]) cell.classList.add("num");
         tr.append(cell);
       });
@@ -2305,12 +2368,13 @@ STORY.register("scene-shift", function draw(mount, data, scene) {
       table.append(h("thead", {}, hr));
       const tbody = h("tbody");
       table.append(tbody);
-      fillBody(tbody, rows, cols, numeric, Math.min(n, MAX_ROWS));
+      const raw = rawColumns(rows, cols, scene);
+      fillBody(tbody, rows, cols, numeric, raw, Math.min(n, MAX_ROWS));
       body.append(h("div", { class: "scene-data__scroll", tabindex: "0", role: "region",
         "aria-label": `Data table: ${headlineOf(scene)}` }, table));
       if (n > MAX_ROWS) {
         const more = h("button", { type: "button", class: "scene-data__all" }, `Show all ${label}`);
-        more.addEventListener("click", () => { fillBody(tbody, rows, cols, numeric, n); more.remove(); });
+        more.addEventListener("click", () => { fillBody(tbody, rows, cols, numeric, raw, n); more.remove(); });
         body.append(more);
       }
     }
@@ -2376,11 +2440,316 @@ STORY.register("scene-shift", function draw(mount, data, scene) {
   window.addEventListener("afterprint", () => { while (reopened.length) reopened.pop().open = false; });
 
   window.__DSTORY_DATA_PANEL__ = {
-    MAX_ROWS, attached, option, fmt, csvRow, columnsOf, rowsOf,
+    MAX_ROWS, attached, option, fmt, csvRow, csvCell, columnsOf, rowsOf, rawColumns, cellText,
     expected: (scene) => {
       const data = dataOf();
       return { table: option(data, scene, "table"), download: option(data, scene, "download"),
                placed: scene.kind !== "custom" || !slides() };
+    },
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
+})();
+
+// dstory chart explorer: every chart can be read with the keyboard.
+//
+// Injected by `dstory bundle` next to the data panel (it reuses the panel's
+// number formatting). Every scene with a `dataset` gets a focusable chart:
+// Tab to it and a live region speaks a summary ("Signups, 6 points, from 1,000
+// to 3,400, rising"); the arrow keys then step through the rows ("Mar: 2,900
+// (Signups), 3 of 6"). It reads window.__STORY_DATA__, never the chart's
+// internals, so it works for recipes, your own D3 and Vizzu alike.
+//
+//   Left / Right   previous / next point        Home / End   first / last point
+//   Up / Down      previous / next series       Enter        the summary again
+//   Escape         leave the chart (in slides, the arrows go back to the deck)
+//
+// Turn it off with "a11y": {"explorer": false} in meta or a scene, or for the
+// whole bundle with `dstory bundle my-story --no-a11y-extras`.
+(() => {
+  "use strict";
+  if (window.__DSTORY_EXPLORER__) return;
+  const panel = () => window.__DSTORY_DATA_PANEL__;
+  const dataOf = () => window.__STORY_DATA__ || null;
+  const attached = {};
+  const state = new WeakMap();
+
+  const opt = (data, scene, key) => {
+    if (panel()) return panel().option(data, scene, key);
+    const s = (scene && scene.a11y) || {}, m = (data && data.meta && data.meta.a11y) || {};
+    const v = s[key] != null ? s[key] : m[key] != null ? m[key] : true;
+    return v !== false;
+  };
+  const fmt = (v, raw) => panel() ? panel().fmt(v, raw)
+    : (typeof v === "number" ? v.toLocaleString() : v == null ? "" : String(v));
+  const pretty = (c) => String(c).replace(/[_-]+/g, " ").trim();
+
+  // ---- which columns play which part ------------------------------------
+  const DATEISH_NAME = /^(date|time|period|year|month|day|week|quarter|yr|fy)s?$/i;
+  const DATEISH_VALUE = /^\d{4}(-\d{2}(-\d{2})?)?([T ][\d:.]+Z?)?$/;
+  const GENERIC = /^(value|values|y|amount|val)$/i;
+
+  function rolesOf(rows, cols, scene) {
+    const cfg = (scene && typeof scene.config === "object" && scene.config) || {};
+    const vals = (c) => rows.map(r => (r ? r[c] : null)).filter(v => v !== null && v !== undefined);
+    const isNum = (c) => { const v = vals(c); return v.length > 0 && v.every(x => typeof x === "number"); };
+    const distinct = (c) => new Set(vals(c).map(String)).size;
+    const raw = panel() ? panel().rawColumns(rows, cols, scene) : cols.map(() => false);
+    const isRaw = (c) => raw[cols.indexOf(c)];
+    const pick = (keys, ok) => {
+      for (const k of keys) { const c = cfg[k]; if (typeof c === "string" && cols.includes(c) && ok(c)) return c; }
+      return null;
+    };
+    const dateish = (c) => DATEISH_NAME.test(String(c)) || (!isNum(c) && vals(c).length > 0
+      && vals(c).every(v => typeof v === "string" && DATEISH_VALUE.test(v)));
+    const n = rows.length;
+
+    // The point's name: the x / label column if it is not a measure.
+    let name = pick(["label", "x", "period"], c => !isNum(c) || isRaw(c))
+      || cols.find(c => dateish(c))
+      || cols.find(c => !isNum(c))
+      || cols.find(c => isRaw(c)) || null;
+    // A series column groups the rows into lines, panels or groups.
+    let series = pick(["series", "group", "color"], c => c !== name && !isNum(c));
+    if (!series && name && distinct(name) < n) {
+      series = cols.find(c => c !== name && !isNum(c) && distinct(c) >= 2 && distinct(c) <= 24
+        && distinct(c) < n) || null;
+    }
+    // The measures read out at each point.
+    let measures = ["x", "y", "value", "start", "end"].map(k => cfg[k])
+      .filter((c, i, a) => typeof c === "string" && cols.includes(c) && c !== name && isNum(c) && a.indexOf(c) === i);
+    if (!measures.length) {
+      for (const d of ["y", "value", "start", "end"]) if (cols.includes(d) && d !== name && isNum(d)) measures.push(d);
+    }
+    if (!measures.length) measures = cols.filter(c => c !== name && c !== series && isNum(c) && !isRaw(c));
+    if (!measures.length) measures = cols.filter(c => c !== name && c !== series && isNum(c));
+    measures = measures.slice(0, 4);
+    const primary = measures.includes(cfg.end || "end") ? (cfg.end || "end")
+      : measures.includes(cfg.y || "y") ? (cfg.y || "y") : measures[measures.length > 1 && cfg.x && measures[0] === cfg.x ? 1 : 0];
+    const ordered = !!name && (dateish(name) || isNum(name));
+    const notes = measures.length ? [] : cols.filter(c => c !== name && c !== series && !isNum(c)).slice(0, 2);
+    const roles = { name, series, measures, notes, primary: primary || null, ordered, nameRaw: !!name && isRaw(name) };
+    roles.nameText = nameFormatter(rows, roles);
+    return roles;
+  }
+
+  // "2024-05-01" reads as "May 2024" (or "2024" when every date is 1 Jan),
+  // in the story's language. Anything else is shown as it is.
+  const ISO = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/;
+  function nameFormatter(rows, roles) {
+    const base = (v) => fmt(v, roles.nameRaw);
+    if (!roles.name) return base;
+    const vs = rows.map(r => (r ? r[roles.name] : null)).filter(v => v != null);
+    if (!vs.length || !vs.every(v => typeof v === "string" && ISO.test(v))) return base;
+    const parts = vs.map(v => v.match(ISO));
+    const yearOnly = parts.every(m => m[2] === "01" && (!m[3] || m[3] === "01"));
+    const monthOnly = parts.every(m => !m[3] || m[3] === "01");
+    const lang = (dataOf() && dataOf().meta && dataOf().meta.lang) || undefined;
+    let df;
+    try {
+      df = new Intl.DateTimeFormat(lang, yearOnly ? { year: "numeric", timeZone: "UTC" }
+        : monthOnly ? { month: "short", year: "numeric", timeZone: "UTC" }
+        : { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    } catch (e) { return base; }
+    return (v) => {
+      const m = typeof v === "string" ? v.match(ISO) : null;
+      return m ? df.format(new Date(Date.UTC(+m[1], +m[2] - 1, +(m[3] || 1)))) : base(v);
+    };
+  }
+
+  function groupsOf(rows, roles) {
+    if (!roles.series) return [{ key: null, idx: rows.map((_, i) => i) }];
+    const map = new Map();
+    rows.forEach((r, i) => {
+      const k = r ? r[roles.series] : null;
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(i);
+    });
+    return Array.from(map, ([key, idx]) => ({ key, idx }));
+  }
+
+  // ---- what is said ------------------------------------------------------
+  function pointText(rows, roles, g, k) {
+    const r = rows[g.idx[k]] || {};
+    const nm = roles.name ? roles.nameText(r[roles.name]) : `Row ${g.idx[k] + 1}`;
+    const ms = roles.measures;
+    let body;
+    if (!ms.length) body = roles.notes.map(c => fmt(r[c])).filter(Boolean).join(", ");
+    else if (ms.length === 1 && GENERIC.test(String(ms[0]))) body = fmt(r[ms[0]]);
+    else body = ms.map(m => `${pretty(m)} ${fmt(r[m])}`).join(", ");
+    const ser = roles.series ? ` (${fmt(g.key)})` : "";
+    return `${nm}${body ? ": " + body : ""}${ser}, ${k + 1} of ${g.idx.length}`;
+  }
+
+  function trendWord(a, b) {
+    if (typeof a !== "number" || typeof b !== "number") return "";
+    const base = Math.max(Math.abs(a), Math.abs(b)) || 1;
+    if (Math.abs(b - a) / base < 0.01) return "roughly flat";
+    return b > a ? "rising" : "falling";
+  }
+
+  function groupSummary(rows, roles, g) {
+    const p = roles.primary;
+    const label = roles.series ? `${fmt(g.key)}, ` : "";
+    const count = `${g.idx.length} ${roles.ordered ? "point" : "item"}${g.idx.length === 1 ? "" : "s"}`;
+    if (!p) {
+      if (roles.ordered && roles.name && g.idx.length > 1) {
+        const first = rows[g.idx[0]] || {}, lastR = rows[g.idx[g.idx.length - 1]] || {};
+        return `${label}${count}, from ${roles.nameText(first[roles.name])} to ${roles.nameText(lastR[roles.name])}`;
+      }
+      return `${label}${count}`;
+    }
+    const pts = g.idx.map(i => rows[i] || {}).filter(r => typeof r[p] === "number");
+    if (!pts.length) return `${label}${count}`;
+    const nameOf = (r) => roles.name ? roles.nameText(r[roles.name]) : "";
+    let hi = pts[0], lo = pts[0];
+    for (const r of pts) { if (r[p] > hi[p]) hi = r; if (r[p] < lo[p]) lo = r; }
+    if (roles.ordered && pts.length > 1) {
+      const a = pts[0], b = pts[pts.length - 1];
+      let s = `${label}${count}, from ${fmt(a[p])} to ${fmt(b[p])}, ${trendWord(a[p], b[p])}`;
+      if (hi !== a && hi !== b) s += `, peaking at ${fmt(hi[p])}${roles.name ? " in " + nameOf(hi) : ""}`;
+      else if (lo !== a && lo !== b) s += `, dipping to ${fmt(lo[p])}${roles.name ? " in " + nameOf(lo) : ""}`;
+      return s;
+    }
+    if (pts.length === 1) return `${label}${count}: ${fmt(pts[0][p])}`;
+    const what = roles.measures.length > 1 || !GENERIC.test(String(p)) ? ` ${pretty(p)}` : "";
+    return `${label}${count}; highest${what} ${nameOf(hi)} (${fmt(hi[p])}), lowest${what} ${nameOf(lo)} (${fmt(lo[p])})`;
+  }
+
+  const headlineOf = (s) => s.headline
+    || (s.steps && s.steps[0] && s.steps[0].headline)
+    || (s.frames && s.frames[0] && s.frames[0].headline) || s.id;
+
+  function summaryText(scene, rows, roles, groups) {
+    const parts = groups.map(g => groupSummary(rows, roles, g));
+    const keys = roles.series && groups.length > 1
+      ? "Left and right arrows step through the points, up and down switch series"
+      : "Arrow keys step through the data";
+    return `${headlineOf(scene)}. ${parts.join("; ")}. ${keys}; Escape leaves the chart.`;
+  }
+
+  // ---- the live region ---------------------------------------------------
+  let live = null;
+  function liveRegion() {
+    if (live && live.isConnected) return live;
+    live = document.createElement("div");
+    live.className = "scene-explore__live";
+    live.id = "dstory-explore-live";
+    live.setAttribute("aria-live", "polite");
+    live.setAttribute("aria-atomic", "true");
+    document.body.append(live);
+    return live;
+  }
+  function say(text) {
+    const r = liveRegion();
+    // Re-announce identical text (Home pressed twice) by clearing first.
+    if (r.textContent === text) r.textContent = "";
+    r.textContent = text;
+  }
+  let hint = null;
+  function hintId() {
+    if (!hint || !hint.isConnected) {
+      hint = document.createElement("span");
+      hint.id = "dstory-explore-hint";
+      hint.hidden = true;
+      hint.textContent = "Interactive chart. Arrow keys step through the data; Escape leaves the chart.";
+      document.body.append(hint);
+    }
+    return hint.id;
+  }
+
+  // ---- wiring ------------------------------------------------------------
+  function attach(data, scene, mount) {
+    const rows = panel() ? panel().rowsOf(data, scene) : null;
+    if (!rows) return null;
+    const cols = panel().columnsOf(rows, scene);
+    const roles = rolesOf(rows, cols, scene);
+    const groups = groupsOf(rows, roles);
+    const st = { scene, rows, roles, groups, g: 0, k: -1 };
+    state.set(mount, st);
+    mount.setAttribute("tabindex", "0");
+    mount.setAttribute("role", "application");
+    mount.setAttribute("aria-roledescription", "chart");
+    mount.setAttribute("aria-describedby", hintId());
+    mount.setAttribute("data-explore", scene.id);
+    mount.addEventListener("focus", () => {
+      liveRegion().classList.add("is-visible");
+      say(summaryText(scene, rows, roles, groups));
+    });
+    mount.addEventListener("blur", () => { liveRegion().classList.remove("is-visible"); });
+    mount.addEventListener("keydown", (e) => onKey(e, mount, st));
+    return mount;
+  }
+
+  function onKey(e, mount, st) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const g = st.groups[st.g];
+    const last = g.idx.length - 1;
+    let handled = true;
+    switch (e.key) {
+      case "ArrowRight": st.k = Math.min(last, st.k + 1); break;
+      case "ArrowLeft":  st.k = st.k < 0 ? 0 : Math.max(0, st.k - 1); break;
+      case "Home":       st.k = 0; break;
+      case "End":        st.k = last; break;
+      case "ArrowDown":
+      case "ArrowUp": {
+        if (st.groups.length < 2) { handled = false; break; }
+        const step = e.key === "ArrowDown" ? 1 : -1;
+        const prevName = st.k >= 0 && st.roles.name ? String((st.rows[g.idx[st.k]] || {})[st.roles.name]) : null;
+        st.g = (st.g + step + st.groups.length) % st.groups.length;
+        const ng = st.groups[st.g];
+        // Keep the same x when the next series has it; else the same position.
+        let k = prevName === null ? Math.max(0, st.k) : ng.idx.findIndex(i => String((st.rows[i] || {})[st.roles.name]) === prevName);
+        if (k < 0) k = Math.min(Math.max(0, st.k), ng.idx.length - 1);
+        st.k = k;
+        break;
+      }
+      case "Enter": say(summaryText(st.scene, st.rows, st.roles, st.groups)); e.preventDefault(); e.stopPropagation(); return;
+      case "Escape": mount.blur(); e.preventDefault(); e.stopPropagation(); return;
+      default: handled = false;
+    }
+    if (!handled) return;
+    e.preventDefault();
+    e.stopPropagation();          // in slides mode, the arrows belong to the chart now
+    say(pointText(st.rows, st.roles, st.groups[st.g], st.k));
+  }
+
+  function attachAll() {
+    const data = dataOf();
+    if (!data || !Array.isArray(data.scenes) || !panel()) return true;
+    let done = true;
+    for (const scene of data.scenes) {
+      if (!scene || !scene.id || attached[scene.id] !== undefined) continue;
+      if (!panel().rowsOf(data, scene) || scene.kind === "custom" || !opt(data, scene, "explorer")) {
+        attached[scene.id] = null;
+        continue;
+      }
+      const section = document.getElementById(scene.id);
+      const mount = section && section.matches("[data-scene]")
+        ? section.querySelector(`[data-mount="${CSS.escape(scene.id)}"]`) : null;
+      if (!mount) { done = false; continue; }
+      attached[scene.id] = attach(data, scene, mount);
+    }
+    return done;
+  }
+
+  function start() {
+    if (attachAll()) return;
+    const obs = new MutationObserver(() => { if (attachAll()) obs.disconnect(); });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => obs.disconnect(), 15000);
+  }
+
+  window.__DSTORY_EXPLORER__ = {
+    attached, rolesOf, groupsOf, pointText, summaryText,
+    expected: (scene) => !!(scene && scene.kind !== "custom" && opt(dataOf(), scene, "explorer")),
+    // For tests and the vetter: what the explorer says for a scene's point.
+    describe: (sceneId, g, k) => {
+      const m = attached[sceneId];
+      const st = m && state.get(m);
+      if (!st) return null;
+      return k == null ? summaryText(st.scene, st.rows, st.roles, st.groups)
+        : pointText(st.rows, st.roles, st.groups[g], k);
     },
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });

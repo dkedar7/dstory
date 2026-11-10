@@ -60,9 +60,11 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
                 and raise ClaimDriftError when a claim's text contradicts its
                 value. Nothing is written in that case.
         a11y_extras: if True (default), every scene with a dataset gets a
-                collapsed "Data" panel: an accessible table of its rows and a
-                "Download CSV" link built from the inlined data. Tune it with
-                meta.a11y / scene.a11y in data.json; False leaves it out.
+                collapsed "Data" panel (an accessible table of its rows and a
+                "Download CSV" link built from the inlined data) and a keyboard
+                chart explorer (arrow keys step through the rows, read out by
+                an aria-live region). Tune it with meta.a11y / scene.a11y in
+                data.json; False leaves both out.
     """
     project = Path(slug)
     if not project.is_dir():
@@ -178,6 +180,12 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
         script = f'<script data-dstory="data-panel">\n{js}\n</script>'
         cut = html.rfind("</body>")     # the last one: inlined JS may mention "</body>"
         html = html[:cut] + f"{script}\n" + html[cut:] if cut >= 0 else html + script
+    else:
+        # Tell the vetter the tables were left out on purpose (an older bundle
+        # has neither the panel nor this marker).
+        mark = '<meta name="dstory:a11y-extras" content="off">'
+        html = (html.replace("</head>", f"{mark}\n</head>", 1) if "</head>" in html
+                else mark + html)
 
     # 3a. If data.json includes Story.extra_css, append it as a final <style>
     # block so it overrides anything in story.css. This is the supported way
@@ -268,8 +276,10 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
 def _data_panel_assets() -> tuple[str, str]:
     from importlib import resources
     base = resources.files("dstory.runtime")
-    return (base.joinpath("data-panel.css").read_text(encoding="utf-8"),
-            base.joinpath("data-panel.js").read_text(encoding="utf-8"))
+    read = lambda name: base.joinpath(name).read_text(encoding="utf-8")  # noqa: E731
+    # The explorer reuses the panel's formatting, so it is loaded after it.
+    return (read("data-panel.css") + "\n" + read("explorer.css"),
+            read("data-panel.js") + "\n" + read("explorer.js"))
 
 
 def _json_for_script(obj: object) -> str:

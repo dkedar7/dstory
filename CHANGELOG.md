@@ -3,6 +3,49 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Every chart reads out loud** (#14, milestone 2). Every scene with a
+  `dataset` gets a keyboard chart explorer, with no code changes. Tab to a
+  chart and an `aria-live` readout (also shown on screen while the chart has
+  focus) summarises each series: "West, 6 points, from 100 to 171, rising".
+  The arrow keys step through the points ("Jan 2024: 1,200,000, 1 of 6"); up
+  and down switch series at the same x; `Home`, `End`, `Enter` (summary) and
+  `Esc` (leave) also work. In slides mode the arrows belong to the focused
+  chart until `Esc`.
+  - It reads the data, not the drawing: columns come from `scene.config` or
+    are inferred, ISO dates are read as "May 2024" in `meta.lang`. It works for
+    recipes, custom D3 in a recipe-style mount, and Vizzu. Scenes of
+    `kind: "custom"` keep the table but get no explorer.
+  - It is injected by the bundler, so older projects get it on re-bundle.
+  - `a11y.explorer` (meta or scene) turns it off; `--no-a11y-extras` leaves
+    it out with the tables.
+  - The vetter tabs into each chart, presses `Home` and `End`, and fails a
+    chart that cannot be reached or that reads numbers missing from its
+    dataset.
+
+### Changed
+- A chart mount with a dataset is now `role="application"` with
+  `aria-roledescription="chart"` (it was `role="img"`), so screen readers pass
+  the arrow keys to the explorer. Its `aria-label` (`scene.alt`) is unchanged;
+  with the explorer off it stays `role="img"`.
+
+### Fixed
+- The Data panel's CSV now neutralises formulas that start with `-` (and the
+  full-width `＝ ＋ － ＠`), not just `=`, `+`, `@`: a scraped
+  `-2+3+cmd|' /C calc'!A0` cell no longer reaches a spreadsheet as a live
+  formula. Numbers stored as text (`"-5"`, `"-1.2%"`) are left as they are (#23).
+- The Data table no longer shows years and IDs as quantities (`2,020`,
+  `10,001`). Integer columns named like a year, ID or code, or holding only
+  values 1000 to 2999, are shown ungrouped. New `scene.table_format`
+  (`{"col": "raw" | "number"}`) overrides it per column. The vetter's table
+  check uses the same rule (#24).
+- `dstory vet` now fails a chart with no `alt` when the bundle was made with
+  `--no-a11y-extras` / `a11y_extras=False`, as documented. Such bundles now
+  carry a `<meta name="dstory:a11y-extras" content="off">` marker; bundles
+  from before 0.11 keep the old note and a hint to re-bundle (#22).
+
 ## [0.11.0] - 2026-11-09
 
 ### Added
