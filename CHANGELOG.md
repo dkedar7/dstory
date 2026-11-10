@@ -3,7 +3,7 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.12.0] - 2026-11-10
 
 ### Added
 - **Every chart reads out loud** (#14, milestone 2). Every scene with a
