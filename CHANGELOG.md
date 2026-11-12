@@ -3,6 +3,51 @@
 All notable changes to `dstory` are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Every chart can be heard** (#14, milestone 3, which completes #14). Every
+  chart with a numeric series gets a **▶ Listen** button beside its Data
+  summary, with no code changes. Each point plays as a short tone: pitch
+  follows the value over two octaves, pan follows its position left to right.
+  Series play one after another, each announced first through the explorer's
+  `aria-live` readout (also shown on screen while it plays). With a chart
+  focused, `L` plays the current series; `Esc` stops.
+  - Web Audio only: no library, no network, never autoplays. A scatter plays
+    along x. Charts with no numbers get no button.
+  - `a11y.sonify` (meta or scene) turns it off; `--no-a11y-extras` leaves it
+    out with the tables and the explorer.
+  - The vetter checks every chart that can be heard has its button, plays one
+    tone per value, and never maps a bigger value to a lower pitch.
+- `dstory theme SLUG THEME`: re-theme a project from a preset or brand TOML.
+
+### Changed
+- The Data panel now sits in a `.scene-tools` row under the chart, shared with
+  the Listen button. Themes that styled `.scene > .scene-data` should target
+  `.scene-tools` for placement; the panel itself is unchanged.
+
+### Fixed
+- The vetter catches prose that has drifted from its claim: a headline edited
+  to "quintupled" while the registered claim (value 2.9) still says
+  "tripled". Every ratio word or N-fold in a scene's headline, commentary,
+  steps, frames, alt or annotation must fit one of the claims tied to that
+  scene, or data fidelity fails, and `build()` / `dstory bundle` stop with
+  `ClaimDriftError`. The "claim not found in prose" check now searches only
+  reader-facing text; it used to search the inlined data.json, so it always
+  found the claim itself and never fired (#25).
+- `dstory bundle` honours `meta.theme` in a CLI project. When it names another
+  preset and `theme.css` is the stock preset, the project switches; when
+  `theme.css` was edited, it is kept with a warning; an unknown name warns with
+  the preset list (it will become an error). New `dstory theme SLUG THEME`
+  re-themes a project from a preset or a brand TOML and updates `meta.theme`
+  (#26).
+- Slides mode: a deck with a Vizzu scene is navigable as soon as the page is
+  ready. Arrow keys used to do nothing (counter "0 / 0") until Vizzu loaded,
+  4 s offline, and presses were dropped. A Vizzu slide now applies its frame
+  when its controller arrives. New projects and `build()` get it directly; an
+  existing CLI project keeps its copied `story.js` until it is refreshed with
+  `dstory.init("SLUG", brand="<its theme>", merge=True)` (#27).
+
 ## [0.12.0] - 2026-11-10
 
 ### Added

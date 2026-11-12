@@ -1,0 +1,18 @@
+/* dstory "Listen" button (see listen.js): as quiet as the Data summary. */
+.scene-listen {
+  flex: none;
+  color: inherit;
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--rule, currentColor) 80%, transparent);
+  border-radius: 999px;
+  padding: 0.15rem 0.7rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--step--1, 0.85rem);
+  line-height: 1.5;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.scene-listen:hover, .scene-listen[aria-pressed="true"] { opacity: 1; border-color: var(--accent, currentColor); }
+.scene-listen[aria-pressed="true"] { color: var(--accent, currentColor); }
+.scene-listen:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 3px; }
+@media print { .scene-listen { display: none; } }

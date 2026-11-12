@@ -172,7 +172,10 @@
     const keys = roles.series && groups.length > 1
       ? "Left and right arrows step through the points, up and down switch series"
       : "Arrow keys step through the data";
-    return `${headlineOf(scene)}. ${parts.join("; ")}. ${keys}; Escape leaves the chart.`;
+    const L = window.__DSTORY_LISTEN__;
+    const listen = L && L.available(scene) ? (roles.series && groups.length > 1
+      ? "; L plays this series as sound" : "; L plays the chart as sound") : "";
+    return `${headlineOf(scene)}. ${parts.join("; ")}. ${keys}${listen}; Escape leaves the chart.`;
   }
 
   // ---- the live region ---------------------------------------------------
@@ -253,6 +256,14 @@
       }
       case "Enter": say(summaryText(st.scene, st.rows, st.roles, st.groups)); e.preventDefault(); e.stopPropagation(); return;
       case "Escape": mount.blur(); e.preventDefault(); e.stopPropagation(); return;
+      case "l":
+      case "L": {
+        const L = window.__DSTORY_LISTEN__;
+        if (!L || !L.available(st.scene)) { handled = false; break; }
+        L.toggle(st.scene.id, st.groups.length > 1 ? st.g : null);
+        e.preventDefault(); e.stopPropagation();
+        return;
+      }
       default: handled = false;
     }
     if (!handled) return;
@@ -288,7 +299,7 @@
   }
 
   window.__DSTORY_EXPLORER__ = {
-    attached, rolesOf, groupsOf, pointText, summaryText,
+    attached, rolesOf, groupsOf, pointText, summaryText, groupSummary, say,
     expected: (scene) => !!(scene && scene.kind !== "custom" && opt(dataOf(), scene, "explorer")),
     // For tests and the vetter: what the explorer says for a scene's point.
     describe: (sceneId, g, k) => {

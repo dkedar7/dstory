@@ -609,12 +609,20 @@ body.story-mode--slides .atmosphere--vignette { opacity: 0.5; }
 }
 
 </style>
-<script>window.__STORY_DATA__ = {"meta": {"title": "Gas took coal's place", "subtitle": "", "deck": "", "author": "", "published": "2026-11-10", "theme": "warm-print", "audience": "general-public", "mode": "scroll", "sources": [{"name": "Illustrative power-mix shares (synthetic data)"}], "lang": "en", "dir": "ltr", "description": ""}, "claims": [{"id": "c-trend", "text": "Gas share rose 16 points between 2014 and 2024", "value": 16.0, "unit": "pp", "scene": "scene-trend"}, {"id": "c-trend-step", "text": "The sharpest move came in 2015, when it rose 6 points from 2014.", "value": 6.0, "unit": "pp", "scene": "scene-trend"}, {"id": "c-shift", "text": "Coal share fell 24 points between 2014 and 2024, the biggest shift of any source", "value": -24.0, "unit": "pp", "scene": "scene-shift"}, {"id": "c-shift-contrast", "text": "Renewables share, by contrast, rose 8 points.", "value": 8.0, "unit": "pp", "scene": "scene-shift"}, {"id": "c-mix-lead", "text": "In 2024, Gas holds the largest share: 43%", "value": 0.43, "scene": "scene-mix"}, {"id": "c-mix-next", "text": "Renewables is next, at 23%.", "value": 0.23, "scene": "scene-mix"}], "scenes": [{"id": "scene-trend", "kind": "simple", "headline": "Gas share rose 16 points between 2014 and 2024", "commentary": "The sharpest move came in 2015, when it rose 6 points from 2014.", "source_line": "Source: Illustrative power-mix shares (synthetic data).", "dataset": "trend", "alt": "Line chart of Gas share from 2014 to 2024: it goes from 27 to 43.", "width": "default", "chrome": true, "config": {"x": "year", "y": "share_pct", "parse": "%Y-%m-%d", "format": ",.0f"}}, {"id": "scene-panels", "kind": "simple", "headline": "Share by source from 2014 to 2024, one panel each", "commentary": "All panels share one scale, so heights compare directly.", "source_line": "Source: Illustrative power-mix shares (synthetic data).", "dataset": "panels", "alt": "Small multiples, one line chart of share per source from 2014 to 2024: Coal goes from 39 to 15; Gas goes from 27 to 43; Nuclear goes from 19 to 19; Renewables goes from 15 to 23.", "width": "default", "chrome": true, "config": {"x": "year", "series": "source", "y": "share_pct", "parse": "%Y-%m-%d", "highlight": [], "format": ",.0f", "scale": "shared"}}, {"id": "scene-shift", "kind": "simple", "headline": "Coal share fell 24 points between 2014 and 2024, the biggest shift of any source", "commentary": "Renewables share, by contrast, rose 8 points.", "source_line": "Source: Illustrative power-mix shares (synthetic data).", "dataset": "shift", "alt": "Slope chart of share by source, 2014 versus 2024: Coal goes from 39 to 15; Renewables goes from 15 to 23.", "width": "default", "chrome": true, "config": {"label": "source", "start": "start", "end": "end", "start_label": "2014", "end_label": "2024", "highlight": ["Coal", "Renewables"], "format": ",.0f"}}, {"id": "scene-race", "kind": "simple", "headline": "Gas overtook Coal to rank first by 2024", "commentary": "Coal led in 2014; Gas has held the top spot since 2016.", "source_line": "Source: Illustrative power-mix shares (synthetic data).", "dataset": "race", "alt": "Bump chart ranking each source by share from 2014 to 2024: Gas climbs from rank 2 to rank 1, and Coal slips from rank 1 to rank 4.", "width": "default", "chrome": true, "config": {"x": "year", "series": "source", "y": "share_pct", "highlight": ["Gas"]}}, {"id": "scene-mix", "kind": "simple", "headline": "In 2024, Gas holds the largest share: 43%", "commentary": "Renewables is next, at 23%.", "source_line": "Source: Illustrative power-mix shares (synthetic data).", "dataset": "mix", "alt": "Waffle chart of share by source in 2024: Gas 43%, Renewables 23%, Nuclear 19%, Coal 15%.", "width": "default", "chrome": true, "config": {"label": "source", "value": "share_pct"}}], "datasets": {"trend": [{"year": "2014-01-01", "share_pct": 27}, {"year": "2015-01-01", "share_pct": 33}, {"year": "2016-01-01", "share_pct": 34}, {"year": "2017-01-01", "share_pct": 32}, {"year": "2018-01-01", "share_pct": 35}, {"year": "2019-01-01", "share_pct": 38}, {"year": "2020-01-01", "share_pct": 40}, {"year": "2021-01-01", "share_pct": 38}, {"year": "2022-01-01", "share_pct": 39}, {"year": "2023-01-01", "share_pct": 43}, {"year": "2024-01-01", "share_pct": 43}], "panels": [{"year": "2014-01-01", "source": "Coal", "share_pct": 39}, {"year": "2015-01-01", "source": "Coal", "share_pct": 33}, {"year": "2016-01-01", "source": "Coal", "share_pct": 30}, {"year": "2017-01-01", "source": "Coal", "share_pct": 30}, {"year": "2018-01-01", "source": "Coal", "share_pct": 27}, {"year": "2019-01-01", "source": "Coal", "share_pct": 23}, {"year": "2020-01-01", "source": "Coal", "share_pct": 19}, {"year": "2021-01-01", "source": "Coal", "share_pct": 22}, {"year": "2022-01-01", "source": "Coal", "share_pct": 20}, {"year": "2023-01-01", "source": "Coal", "share_pct": 16}, {"year": "2024-01-01", "source": "Coal", "share_pct": 15}, {"year": "2014-01-01", "source": "Gas", "share_pct": 27}, {"year": "2015-01-01", "source": "Gas", "share_pct": 33}, {"year": "2016-01-01", "source": "Gas", "share_pct": 34}, {"year": "2017-01-01", "source": "Gas", "share_pct": 32}, {"year": "2018-01-01", "source": "Gas", "share_pct": 35}, {"year": "2019-01-01", "source": "Gas", "share_pct": 38}, {"year": "2020-01-01", "source": "Gas", "share_pct": 40}, {"year": "2021-01-01", "source": "Gas", "share_pct": 38}, {"year": "2022-01-01", "source": "Gas", "share_pct": 39}, {"year": "2023-01-01", "source": "Gas", "share_pct": 43}, {"year": "2024-01-01", "source": "Gas", "share_pct": 43}, {"year": "2014-01-01", "source": "Nuclear", "share_pct": 19}, {"year": "2015-01-01", "source": "Nuclear", "share_pct": 20}, {"year": "2016-01-01", "source": "Nuclear", "share_pct": 20}, {"year": "2017-01-01", "source": "Nuclear", "share_pct": 20}, {"year": "2018-01-01", "source": "Nuclear", "share_pct": 19}, {"year": "2019-01-01", "source": "Nuclear", "share_pct": 20}, {"year": "2020-01-01", "source": "Nuclear", "share_pct": 20}, {"year": "2021-01-01", "source": "Nuclear", "share_pct": 19}, {"year": "2022-01-01", "source": "Nuclear", "share_pct": 18}, {"year": "2023-01-01", "source": "Nuclear", "share_pct": 19}, {"year": "2024-01-01", "source": "Nuclear", "share_pct": 19}, {"year": "2014-01-01", "source": "Renewables", "share_pct": 15}, {"year": "2015-01-01", "source": "Renewables", "share_pct": 14}, {"year": "2016-01-01", "source": "Renewables", "share_pct": 16}, {"year": "2017-01-01", "source": "Renewables", "share_pct": 18}, {"year": "2018-01-01", "source": "Renewables", "share_pct": 19}, {"year": "2019-01-01", "source": "Renewables", "share_pct": 19}, {"year": "2020-01-01", "source": "Renewables", "share_pct": 21}, {"year": "2021-01-01", "source": "Renewables", "share_pct": 21}, {"year": "2022-01-01", "source": "Renewables", "share_pct": 23}, {"year": "2023-01-01", "source": "Renewables", "share_pct": 22}, {"year": "2024-01-01", "source": "Renewables", "share_pct": 23}], "shift": [{"source": "Coal", "start": 39, "end": 15}, {"source": "Gas", "start": 27, "end": 43}, {"source": "Nuclear", "start": 19, "end": 19}, {"source": "Renewables", "start": 15, "end": 23}], "race": [{"year": "2014", "source": "Coal", "share_pct": 39}, {"year": "2014", "source": "Gas", "share_pct": 27}, {"year": "2014", "source": "Nuclear", "share_pct": 19}, {"year": "2014", "source": "Renewables", "share_pct": 15}, {"year": "2015", "source": "Coal", "share_pct": 33}, {"year": "2015", "source": "Gas", "share_pct": 33}, {"year": "2015", "source": "Nuclear", "share_pct": 20}, {"year": "2015", "source": "Renewables", "share_pct": 14}, {"year": "2016", "source": "Coal", "share_pct": 30}, {"year": "2016", "source": "Gas", "share_pct": 34}, {"year": "2016", "source": "Nuclear", "share_pct": 20}, {"year": "2016", "source": "Renewables", "share_pct": 16}, {"year": "2017", "source": "Coal", "share_pct": 30}, {"year": "2017", "source": "Gas", "share_pct": 32}, {"year": "2017", "source": "Nuclear", "share_pct": 20}, {"year": "2017", "source": "Renewables", "share_pct": 18}, {"year": "2018", "source": "Coal", "share_pct": 27}, {"year": "2018", "source": "Gas", "share_pct": 35}, {"year": "2018", "source": "Nuclear", "share_pct": 19}, {"year": "2018", "source": "Renewables", "share_pct": 19}, {"year": "2019", "source": "Coal", "share_pct": 23}, {"year": "2019", "source": "Gas", "share_pct": 38}, {"year": "2019", "source": "Nuclear", "share_pct": 20}, {"year": "2019", "source": "Renewables", "share_pct": 19}, {"year": "2020", "source": "Coal", "share_pct": 19}, {"year": "2020", "source": "Gas", "share_pct": 40}, {"year": "2020", "source": "Nuclear", "share_pct": 20}, {"year": "2020", "source": "Renewables", "share_pct": 21}, {"year": "2021", "source": "Coal", "share_pct": 22}, {"year": "2021", "source": "Gas", "share_pct": 38}, {"year": "2021", "source": "Nuclear", "share_pct": 19}, {"year": "2021", "source": "Renewables", "share_pct": 21}, {"year": "2022", "source": "Coal", "share_pct": 20}, {"year": "2022", "source": "Gas", "share_pct": 39}, {"year": "2022", "source": "Nuclear", "share_pct": 18}, {"year": "2022", "source": "Renewables", "share_pct": 23}, {"year": "2023", "source": "Coal", "share_pct": 16}, {"year": "2023", "source": "Gas", "share_pct": 43}, {"year": "2023", "source": "Nuclear", "share_pct": 19}, {"year": "2023", "source": "Renewables", "share_pct": 22}, {"year": "2024", "source": "Coal", "share_pct": 15}, {"year": "2024", "source": "Gas", "share_pct": 43}, {"year": "2024", "source": "Nuclear", "share_pct": 19}, {"year": "2024", "source": "Renewables", "share_pct": 23}], "mix": [{"source": "Gas", "share_pct": 43}, {"source": "Renewables", "share_pct": 23}, {"source": "Nuclear", "share_pct": 19}, {"source": "Coal", "share_pct": 15}]}};</script>
+<script>window.__STORY_DATA__ = {"meta": {"title": "Gas took coal's place", "subtitle": "", "deck": "", "author": "", "published": "2026-11-12", "theme": "warm-print", "audience": "general-public", "mode": "scroll", "sources": [{"name": "Illustrative power-mix shares (synthetic data)"}], "lang": "en", "dir": "ltr", "description": ""}, "claims": [{"id": "c-trend", "text": "Gas share rose 16 points between 2014 and 2024", "value": 16.0, "unit": "pp", "scene": "scene-trend"}, {"id": "c-trend-step", "text": "The sharpest move came in 2015, when it rose 6 points from 2014.", "value": 6.0, "unit": "pp", "scene": "scene-trend"}, {"id": "c-shift", "text": "Coal share fell 24 points between 2014 and 2024, the biggest shift of any source", "value": -24.0, "unit": "pp", "scene": "scene-shift"}, {"id": "c-shift-contrast", "text": "Renewables share, by contrast, rose 8 points.", "value": 8.0, "unit": "pp", "scene": "scene-shift"}, {"id": "c-mix-lead", "text": "In 2024, Gas holds the largest share: 43%", "value": 0.43, "scene": "scene-mix"}, {"id": "c-mix-next", "text": "Renewables is next, at 23%.", "value": 0.23, "scene": "scene-mix"}], "scenes": [{"id": "scene-trend", "kind": "simple", "headline": "Gas share rose 16 points between 2014 and 2024", "commentary": "The sharpest move came in 2015, when it rose 6 points from 2014.", "source_line": "Source: Illustrative power-mix shares (synthetic data).", "dataset": "trend", "alt": "Line chart of Gas share from 2014 to 2024: it goes from 27 to 43.", "width": "default", "chrome": true, "config": {"x": "year", "y": "share_pct", "parse": "%Y-%m-%d", "format": ",.0f"}}, {"id": "scene-panels", "kind": "simple", "headline": "Share by source from 2014 to 2024, one panel each", "commentary": "All panels share one scale, so heights compare directly.", "source_line": "Source: Illustrative power-mix shares (synthetic data).", "dataset": "panels", "alt": "Small multiples, one line chart of share per source from 2014 to 2024: Coal goes from 39 to 15; Gas goes from 27 to 43; Nuclear goes from 19 to 19; Renewables goes from 15 to 23.", "width": "default", "chrome": true, "config": {"x": "year", "series": "source", "y": "share_pct", "parse": "%Y-%m-%d", "highlight": [], "format": ",.0f", "scale": "shared"}}, {"id": "scene-shift", "kind": "simple", "headline": "Coal share fell 24 points between 2014 and 2024, the biggest shift of any source", "commentary": "Renewables share, by contrast, rose 8 points.", "source_line": "Source: Illustrative power-mix shares (synthetic data).", "dataset": "shift", "alt": "Slope chart of share by source, 2014 versus 2024: Coal goes from 39 to 15; Renewables goes from 15 to 23.", "width": "default", "chrome": true, "config": {"label": "source", "start": "start", "end": "end", "start_label": "2014", "end_label": "2024", "highlight": ["Coal", "Renewables"], "format": ",.0f"}}, {"id": "scene-race", "kind": "simple", "headline": "Gas overtook Coal to rank first by 2024", "commentary": "Coal led in 2014; Gas has held the top spot since 2016.", "source_line": "Source: Illustrative power-mix shares (synthetic data).", "dataset": "race", "alt": "Bump chart ranking each source by share from 2014 to 2024: Gas climbs from rank 2 to rank 1, and Coal slips from rank 1 to rank 4.", "width": "default", "chrome": true, "config": {"x": "year", "series": "source", "y": "share_pct", "highlight": ["Gas"]}}, {"id": "scene-mix", "kind": "simple", "headline": "In 2024, Gas holds the largest share: 43%", "commentary": "Renewables is next, at 23%.", "source_line": "Source: Illustrative power-mix shares (synthetic data).", "dataset": "mix", "alt": "Waffle chart of share by source in 2024: Gas 43%, Renewables 23%, Nuclear 19%, Coal 15%.", "width": "default", "chrome": true, "config": {"label": "source", "value": "share_pct"}}], "datasets": {"trend": [{"year": "2014-01-01", "share_pct": 27}, {"year": "2015-01-01", "share_pct": 33}, {"year": "2016-01-01", "share_pct": 34}, {"year": "2017-01-01", "share_pct": 32}, {"year": "2018-01-01", "share_pct": 35}, {"year": "2019-01-01", "share_pct": 38}, {"year": "2020-01-01", "share_pct": 40}, {"year": "2021-01-01", "share_pct": 38}, {"year": "2022-01-01", "share_pct": 39}, {"year": "2023-01-01", "share_pct": 43}, {"year": "2024-01-01", "share_pct": 43}], "panels": [{"year": "2014-01-01", "source": "Coal", "share_pct": 39}, {"year": "2015-01-01", "source": "Coal", "share_pct": 33}, {"year": "2016-01-01", "source": "Coal", "share_pct": 30}, {"year": "2017-01-01", "source": "Coal", "share_pct": 30}, {"year": "2018-01-01", "source": "Coal", "share_pct": 27}, {"year": "2019-01-01", "source": "Coal", "share_pct": 23}, {"year": "2020-01-01", "source": "Coal", "share_pct": 19}, {"year": "2021-01-01", "source": "Coal", "share_pct": 22}, {"year": "2022-01-01", "source": "Coal", "share_pct": 20}, {"year": "2023-01-01", "source": "Coal", "share_pct": 16}, {"year": "2024-01-01", "source": "Coal", "share_pct": 15}, {"year": "2014-01-01", "source": "Gas", "share_pct": 27}, {"year": "2015-01-01", "source": "Gas", "share_pct": 33}, {"year": "2016-01-01", "source": "Gas", "share_pct": 34}, {"year": "2017-01-01", "source": "Gas", "share_pct": 32}, {"year": "2018-01-01", "source": "Gas", "share_pct": 35}, {"year": "2019-01-01", "source": "Gas", "share_pct": 38}, {"year": "2020-01-01", "source": "Gas", "share_pct": 40}, {"year": "2021-01-01", "source": "Gas", "share_pct": 38}, {"year": "2022-01-01", "source": "Gas", "share_pct": 39}, {"year": "2023-01-01", "source": "Gas", "share_pct": 43}, {"year": "2024-01-01", "source": "Gas", "share_pct": 43}, {"year": "2014-01-01", "source": "Nuclear", "share_pct": 19}, {"year": "2015-01-01", "source": "Nuclear", "share_pct": 20}, {"year": "2016-01-01", "source": "Nuclear", "share_pct": 20}, {"year": "2017-01-01", "source": "Nuclear", "share_pct": 20}, {"year": "2018-01-01", "source": "Nuclear", "share_pct": 19}, {"year": "2019-01-01", "source": "Nuclear", "share_pct": 20}, {"year": "2020-01-01", "source": "Nuclear", "share_pct": 20}, {"year": "2021-01-01", "source": "Nuclear", "share_pct": 19}, {"year": "2022-01-01", "source": "Nuclear", "share_pct": 18}, {"year": "2023-01-01", "source": "Nuclear", "share_pct": 19}, {"year": "2024-01-01", "source": "Nuclear", "share_pct": 19}, {"year": "2014-01-01", "source": "Renewables", "share_pct": 15}, {"year": "2015-01-01", "source": "Renewables", "share_pct": 14}, {"year": "2016-01-01", "source": "Renewables", "share_pct": 16}, {"year": "2017-01-01", "source": "Renewables", "share_pct": 18}, {"year": "2018-01-01", "source": "Renewables", "share_pct": 19}, {"year": "2019-01-01", "source": "Renewables", "share_pct": 19}, {"year": "2020-01-01", "source": "Renewables", "share_pct": 21}, {"year": "2021-01-01", "source": "Renewables", "share_pct": 21}, {"year": "2022-01-01", "source": "Renewables", "share_pct": 23}, {"year": "2023-01-01", "source": "Renewables", "share_pct": 22}, {"year": "2024-01-01", "source": "Renewables", "share_pct": 23}], "shift": [{"source": "Coal", "start": 39, "end": 15}, {"source": "Gas", "start": 27, "end": 43}, {"source": "Nuclear", "start": 19, "end": 19}, {"source": "Renewables", "start": 15, "end": 23}], "race": [{"year": "2014", "source": "Coal", "share_pct": 39}, {"year": "2014", "source": "Gas", "share_pct": 27}, {"year": "2014", "source": "Nuclear", "share_pct": 19}, {"year": "2014", "source": "Renewables", "share_pct": 15}, {"year": "2015", "source": "Coal", "share_pct": 33}, {"year": "2015", "source": "Gas", "share_pct": 33}, {"year": "2015", "source": "Nuclear", "share_pct": 20}, {"year": "2015", "source": "Renewables", "share_pct": 14}, {"year": "2016", "source": "Coal", "share_pct": 30}, {"year": "2016", "source": "Gas", "share_pct": 34}, {"year": "2016", "source": "Nuclear", "share_pct": 20}, {"year": "2016", "source": "Renewables", "share_pct": 16}, {"year": "2017", "source": "Coal", "share_pct": 30}, {"year": "2017", "source": "Gas", "share_pct": 32}, {"year": "2017", "source": "Nuclear", "share_pct": 20}, {"year": "2017", "source": "Renewables", "share_pct": 18}, {"year": "2018", "source": "Coal", "share_pct": 27}, {"year": "2018", "source": "Gas", "share_pct": 35}, {"year": "2018", "source": "Nuclear", "share_pct": 19}, {"year": "2018", "source": "Renewables", "share_pct": 19}, {"year": "2019", "source": "Coal", "share_pct": 23}, {"year": "2019", "source": "Gas", "share_pct": 38}, {"year": "2019", "source": "Nuclear", "share_pct": 20}, {"year": "2019", "source": "Renewables", "share_pct": 19}, {"year": "2020", "source": "Coal", "share_pct": 19}, {"year": "2020", "source": "Gas", "share_pct": 40}, {"year": "2020", "source": "Nuclear", "share_pct": 20}, {"year": "2020", "source": "Renewables", "share_pct": 21}, {"year": "2021", "source": "Coal", "share_pct": 22}, {"year": "2021", "source": "Gas", "share_pct": 38}, {"year": "2021", "source": "Nuclear", "share_pct": 19}, {"year": "2021", "source": "Renewables", "share_pct": 21}, {"year": "2022", "source": "Coal", "share_pct": 20}, {"year": "2022", "source": "Gas", "share_pct": 39}, {"year": "2022", "source": "Nuclear", "share_pct": 18}, {"year": "2022", "source": "Renewables", "share_pct": 23}, {"year": "2023", "source": "Coal", "share_pct": 16}, {"year": "2023", "source": "Gas", "share_pct": 43}, {"year": "2023", "source": "Nuclear", "share_pct": 19}, {"year": "2023", "source": "Renewables", "share_pct": 22}, {"year": "2024", "source": "Coal", "share_pct": 15}, {"year": "2024", "source": "Gas", "share_pct": 43}, {"year": "2024", "source": "Nuclear", "share_pct": 19}, {"year": "2024", "source": "Renewables", "share_pct": 23}], "mix": [{"source": "Gas", "share_pct": 43}, {"source": "Renewables", "share_pct": 23}, {"source": "Nuclear", "share_pct": 19}, {"source": "Coal", "share_pct": 15}]}};</script>
 <style data-dstory="data-panel">
 /* dstory data panel (see data-panel.js). Quiet by default, like the source
    line; colours inherit from the scene so contrast follows the theme. */
-.scene-data {
+.scene-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.25rem;
   margin: 0.75rem 0 0;
+}
+.scene-tools > .scene-data { flex: 1 1 12rem; min-width: 0; }
+.scene-data {
+  margin: 0;
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: var(--step--1, 0.85rem);
   color: inherit;
@@ -670,13 +678,13 @@ body.story-mode--slides .atmosphere--vignette { opacity: 0.5; }
   text-decoration: none;
 }
 .scene-data__all { display: block; margin-top: 0.6rem; }
-.scene--scrolly > .scene-data, .scene--pinned > .scene-data { grid-column: 1 / -1; }
-.scene--pinned > .scene-data { padding: 0 1.5rem; }
+.scene--scrolly > .scene-tools, .scene--pinned > .scene-tools { grid-column: 1 / -1; }
+.scene--pinned > .scene-tools { padding: 0 1.5rem; }
 
 /* Slides: a small "Data" tab in the slide's corner; open, it floats above
    the chart. Press "t" to toggle it. */
-body.story-mode--slides .scene > .scene-data,
-body.story-mode--slides .scene__bleedinner > .scene-data {
+body.story-mode--slides .scene > .scene-tools,
+body.story-mode--slides .scene__bleedinner > .scene-tools {
   position: absolute;
   top: 1rem;
   right: 1.5rem;
@@ -732,6 +740,25 @@ body.story-mode--slides .scene-data[open] .scene-data__scroll { max-height: 60vh
   padding: 0; box-shadow: none;
 }
 @media print { .scene-explore__live { display: none; } }
+
+/* dstory "Listen" button (see listen.js): as quiet as the Data summary. */
+.scene-listen {
+  flex: none;
+  color: inherit;
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--rule, currentColor) 80%, transparent);
+  border-radius: 999px;
+  padding: 0.15rem 0.7rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--step--1, 0.85rem);
+  line-height: 1.5;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.scene-listen:hover, .scene-listen[aria-pressed="true"] { opacity: 1; border-color: var(--accent, currentColor); }
+.scene-listen[aria-pressed="true"] { color: var(--accent, currentColor); }
+.scene-listen:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 3px; }
+@media print { .scene-listen { display: none; } }
 
 </style>
 <meta property="og:title" content="Gas took coal&#x27;s place">
@@ -1377,6 +1404,15 @@ function setupSlidesController(builtScenes, data) {
     syncHash();
   }
 
+  // A scene controller that arrived late (Vizzu): if its slide is showing,
+  // apply the current step now.
+  const ready = (entry) => {
+    const cur = slides[current];
+    if (cur?.kind === "scene" && cur.sceneEntry === entry && entry.ctrl?.onStep) {
+      entry.ctrl.onStep(cur.stepIdx, "down");
+    }
+  };
+
   // Trigger first slide's chart state if applicable.
   const first = slides[0];
   if (first?.kind === "scene") {
@@ -1424,6 +1460,7 @@ function setupSlidesController(builtScenes, data) {
     const idx = Math.min(slides.length - 1, Math.max(0, parseInt(hashMatch[1], 10) - 1));
     if (idx > 0) show(idx, "forward");
   }
+  return { ready };
 }
 
 async function init() {
@@ -1466,6 +1503,7 @@ async function init() {
   // library + WASM (CDN, up to a 4 s timeout offline), so they initialise in
   // parallel and never hold back the charts that follow them.
   const pending = [];
+  let deck = null;   // the slides controller, once it exists
   for (const entry of built) {
     const s = entry.scene;
     try {
@@ -1475,7 +1513,7 @@ async function init() {
       else if (s.kind === "vizzu") {
         pending.push(
           activateVizzuScene(entry.node, s, data, slidesMode)
-            .then(ctrl => { entry.ctrl = ctrl; })
+            .then(ctrl => { entry.ctrl = ctrl; if (deck) deck.ready(entry); })
             .catch(err => reportFailure(s, err))
         );
       }
@@ -1486,10 +1524,12 @@ async function init() {
     }
   }
 
-  // The slides controller drives each scene's ctrl, so it needs the Vizzu
-  // controllers too. Non-Vizzu slides are already painted meanwhile.
+  // The deck is navigable now, whatever Vizzu is doing: a Vizzu scene's
+  // controller is handed to the deck when it arrives (deck.ready), and a
+  // slide whose controller is still loading just shows without its frame.
+  // Offline, a Vizzu slide stays inert, as documented.
+  if (slidesMode) deck = setupSlidesController(built, data);
   await Promise.all(pending);
-  if (slidesMode) setupSlidesController(built, data);
 }
 
 // Defer init until DOMContentLoaded so all `<script defer>` scenes have had
@@ -2131,15 +2171,30 @@ STORY.register("scene-mix", function draw(mount, data, scene) {
     return details;
   }
 
-  function place(scene, section, panel) {
-    if (scene.kind === "custom") {
-      // A custom renderer owns its whole <section>: sit after it, never inside.
-      if (slides()) return false;
-      section.after(panel);
-      return true;
+  // One row of reader tools per scene ("Listen", "Data"), placed under the
+  // chart. Shared with the explorer's Listen button (explorer.js).
+  function toolsFor(scene, section) {
+    const sel = `[data-scene-tools="${CSS.escape(scene.id)}"]`;
+    const found = document.querySelector(sel);
+    if (found) return found;
+    // A custom renderer owns its whole <section>: sit after it, never inside
+    // (and not at all in slides, where the section is the slide).
+    if (scene.kind === "custom" && slides()) return null;
+    const tools = h("div", { class: "scene-tools", "data-scene-tools": scene.id });
+    // In slides mode a click anywhere advances the deck; the tools are not "anywhere".
+    tools.addEventListener("click", e => e.stopPropagation());
+    if (scene.kind === "custom") section.after(tools);
+    else {
+      const inner = scene.kind === "bleed" ? section.querySelector(".scene__bleedinner") : null;
+      (inner || section).append(tools);
     }
-    const inner = scene.kind === "bleed" ? section.querySelector(".scene__bleedinner") : null;
-    (inner || section).append(panel);
+    return tools;
+  }
+
+  function place(scene, section, panel) {
+    const tools = toolsFor(scene, section);
+    if (!tools) return false;
+    tools.append(panel);
     return true;
   }
 
@@ -2182,7 +2237,7 @@ STORY.register("scene-mix", function draw(mount, data, scene) {
   window.addEventListener("afterprint", () => { while (reopened.length) reopened.pop().open = false; });
 
   window.__DSTORY_DATA_PANEL__ = {
-    MAX_ROWS, attached, option, fmt, csvRow, csvCell, columnsOf, rowsOf, rawColumns, cellText,
+    MAX_ROWS, attached, option, fmt, csvRow, csvCell, columnsOf, rowsOf, rawColumns, cellText, toolsFor,
     expected: (scene) => {
       const data = dataOf();
       return { table: option(data, scene, "table"), download: option(data, scene, "download"),
@@ -2367,7 +2422,10 @@ STORY.register("scene-mix", function draw(mount, data, scene) {
     const keys = roles.series && groups.length > 1
       ? "Left and right arrows step through the points, up and down switch series"
       : "Arrow keys step through the data";
-    return `${headlineOf(scene)}. ${parts.join("; ")}. ${keys}; Escape leaves the chart.`;
+    const L = window.__DSTORY_LISTEN__;
+    const listen = L && L.available(scene) ? (roles.series && groups.length > 1
+      ? "; L plays this series as sound" : "; L plays the chart as sound") : "";
+    return `${headlineOf(scene)}. ${parts.join("; ")}. ${keys}${listen}; Escape leaves the chart.`;
   }
 
   // ---- the live region ---------------------------------------------------
@@ -2448,6 +2506,14 @@ STORY.register("scene-mix", function draw(mount, data, scene) {
       }
       case "Enter": say(summaryText(st.scene, st.rows, st.roles, st.groups)); e.preventDefault(); e.stopPropagation(); return;
       case "Escape": mount.blur(); e.preventDefault(); e.stopPropagation(); return;
+      case "l":
+      case "L": {
+        const L = window.__DSTORY_LISTEN__;
+        if (!L || !L.available(st.scene)) { handled = false; break; }
+        L.toggle(st.scene.id, st.groups.length > 1 ? st.g : null);
+        e.preventDefault(); e.stopPropagation();
+        return;
+      }
       default: handled = false;
     }
     if (!handled) return;
@@ -2483,7 +2549,7 @@ STORY.register("scene-mix", function draw(mount, data, scene) {
   }
 
   window.__DSTORY_EXPLORER__ = {
-    attached, rolesOf, groupsOf, pointText, summaryText,
+    attached, rolesOf, groupsOf, pointText, summaryText, groupSummary, say,
     expected: (scene) => !!(scene && scene.kind !== "custom" && opt(dataOf(), scene, "explorer")),
     // For tests and the vetter: what the explorer says for a scene's point.
     describe: (sceneId, g, k) => {
@@ -2493,6 +2559,216 @@ STORY.register("scene-mix", function draw(mount, data, scene) {
       return k == null ? summaryText(st.scene, st.rows, st.roles, st.groups)
         : pointText(st.rows, st.roles, st.groups[g], k);
     },
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
+})();
+
+// dstory "Listen": hear a chart's shape. Web Audio, no library.
+//
+// Injected by `dstory bundle` after the data panel and the explorer, whose
+// column roles it reuses. Under every chart with a numeric series sits a
+// "Listen" button: each series plays as a run of short tones, pitch rising
+// with the value (two octaves, low to high) and panning left to right as it
+// goes. Series play one after another, each announced first through the
+// explorer's aria-live region ("West, 6 points, from 100 to 171, rising").
+// Nothing ever plays until a reader asks. With a chart focused, "L" plays
+// the current series.
+//
+// Turn it off with "a11y": {"sonify": false} in meta or a scene, or for the
+// whole bundle with `dstory bundle my-story --no-a11y-extras`.
+(() => {
+  "use strict";
+  if (window.__DSTORY_LISTEN__) return;
+  const panel = () => window.__DSTORY_DATA_PANEL__;
+  const ex = () => window.__DSTORY_EXPLORER__;
+  const dataOf = () => window.__STORY_DATA__ || null;
+  const attached = {};
+
+  const LOW_HZ = 220, OCTAVES = 2;          // A3 .. A5
+  const SERIES_GAP = 0.6;                   // seconds of silence between series
+  const LEAD_IN = 0.08;
+
+  // ---- the plan: what plays, when (pure; the vetter and tests read it) ----
+  function planFor(scene, only) {
+    const P = panel(), E = ex();
+    if (!P || !E) return null;
+    const data = dataOf();
+    const rows = P.rowsOf(data, scene);
+    if (!rows) return null;
+    const roles = E.rolesOf(rows, P.columnsOf(rows, scene), scene);
+    const p = roles.primary;
+    if (!p) return null;
+    let groups = E.groupsOf(rows, roles);
+    const all = groups;
+    const vals = rows.map(r => (r ? r[p] : null)).filter(v => typeof v === "number" && isFinite(v));
+    if (!vals.length) return null;
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const freqOf = (v) => LOW_HZ * Math.pow(2, OCTAVES * (hi === lo ? 0.5 : (v - lo) / (hi - lo)));
+    if (only != null && groups[only]) groups = [groups[only]];
+    // A scatter (x and y both numbers, no ordered name) plays left to right
+    // along x, not in row order.
+    const cfg = (scene && typeof scene.config === "object" && scene.config) || {};
+    const xcol = roles.measures.length > 1 && roles.measures[0] !== p
+      && roles.measures[0] === (cfg.x || "x") && !roles.ordered ? roles.measures[0] : null;
+    if (xcol) {
+      const xv = (i) => (rows[i] && typeof rows[i][xcol] === "number" ? rows[i][xcol] : Infinity);
+      groups = groups.map(g => ({ key: g.key, idx: g.idx.slice().sort((a, b) => xv(a) - xv(b)) }));
+    }
+    const series = [];
+    let t = LEAD_IN;
+    for (const g of groups) {
+      const n = g.idx.length;
+      const step = Math.min(0.3, Math.max(0.09, 3.2 / n));   // ~3 s per series, clamped
+      const notes = [];
+      g.idx.forEach((ri, k) => {
+        const v = rows[ri] ? rows[ri][p] : null;
+        if (typeof v !== "number" || !isFinite(v)) return;      // a gap stays silent
+        notes.push({ t: t + k * step, dur: step * 0.8, freq: freqOf(v),
+                     pan: n > 1 ? -0.8 + 1.6 * (k / (n - 1)) : 0, value: v, row: ri });
+      });
+      series.push({ key: g.key, start: t, end: t + n * step,
+                    says: E.groupSummary(rows, roles, g), notes });
+      t += n * step + SERIES_GAP;
+    }
+    return { scene: scene.id, measure: p, low: lo, high: hi, series,
+             duration: t - SERIES_GAP, groups: all.length };
+  }
+
+  // ---- playback --------------------------------------------------------
+  let playing = null;    // { ctx, timers, button, sceneId }
+  const AC = () => window.AudioContext || window.webkitAudioContext;
+
+  function stop() {
+    if (!playing) return;
+    const cur = playing;
+    playing = null;
+    cur.timers.forEach(clearTimeout);
+    const live = document.getElementById("dstory-explore-live");
+    const focused = document.activeElement && document.activeElement.hasAttribute
+      && document.activeElement.hasAttribute("data-explore");
+    if (live && !focused) live.classList.remove("is-visible");
+    try { cur.ctx.close(); } catch (e) { /* already closed */ }
+    if (cur.button) setIdle(cur.button);
+  }
+
+  function play(sceneId, only) {
+    stop();
+    const data = dataOf();
+    const scene = data && (data.scenes || []).find(s => s && s.id === sceneId);
+    const plan = scene && planFor(scene, only);
+    const Ctx = AC();
+    if (!plan || !Ctx) return null;
+    const ctx = new Ctx();
+    const master = ctx.createGain();
+    master.gain.value = 0.22;
+    master.connect(ctx.destination);
+    const t0 = ctx.currentTime;
+    let oscillators = 0;
+    for (const s of plan.series) {
+      for (const n of s.notes) {
+        const osc = ctx.createOscillator();
+        osc.type = "triangle";
+        osc.frequency.value = n.freq;
+        const env = ctx.createGain();
+        const at = t0 + n.t, end = at + n.dur;
+        env.gain.setValueAtTime(0, at);
+        env.gain.linearRampToValueAtTime(1, at + 0.012);          // no clicks
+        env.gain.setValueAtTime(1, Math.max(at + 0.012, end - 0.04));
+        env.gain.linearRampToValueAtTime(0, end);
+        let node = osc.connect(env);
+        if (ctx.createStereoPanner) {
+          const pan = ctx.createStereoPanner();
+          pan.pan.value = n.pan;
+          node = env.connect(pan);
+        } else node = env;
+        node.connect(master);
+        osc.start(at);
+        osc.stop(end + 0.02);
+        oscillators += 1;
+      }
+    }
+    const button = document.querySelector(`[data-listen="${CSS.escape(sceneId)}"]`);
+    // The announcements also show on screen while the chart plays.
+    const live = () => document.getElementById("dstory-explore-live");
+    const say = (text) => {
+      if (ex() && ex().say) ex().say(text);
+      if (live()) live().classList.add("is-visible");
+    };
+    const timers = plan.series.map(s => setTimeout(() => say(s.says), Math.max(0, s.start * 1000 - 60)));
+    timers.push(setTimeout(stop, (plan.duration + 0.25) * 1000));
+    playing = { ctx, timers, button, sceneId };
+    if (button) setPlaying(button);
+    return { oscillators, duration: plan.duration };
+  }
+
+  function toggle(sceneId, only) {
+    if (playing && playing.sceneId === sceneId) { stop(); return null; }
+    return play(sceneId, only);
+  }
+
+  // ---- the button --------------------------------------------------------
+  const headlineOf = (s) => s.headline
+    || (s.steps && s.steps[0] && s.steps[0].headline)
+    || (s.frames && s.frames[0] && s.frames[0].headline) || s.id;
+  function setIdle(b) {
+    b.textContent = "▶ Listen";
+    b.setAttribute("aria-pressed", "false");
+  }
+  function setPlaying(b) {
+    b.textContent = "■ Stop";
+    b.setAttribute("aria-pressed", "true");
+  }
+
+  const available = (scene) => {
+    const P = panel();
+    if (!P || !AC() || !scene || !P.option(dataOf(), scene, "sonify")) return false;
+    const plan = planFor(scene);
+    return !!(plan && plan.series.some(s => s.notes.length > 1));
+  };
+
+  function attachAll() {
+    const data = dataOf(), P = panel();
+    if (!data || !Array.isArray(data.scenes) || !P || !ex()) return true;
+    let done = true;
+    for (const scene of data.scenes) {
+      if (!scene || !scene.id || attached[scene.id] !== undefined) continue;
+      if (!available(scene)) { attached[scene.id] = null; continue; }
+      const section = document.getElementById(scene.id);
+      if (!section || !section.matches("[data-scene]")) { done = false; continue; }
+      const tools = P.toolsFor(scene, section);
+      if (!tools) { attached[scene.id] = null; continue; }
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "scene-listen";
+      b.setAttribute("data-listen", scene.id);
+      b.setAttribute("aria-label", `Listen to the chart: ${headlineOf(scene)}`);
+      setIdle(b);
+      b.addEventListener("click", () => toggle(scene.id, null));
+      tools.prepend(b);
+      attached[scene.id] = b;
+    }
+    return done;
+  }
+
+  function start() {
+    if (attachAll()) return;
+    const obs = new MutationObserver(() => { if (attachAll()) obs.disconnect(); });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => obs.disconnect(), 15000);
+  }
+  // Capture phase: the explorer stops Escape from bubbling once it has used it.
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") stop(); }, true);
+  window.addEventListener("pagehide", stop);
+
+  window.__DSTORY_LISTEN__ = {
+    attached, plan: (sceneId, only) => {
+      const s = dataOf() && (dataOf().scenes || []).find(x => x && x.id === sceneId);
+      return s ? planFor(s, only) : null;
+    },
+    play, stop, toggle, available,
+    expected: (scene) => available(scene),
+    get playing() { return playing ? playing.sceneId : null; },
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
   else start();

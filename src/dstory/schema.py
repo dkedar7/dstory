@@ -29,6 +29,7 @@ class A11yOptions(BaseModel):
     table: Optional[bool] = None      # a "Data" disclosure with an accessible <table>
     download: Optional[bool] = None   # a "Download CSV" link built from the inlined rows
     explorer: Optional[bool] = None   # keyboard chart explorer + aria-live readout
+    sonify: Optional[bool] = None     # a "Listen" button that plays each series as tones
 
 
 class Meta(BaseModel):

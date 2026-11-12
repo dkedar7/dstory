@@ -341,6 +341,33 @@ def preview(slug: str, port: int, no_open: bool) -> None:
 
 
 @cli.command()
+@click.argument("slug", type=click.Path(exists=True, file_okay=False))
+@click.argument("theme")
+def theme(slug: str, theme: str) -> None:
+    """Re-theme project SLUG with a preset name or a brand TOML file.
+
+    Rewrites theme.css, the page's web fonts and meta.theme in data.json.
+    Scenes and data are untouched. Then run `dstory bundle SLUG`."""
+    from .scaffold import apply_theme
+    try:
+        if theme.endswith(".toml"):
+            brand = Brand.from_toml(theme)
+        elif theme in list_presets():
+            brand = Brand.from_preset(theme)
+        else:
+            raise ValueError(f"Unknown theme {theme!r}. Available: {', '.join(list_presets())}, "
+                             "or a path to a brand .toml file.")
+        if not (Path(slug) / "index.html").exists():
+            raise FileNotFoundError(f"{slug} is not a dstory project (no index.html).")
+        name = apply_theme(slug, brand)
+    except (FileNotFoundError, ValueError) as e:
+        console.print(f"[red]{CROSS} Theme failed:[/red] {e}")
+        sys.exit(1)
+    console.print(f"[green]{CHECK}[/green] {slug} now uses [bold]{name}[/bold]. "
+                  f"Run `dstory bundle {slug}` to rebuild.")
+
+
+@cli.command()
 def themes() -> None:
     """List the bundled theme presets."""
     table = Table(title="dstory presets")

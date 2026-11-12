@@ -287,6 +287,53 @@ def init(
     return dest
 
 
+def project_theme(project: str | Path) -> str | None:
+    """The theme a project currently looks like: index.html's data-theme."""
+    index = Path(project) / "index.html"
+    if not index.exists():
+        return None
+    m = re.search(r'<html\b[^>]*\bdata-theme="([^"]*)"', index.read_text(encoding="utf-8"))
+    return m.group(1) if m else None
+
+
+def theme_css_is_pristine(project: str | Path) -> bool:
+    """True when theme.css is exactly what its preset generates (nobody has
+    edited it, and it did not come from a brand TOML)."""
+    from .brand import list_presets
+    project = Path(project)
+    current = project_theme(project)
+    css = project / "theme.css"
+    if current not in list_presets() or not css.exists():
+        return False
+    norm = lambda t: t.replace("\r\n", "\n").strip()  # noqa: E731
+    return norm(css.read_text(encoding="utf-8")) == norm(Brand.from_preset(current).css())
+
+
+def apply_theme(project: str | Path, brand: Brand | str, *, update_data: bool = True) -> str:
+    """Re-theme an existing project: rewrite theme.css, the <html data-theme>
+    attribute and the web-font link from a preset name or Brand. With
+    update_data, meta.theme in data.json is set to match. Returns the slug.
+
+    Scenes, data and story.css are left alone (a brand's extra_css or
+    wordmark is not re-applied; re-run init(..., merge=True) for those)."""
+    project = Path(project)
+    if isinstance(brand, str):
+        brand = Brand.from_preset(brand)
+    slug = _slugify(brand.name) if brand.name else "custom"
+    (project / "theme.css").write_text(brand.css(), encoding="utf-8")
+    index = project / "index.html"
+    html = index.read_text(encoding="utf-8")
+    html = re.sub(r'data-theme="[^"]*"', f'data-theme="{slug}"', html, count=1)
+    html = _patch_html_google_fonts(html, brand)
+    index.write_text(html, encoding="utf-8")
+    data_path = project / "data.json"
+    if update_data and data_path.exists():
+        data = json.loads(data_path.read_text(encoding="utf-8"))
+        data.setdefault("meta", {})["theme"] = slug
+        data_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    return slug
+
+
 def _slugify(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 

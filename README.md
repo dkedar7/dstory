@@ -223,7 +223,7 @@ dstory bundle my-story --vendor
 dstory vet my-story/dist/story.html --data my-story/data.json
 ```
 
-Other commands: `dstory draft data.csv` (a vetted story from a data file, zero config), `dstory themes` (the 8 brand presets), `dstory recipes` (the cookbook), `dstory --help`.
+Other commands: `dstory draft data.csv` (a vetted story from a data file, zero config), `dstory themes` (the 8 brand presets), `dstory theme my-story warm-print` (re-theme a project), `dstory recipes` (the cookbook), `dstory --help`.
 
 ## Claims that can't drift from the data
 
@@ -248,6 +248,13 @@ write it (`ClaimDriftError`; opt out with `check_claims=False` /
 (`"unit": "ratio"` or `"pct"`), so a 3.4× ratio is never printed as "3.4%" and a
 +2% change is never called "doubled". For a plain float, pass
 `kind="ratio"` or `kind="pct"`.
+
+A claim is only as good as the words the reader sees, so the vetter also checks
+the prose around it. Give a claim a `scene` and every "doubled"…"quintupled" or
+"N-fold" in that scene's headline, commentary, steps or alt text must fit one of
+its claims. Edit the headline to "quintupled" and forget the claim, and the
+build stops. A registered claim whose text appears in no reader-facing prose is
+flagged too.
 
 ## How is this different from…?
 
@@ -295,6 +302,12 @@ from dstory import Brand, init
 brand = Brand.from_toml("acme-brand.toml")     # or .from_preset("editorial-noir").extend(accent="#FF6B35")
 init("acme-story", brand=brand)
 ```
+
+To re-theme an existing project, set `meta.theme` in `data.json` and run
+`dstory bundle` (it switches when `theme.css` is still the stock preset, and
+warns, keeping your edits, when it isn't), or run `dstory theme my-story warm-print`
+(or a brand `.toml`) to switch outright. An unknown name in `meta.theme` gets a
+warning that lists the presets.
 
 The 8 bundled presets:
 
@@ -372,7 +385,7 @@ opens each story in Chromium and checks that every table and CSV matches
 Tune it in `data.json`:
 
 ```json
-"meta":   {"a11y": {"table": true, "download": false, "explorer": true}},
+"meta":   {"a11y": {"table": true, "download": false, "explorer": true, "sonify": true}},
 "scenes": [{"id": "s1", "a11y": {"table": false}, "table_columns": ["month", "value"]}]
 ```
 
@@ -409,6 +422,24 @@ vetter tabs into each chart, presses `Home` and `End`, and fails the story if a
 chart cannot be reached or reads numbers that are not in its dataset. Turn it off
 with `"a11y": {"explorer": false}` in `meta` or a scene; `--no-a11y-extras`
 leaves it out along with the tables.
+
+### Every chart can be heard
+
+Next to each chart's **Data** summary sits a **▶ Listen** button. Press it and
+the chart plays as sound: every point is a short tone, higher for a bigger
+value (two octaves, the lowest value to the highest) and panning left to right
+as the series goes on. A chart with several series plays them one after
+another, each announced first ("West, 6 points, from 100 to 171, rising"),
+both to screen readers and on screen. With a chart focused, `L` plays just the
+series you're on, and `Esc` stops.
+
+It is plain Web Audio inside the HTML file, with no library and no network.
+Nothing plays until a reader asks. A scatter plays along its x axis; a chart
+with no numbers (a timeline of dates and labels) gets no button. The vetter
+checks that every chart that can be heard has its button, plays one tone per
+value, and never plays a bigger value at a lower pitch. Turn it off with
+`"a11y": {"sonify": false}` in `meta` or a scene; `--no-a11y-extras` leaves it
+out with the tables and the explorer.
 
 The vetter is audience-aware too: it scores the story's prose (Flesch reading
 ease) against `meta.audience` and notes when the writing is harder than that
