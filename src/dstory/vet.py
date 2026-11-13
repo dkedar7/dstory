@@ -195,6 +195,37 @@ def flesch_reading_ease(text: str) -> Optional[float]:
             - 84.6 * (syllables / len(words)))
 
 
+def _scene_text_shown(s: dict[str, Any]) -> bool:
+    """Whether the template renders a scene's own headline and commentary.
+    `chrome: false` hides them for simple, scrolly and pinned scenes; every
+    other kind shows them (custom renderers are free to draw them)."""
+    return not (s.get("chrome") is False
+                and (s.get("kind") or "simple") in ("simple", "scrolly", "pinned"))
+
+
+def _visible_text(data: dict[str, Any]) -> str:
+    """Everything in data.json a reader can see on the page: meta text, scene
+    prose, source lines, credits, and dataset cells (shown in the data
+    tables). Not claims, ids or config, which no reader sees."""
+    meta = data.get("meta") or {}
+    parts = [_reader_prose(data)]
+    for k in ("author", "credits", "published"):
+        if meta.get(k):
+            parts.append(str(meta[k]))
+    for src in meta.get("sources") or []:
+        if isinstance(src, dict):
+            parts += [str(src[k]) for k in ("name", "note") if src.get(k)]
+    for sc in data.get("scenes", []):
+        if isinstance(sc, dict) and sc.get("source_line"):
+            parts.append(str(sc["source_line"]))
+    for rows in (data.get("datasets") or {}).values():
+        if isinstance(rows, list):
+            for row in rows:
+                if isinstance(row, dict):
+                    parts += [v for v in row.values() if isinstance(v, str)]
+    return "\n".join(parts)
+
+
 def _story_prose(data: dict[str, Any]) -> str:
     """Collect the reader-facing prose from data.json (headlines, commentary,
     steps, frames, deck) — the text a reader actually encounters."""
@@ -205,7 +236,7 @@ def _story_prose(data: dict[str, Any]) -> str:
             parts.append(str(meta[k]))
     for s in data.get("scenes", []):
         for k in ("headline", "commentary"):
-            if s.get(k):
+            if s.get(k) and _scene_text_shown(s):
                 parts.append(str(s[k]))
         for step in (s.get("steps") or []) + (s.get("frames") or []):
             for k in ("headline", "commentary"):
@@ -218,7 +249,8 @@ def _story_prose(data: dict[str, Any]) -> str:
 
 def _scene_prose(s: dict[str, Any]) -> str:
     """Everything a reader can see or hear for one scene."""
-    parts = [str(s[k]) for k in ("headline", "commentary", "alt") if s.get(k)]
+    keys = ("headline", "commentary", "alt") if _scene_text_shown(s) else ("alt",)
+    parts = [str(s[k]) for k in keys if s.get(k)]
     for step in (s.get("steps") or []) + (s.get("frames") or []):
         if isinstance(step, dict):
             parts += [str(step[k]) for k in ("headline", "commentary") if step.get(k)]
@@ -445,11 +477,12 @@ def check_vizzu_overdraw(data: dict[str, Any]) -> list[str]:
 
 def check_editorial(html: str, data: dict[str, Any]) -> Dimension:
     r = Dimension("Editorial integrity")
-    # Scan both static HTML AND the data dict — scenes built dynamically from
-    # data.json don't appear in the static HTML body, so we'd miss slop there.
+    # Scan the static HTML and the text the runtime renders from data.json.
+    # Not json.dumps(data): that would block a story over text no reader sees
+    # (a hidden headline, a claim note, an id).
     sources = [
         _strip_html_for_prose(html),
-        json.dumps(data, ensure_ascii=False),
+        _visible_text(data),
     ]
     low = "\n".join(sources).lower()
     for phrase in SLOP_PHRASES:
@@ -475,7 +508,7 @@ def check_editorial(html: str, data: dict[str, Any]) -> Dimension:
         references_data = bool(s.get("dataset")) or bool(s.get("frames"))
         if references_data and not s.get("source_line"):
             r.note(f"Scene {s.get('id', '?')} has no source_line — add one for stories with data.")
-        h = s.get("headline", "")
+        h = s.get("headline", "") if _scene_text_shown(s) else ""
         if re.search(r"\b(analysis|overview|summary|breakdown)\b\s*$", h, re.I):
             r.note(f"Scene {s.get('id', '?')} headline {h!r} reads as a topic, not an insight.")
 

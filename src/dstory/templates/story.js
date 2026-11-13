@@ -148,10 +148,22 @@ function buildCustomScene(scene) {
   return wrap;
 }
 
+// The scene's own headline and commentary, for kinds whose body is steps or a
+// pinned graphic. Without this, scrolly and pinned scenes dropped them (#28).
+function sceneLede(scene) {
+  if (scene.chrome === false || !(scene.headline || scene.commentary)) return null;
+  const lede = el("header", { class: "scene__lede" });
+  if (scene.headline) lede.append(el("h2", {}, scene.headline));
+  if (scene.commentary) lede.append(el("p", {}, scene.commentary));
+  return lede;
+}
+
 function buildScrollyScene(scene) {
   const wrap = el("section", { class: "scene scene--scrolly", "data-scene": scene.id, id: scene.id });
   wrap.append(el("div", { class: "scene__graphic", "data-mount": scene.id }));
   const text = el("div", { class: "scene__text" });
+  const lede = sceneLede(scene);
+  if (lede) text.append(lede);
   (scene.steps || []).forEach((step, i) => {
     const s = el("div", { class: "step", "data-step": String(i) });
     s.append(el("h3", {}, step.headline || ""));
@@ -175,6 +187,8 @@ function buildBleedScene(scene) {
 
 function buildPinnedScene(scene) {
   const wrap = el("section", { class: "scene scene--pinned", "data-scene": scene.id, id: scene.id });
+  const lede = sceneLede(scene);
+  if (lede) wrap.append(lede);
   const pin = el("div", { class: "scene__pin", "data-mount": scene.id });
   wrap.append(pin);
   if (scene.source_line) wrap.append(el("p", { class: "scene__source" }, scene.source_line));

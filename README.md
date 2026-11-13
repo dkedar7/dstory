@@ -327,9 +327,11 @@ The 8 bundled presets:
 A `data.json` story is composed of scenes; each declares its `kind`:
 
 - `simple` — single chart-driven moment (headline + commentary + chart mount)
-- `scrolly` — sticky chart + stepping text; chart morphs on each step (custom D3 logic)
+- `scrolly` — sticky chart + stepping text; chart morphs on each step (custom D3 logic). The scene's own `headline` and `commentary` open the text column, above the steps.
 - `bleed` — full-viewport cinematic moment
-- `pinned` — central object pinned for one scroll-section, transformed by scroll progress
+- `pinned` — central object pinned for one scroll-section, transformed by scroll progress. The scene's `headline` and `commentary` sit above it.
+
+Every kind except `custom` shows the scene `headline` and `commentary` you write; `"chrome": false` hides them (and the source line) on `simple`, `scrolly` and `pinned` scenes. The vetter grades only text a reader can see, so hidden text is never scored or blocked on.
 - `vizzu` — animated data pivots declared as `frames[]`; supports rectangle/circle/line/area geometries × cartesian/polar coordinates × all channel combos. See [`references/vizzu-chart-gallery.md`](src/dstory/references/vizzu-chart-gallery.md) for the 40+ chart types this enables.
 - `custom` — chrome-free; the renderer owns the entire `<section>` mount. Use for kinetic typography, embedded interactives, full-bleed magazine layouts, anything the four-h2-then-mount pattern doesn't fit.
 

@@ -47,6 +47,15 @@ All notable changes to `dstory` are documented here. This project adheres to
   when its controller arrives. New projects and `build()` get it directly; an
   existing CLI project keeps its copied `story.js` until it is refreshed with
   `dstory.init("SLUG", brand="<its theme>", merge=True)` (#27).
+- Scrolly and pinned scenes show their own `headline` and `commentary`. They
+  were accepted but never rendered, so the scene `dstory draft` writes for a
+  plain ranking ("Red leads on wins") shipped without its headline. They now
+  open the text column of a scrolly scene and sit above a pinned graphic (and
+  above the active step on a slide); `"chrome": false` still hides them. The
+  vetter now grades only text a reader can see: the placeholder scan reads the
+  page, the scene prose and the data tables instead of the raw data.json, and
+  hidden headlines are not scored. Existing CLI projects get the new layout
+  once `story.js` / `story.css` are refreshed, as for #27 (#28).
 
 ## [0.12.0] - 2026-11-10
 
