@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-11-14
+
 ### Fixed
 - The vetter now catches scene prose that contradicts its claim in percent,
   "Nx" / "N times" or direction, not only in ratio words (#29). "Churn fell
