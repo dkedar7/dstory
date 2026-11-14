@@ -43,7 +43,8 @@ class ClaimDriftError(ValueError):
 
 
 def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
-           check_claims: bool = True, a11y_extras: bool = True) -> BundleResult:
+           check_claims: bool = True, a11y_extras: bool = True,
+           upgrade: bool = True) -> BundleResult:
     """Bundle <slug>/index.html → <slug>/dist/story.html.
 
     Args:
@@ -63,8 +64,13 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
                 collapsed "Data" panel (an accessible table of its rows and a
                 "Download CSV" link built from the inlined data) and a keyboard
                 chart explorer (arrow keys step through the rows, read out by
-                an aria-live region). Tune it with meta.a11y / scene.a11y in
-                data.json; False leaves both out.
+                an aria-live region) and a "Listen" button that plays each
+                series as tones. Tune it with meta.a11y / scene.a11y in
+                data.json; False leaves all three out.
+        upgrade: if True (default), a project's story.js / story.css that are
+                untouched copies from an older dstory release are refreshed
+                to this version first, so runtime fixes reach old projects.
+                Edited copies are kept, with a warning.
     """
     project = Path(slug)
     if not project.is_dir():
@@ -88,6 +94,11 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
                 + "\n  - ".join(issues)
             )
 
+    theme_notes = _sync_theme(project, json.loads(data_json.read_text(encoding="utf-8")))
+    if upgrade:
+        from .scaffold import upgrade_runtime
+        theme_notes = upgrade_runtime(project, restore_missing=False) + theme_notes
+
     if check_claims:
         from .vet import check_data_fidelity  # local import: vet is heavier
         fidelity = check_data_fidelity("", json.loads(data_json.read_text(encoding="utf-8")))
@@ -99,7 +110,7 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
             )
 
     html = index.read_text(encoding="utf-8")
-    warnings: list[str] = []
+    warnings: list[str] = list(theme_notes)
     counts = {"styles": 0, "scripts": 0, "images": 0}
 
     # 1. Inline <link rel="stylesheet" href="LOCAL.css">
@@ -273,13 +284,37 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
 
 # ---------- helpers ----------
 
+def _sync_theme(project: Path, data: dict) -> list[str]:
+    """Make meta.theme in data.json mean something: when it names another
+    preset and theme.css is untouched, switch the project to it. Returns
+    notes for the author (printed by `dstory bundle`)."""
+    from .brand import list_presets
+    from .scaffold import apply_theme, project_theme, theme_css_is_pristine
+    wanted = ((data.get("meta") or {}).get("theme") or "").strip()
+    current = project_theme(project)
+    if not wanted or current is None or wanted == current:
+        return []
+    presets = list_presets()
+    if current not in presets:
+        return []          # a custom brand (TOML): theme.css is the source of truth
+    if wanted not in presets:
+        return [f"Unknown theme {wanted!r} in meta.theme; the story keeps the {current!r} "
+                f"look. Available: {', '.join(presets)}. (This will become an error.)"]
+    if not theme_css_is_pristine(project):
+        return [f"meta.theme is {wanted!r} but theme.css has been edited, so it was kept "
+                f"({current!r}). Run `dstory theme {project} {wanted}` to switch anyway."]
+    apply_theme(project, wanted, update_data=False)
+    return [f"Re-themed the project from {current!r} to {wanted!r} (meta.theme)."]
+
+
 def _data_panel_assets() -> tuple[str, str]:
     from importlib import resources
     base = resources.files("dstory.runtime")
     read = lambda name: base.joinpath(name).read_text(encoding="utf-8")  # noqa: E731
     # The explorer reuses the panel's formatting, so it is loaded after it.
-    return (read("data-panel.css") + "\n" + read("explorer.css"),
-            read("data-panel.js") + "\n" + read("explorer.js"))
+    parts = ("data-panel", "explorer", "listen")
+    return ("\n".join(read(f"{p}.css") for p in parts),
+            "\n".join(read(f"{p}.js") for p in parts))
 
 
 def _json_for_script(obj: object) -> str:

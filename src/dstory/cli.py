@@ -100,14 +100,18 @@ def init(slug: str, theme: str, audience: str, mode: str, title: str, overwrite:
 @click.option("--no-check-claims", is_flag=True,
               help="Bundle even when a claim's text contradicts its value.")
 @click.option("--no-a11y-extras", is_flag=True,
-              help="Leave out the Data panel (table + CSV download) under each chart.")
+              help="Leave out the Data panel, chart explorer and Listen button.")
+@click.option("--no-upgrade", is_flag=True,
+              help="Keep the project's story.js / story.css even when they are "
+                   "untouched copies from an older dstory.")
 def bundle(slug: str, no_validate: bool, vendor: bool, no_check_claims: bool,
-           no_a11y_extras: bool) -> None:
+           no_a11y_extras: bool, no_upgrade: bool) -> None:
     """Bundle SLUG into a single self-contained HTML file."""
     try:
         result = bundle_story(slug, validate=not no_validate, vendor=vendor,
                               check_claims=not no_check_claims,
-                              a11y_extras=not no_a11y_extras)
+                              a11y_extras=not no_a11y_extras,
+                              upgrade=not no_upgrade)
     except (FileNotFoundError, ValueError) as e:
         console.print(f"[red]{CROSS} Bundle failed:[/red] {e}")
         sys.exit(1)
@@ -338,6 +342,59 @@ def preview(slug: str, port: int, no_open: bool) -> None:
     except OSError as e:
         console.print(f"[red]{CROSS}[/red] Could not bind port {port}: {e} (try --port)")
         sys.exit(1)
+
+
+@cli.command()
+@click.argument("slug", type=click.Path(exists=True, file_okay=False))
+@click.argument("theme")
+def theme(slug: str, theme: str) -> None:
+    """Re-theme project SLUG with a preset name or a brand TOML file.
+
+    Rewrites theme.css, the page's web fonts and meta.theme in data.json.
+    Scenes and data are untouched. Then run `dstory bundle SLUG`."""
+    from .scaffold import apply_theme
+    try:
+        if theme.endswith(".toml"):
+            brand = Brand.from_toml(theme)
+        elif theme in list_presets():
+            brand = Brand.from_preset(theme)
+        else:
+            raise ValueError(f"Unknown theme {theme!r}. Available: {', '.join(list_presets())}, "
+                             "or a path to a brand .toml file.")
+        if not (Path(slug) / "index.html").exists():
+            raise FileNotFoundError(f"{slug} is not a dstory project (no index.html).")
+        name = apply_theme(slug, brand)
+    except (FileNotFoundError, ValueError) as e:
+        console.print(f"[red]{CROSS} Theme failed:[/red] {e}")
+        sys.exit(1)
+    console.print(f"[green]{CHECK}[/green] {slug} now uses [bold]{name}[/bold]. "
+                  f"Run `dstory bundle {slug}` to rebuild.")
+
+
+@cli.command()
+@click.argument("slug")
+@click.option("--force", is_flag=True,
+              help="Also replace story.js / story.css you edited (backed up to "
+                   ".dstory-backup/ first).")
+def upgrade(slug: str, force: bool) -> None:
+    """Bring project SLUG's story.js and story.css up to this dstory version.
+
+    `dstory bundle` already does this for untouched copies; use this command
+    to see the state, restore a deleted file, or (with --force) replace files
+    you edited."""
+    from .scaffold import runtime_status, upgrade_runtime
+    project = Path(slug)
+    if not (project / "index.html").exists():
+        console.print(f"[red]{CROSS}[/red] {project} is not a dstory project (no index.html).")
+        sys.exit(1)
+    before = runtime_status(project)
+    notes = upgrade_runtime(project, force=force)
+    for name, state in before.items():
+        if state == "current":
+            console.print(f"[green]{CHECK}[/green] {name} is current")
+    for n in notes:
+        mark = f"[yellow]{WARN}[/yellow]" if "kept" in n else f"[green]{CHECK}[/green]"
+        console.print(f"{mark} {n}")
 
 
 @cli.command()

@@ -309,6 +309,25 @@ body.story-mode--slides .progress-rail { display: none; }
   color: var(--ink-soft);
 }
 .scene--scrolly .scene__text { display: flex; flex-direction: column; gap: 0; }
+/* Scene headline + commentary for scrolly and pinned scenes (#28): sits at the
+   top of the text column (scrolly) or above the pinned graphic. */
+.scene__lede { padding-top: 10vh; }
+.scene__lede h2 {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.75rem;
+  text-wrap: balance;
+}
+.scene__lede p {
+  font-size: var(--step-0);
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 42ch;
+  text-wrap: pretty;
+}
+.scene--pinned > .scene__lede { max-width: 56rem; margin: 0 auto; padding: 4rem 1.5rem 2rem; }
 .scene--scrolly .step {
   min-height: 90vh;
   padding: 30vh 0;
@@ -485,6 +504,12 @@ body.story-mode--slides .scene--scrolly .step {
 body.story-mode--slides .scene--scrolly .step.is-active {
   display: block;
 }
+/* The scene lede sits above the active step on a slide (#28). */
+body.story-mode--slides .scene__lede { padding: 0 0 1.5rem; }
+body.story-mode--slides .scene__lede h2 { font-size: var(--step-1); color: var(--ink-soft); }
+body.story-mode--slides .scene--pinned { display: flex; flex-direction: column; }
+body.story-mode--slides .scene--pinned > .scene__lede { padding: 2.5rem 3rem 0; margin: 0; max-width: none; }
+body.story-mode--slides .scene--pinned > .scene__pin { flex: 1 1 0; min-height: 0; height: auto; }
 
 /* Vizzu scenes share the scrolly layout treatment in slides mode. */
 body.story-mode--slides .scene--vizzu .scene__graphic { padding: 0.25rem; }
@@ -605,16 +630,25 @@ body.story-mode--slides .atmosphere--vignette { opacity: 0.5; }
   .scene--pinned .scene__pin { position: static; height: auto; }
   .scene--scrolly .scene__graphic { position: static; height: auto; }
   .scene--scrolly .step { min-height: auto; padding: 1rem 0; opacity: 1; }
+  .scene__lede { padding-top: 0; }
   .scene, .step { break-inside: avoid; }
 }
 
 </style>
-<script>window.__STORY_DATA__ = {"meta": {"title": "Every market cooled after 2021", "subtitle": "", "deck": "", "author": "", "published": "2026-11-10", "theme": "minimal-light", "audience": "general-public", "mode": "scroll", "sources": [{"name": "Illustrative home sales by metro, in thousands (synthetic data)"}], "lang": "en", "dir": "ltr", "description": ""}, "claims": [{"id": "c-trend", "text": "Total homes sold rose 5.9% between 2016 and 2024", "value": 5.9121, "unit": "pct", "scene": "scene-trend"}, {"id": "c-trend-peak", "text": "It peaked in 2021, then fell 21% by 2024.", "value": -20.6361, "unit": "pct", "scene": "scene-trend"}, {"id": "c-shift", "text": "Phoenix rose 14% between 2016 and 2024, the biggest shift of any metro", "value": 13.75, "unit": "pct", "scene": "scene-shift"}, {"id": "c-shift-contrast", "text": "Denver, by contrast, fell 3.8%.", "value": -3.8462, "unit": "pct", "scene": "scene-shift"}], "scenes": [{"id": "scene-trend", "kind": "simple", "headline": "Total homes sold rose 5.9% between 2016 and 2024", "commentary": "It peaked in 2021, then fell 21% by 2024.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "trend", "alt": "Line chart of total homes sold from 2016 to 2024: it goes from 198 to 210, peaking at 264 in 2021.", "width": "default", "chrome": true, "annotation": {"text": "Peak: 264", "x": "2021-01-01", "y": 264.1}, "config": {"x": "year", "y": "homes_sold", "parse": "%Y-%m-%d", "format": ",.0f"}}, {"id": "scene-panels", "kind": "simple", "headline": "Every metro peaked in 2021", "commentary": "Each panel has its own scale, so compare shapes, not heights.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "panels", "alt": "Small multiples, one line chart of homes sold per metro from 2016 to 2024, each on its own scale: Austin goes from 30 to 30; Boise goes from 9 to 9.9; Denver goes from 52 to 50; Fargo goes from 3.1 to 3.4; Phoenix goes from 80 to 91; Reno goes from 6 to 5.8; Spokane goes from 6.8 to 7; Tulsa goes from 11 to 12.5.", "width": "default", "chrome": true, "config": {"x": "year", "series": "metro", "y": "homes_sold", "parse": "%Y-%m-%d", "highlight": [], "format": ",.0f", "scale": "independent"}}, {"id": "scene-shift", "kind": "simple", "headline": "Phoenix rose 14% between 2016 and 2024, the biggest shift of any metro", "commentary": "Denver, by contrast, fell 3.8%.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "shift", "alt": "Dot chart, sorted by change, of homes sold by metro, 2016 versus 2024: Phoenix goes from 80 to 91; Denver goes from 52 to 50.", "width": "default", "chrome": true, "config": {"label": "metro", "start": "start", "end": "end", "start_label": "2016", "end_label": "2024", "highlight": ["Phoenix", "Denver"], "format": ",.1f"}}], "datasets": {"trend": [{"year": "2016-01-01", "homes_sold": 197.9}, {"year": "2017-01-01", "homes_sold": 207.2}, {"year": "2018-01-01", "homes_sold": 214.2}, {"year": "2019-01-01", "homes_sold": 224.4}, {"year": "2020-01-01", "homes_sold": 242.4}, {"year": "2021-01-01", "homes_sold": 264.1}, {"year": "2022-01-01", "homes_sold": 224}, {"year": "2023-01-01", "homes_sold": 203.7}, {"year": "2024-01-01", "homes_sold": 209.6}], "panels": [{"year": "2016-01-01", "metro": "Austin", "homes_sold": 30}, {"year": "2017-01-01", "metro": "Austin", "homes_sold": 32}, {"year": "2018-01-01", "metro": "Austin", "homes_sold": 33}, {"year": "2019-01-01", "metro": "Austin", "homes_sold": 35}, {"year": "2020-01-01", "metro": "Austin", "homes_sold": 38}, {"year": "2021-01-01", "metro": "Austin", "homes_sold": 41}, {"year": "2022-01-01", "metro": "Austin", "homes_sold": 33}, {"year": "2023-01-01", "metro": "Austin", "homes_sold": 29}, {"year": "2024-01-01", "metro": "Austin", "homes_sold": 30}, {"year": "2016-01-01", "metro": "Boise", "homes_sold": 9}, {"year": "2017-01-01", "metro": "Boise", "homes_sold": 9.6}, {"year": "2018-01-01", "metro": "Boise", "homes_sold": 10.2}, {"year": "2019-01-01", "metro": "Boise", "homes_sold": 10.8}, {"year": "2020-01-01", "metro": "Boise", "homes_sold": 11.9}, {"year": "2021-01-01", "metro": "Boise", "homes_sold": 12.6}, {"year": "2022-01-01", "metro": "Boise", "homes_sold": 10.4}, {"year": "2023-01-01", "metro": "Boise", "homes_sold": 9.6}, {"year": "2024-01-01", "metro": "Boise", "homes_sold": 9.9}, {"year": "2016-01-01", "metro": "Denver", "homes_sold": 52}, {"year": "2017-01-01", "metro": "Denver", "homes_sold": 54}, {"year": "2018-01-01", "metro": "Denver", "homes_sold": 55}, {"year": "2019-01-01", "metro": "Denver", "homes_sold": 57}, {"year": "2020-01-01", "metro": "Denver", "homes_sold": 61}, {"year": "2021-01-01", "metro": "Denver", "homes_sold": 66}, {"year": "2022-01-01", "metro": "Denver", "homes_sold": 55}, {"year": "2023-01-01", "metro": "Denver", "homes_sold": 49}, {"year": "2024-01-01", "metro": "Denver", "homes_sold": 50}, {"year": "2016-01-01", "metro": "Fargo", "homes_sold": 3.1}, {"year": "2017-01-01", "metro": "Fargo", "homes_sold": 3.2}, {"year": "2018-01-01", "metro": "Fargo", "homes_sold": 3.2}, {"year": "2019-01-01", "metro": "Fargo", "homes_sold": 3.3}, {"year": "2020-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2021-01-01", "metro": "Fargo", "homes_sold": 3.6}, {"year": "2022-01-01", "metro": "Fargo", "homes_sold": 3.5}, {"year": "2023-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2024-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2016-01-01", "metro": "Phoenix", "homes_sold": 80}, {"year": "2017-01-01", "metro": "Phoenix", "homes_sold": 84}, {"year": "2018-01-01", "metro": "Phoenix", "homes_sold": 88}, {"year": "2019-01-01", "metro": "Phoenix", "homes_sold": 93}, {"year": "2020-01-01", "metro": "Phoenix", "homes_sold": 101}, {"year": "2021-01-01", "metro": "Phoenix", "homes_sold": 112}, {"year": "2022-01-01", "metro": "Phoenix", "homes_sold": 96}, {"year": "2023-01-01", "metro": "Phoenix", "homes_sold": 88}, {"year": "2024-01-01", "metro": "Phoenix", "homes_sold": 91}, {"year": "2016-01-01", "metro": "Reno", "homes_sold": 6}, {"year": "2017-01-01", "metro": "Reno", "homes_sold": 6.2}, {"year": "2018-01-01", "metro": "Reno", "homes_sold": 6.3}, {"year": "2019-01-01", "metro": "Reno", "homes_sold": 6.4}, {"year": "2020-01-01", "metro": "Reno", "homes_sold": 6.9}, {"year": "2021-01-01", "metro": "Reno", "homes_sold": 7.2}, {"year": "2022-01-01", "metro": "Reno", "homes_sold": 6.1}, {"year": "2023-01-01", "metro": "Reno", "homes_sold": 5.6}, {"year": "2024-01-01", "metro": "Reno", "homes_sold": 5.8}, {"year": "2016-01-01", "metro": "Spokane", "homes_sold": 6.8}, {"year": "2017-01-01", "metro": "Spokane", "homes_sold": 7}, {"year": "2018-01-01", "metro": "Spokane", "homes_sold": 7.1}, {"year": "2019-01-01", "metro": "Spokane", "homes_sold": 7.3}, {"year": "2020-01-01", "metro": "Spokane", "homes_sold": 7.8}, {"year": "2021-01-01", "metro": "Spokane", "homes_sold": 8.2}, {"year": "2022-01-01", "metro": "Spokane", "homes_sold": 7.4}, {"year": "2023-01-01", "metro": "Spokane", "homes_sold": 6.9}, {"year": "2024-01-01", "metro": "Spokane", "homes_sold": 7}, {"year": "2016-01-01", "metro": "Tulsa", "homes_sold": 11}, {"year": "2017-01-01", "metro": "Tulsa", "homes_sold": 11.2}, {"year": "2018-01-01", "metro": "Tulsa", "homes_sold": 11.4}, {"year": "2019-01-01", "metro": "Tulsa", "homes_sold": 11.6}, {"year": "2020-01-01", "metro": "Tulsa", "homes_sold": 12.4}, {"year": "2021-01-01", "metro": "Tulsa", "homes_sold": 13.5}, {"year": "2022-01-01", "metro": "Tulsa", "homes_sold": 12.6}, {"year": "2023-01-01", "metro": "Tulsa", "homes_sold": 12.2}, {"year": "2024-01-01", "metro": "Tulsa", "homes_sold": 12.5}], "shift": [{"metro": "Austin", "start": 30, "end": 30}, {"metro": "Boise", "start": 9, "end": 9.9}, {"metro": "Denver", "start": 52, "end": 50}, {"metro": "Fargo", "start": 3.1, "end": 3.4}, {"metro": "Phoenix", "start": 80, "end": 91}, {"metro": "Reno", "start": 6, "end": 5.8}, {"metro": "Spokane", "start": 6.8, "end": 7}, {"metro": "Tulsa", "start": 11, "end": 12.5}]}};</script>
+<script>window.__STORY_DATA__ = {"meta": {"title": "Every market cooled after 2021", "subtitle": "", "deck": "", "author": "", "published": "2026-11-13", "theme": "minimal-light", "audience": "general-public", "mode": "scroll", "sources": [{"name": "Illustrative home sales by metro, in thousands (synthetic data)"}], "lang": "en", "dir": "ltr", "description": ""}, "claims": [{"id": "c-trend", "text": "Total homes sold rose 5.9% between 2016 and 2024", "value": 5.9121, "unit": "pct", "scene": "scene-trend"}, {"id": "c-trend-peak", "text": "It peaked in 2021, then fell 21% by 2024.", "value": -20.6361, "unit": "pct", "scene": "scene-trend"}, {"id": "c-shift", "text": "Phoenix rose 14% between 2016 and 2024, the biggest shift of any metro", "value": 13.75, "unit": "pct", "scene": "scene-shift"}, {"id": "c-shift-contrast", "text": "Denver, by contrast, fell 3.8%.", "value": -3.8462, "unit": "pct", "scene": "scene-shift"}], "scenes": [{"id": "scene-trend", "kind": "simple", "headline": "Total homes sold rose 5.9% between 2016 and 2024", "commentary": "It peaked in 2021, then fell 21% by 2024.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "trend", "alt": "Line chart of total homes sold from 2016 to 2024: it goes from 198 to 210, peaking at 264 in 2021.", "width": "default", "chrome": true, "annotation": {"text": "Peak: 264", "x": "2021-01-01", "y": 264.1}, "config": {"x": "year", "y": "homes_sold", "parse": "%Y-%m-%d", "format": ",.0f"}}, {"id": "scene-panels", "kind": "simple", "headline": "Every metro peaked in 2021", "commentary": "Each panel has its own scale, so compare shapes, not heights.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "panels", "alt": "Small multiples, one line chart of homes sold per metro from 2016 to 2024, each on its own scale: Austin goes from 30 to 30; Boise goes from 9 to 9.9; Denver goes from 52 to 50; Fargo goes from 3.1 to 3.4; Phoenix goes from 80 to 91; Reno goes from 6 to 5.8; Spokane goes from 6.8 to 7; Tulsa goes from 11 to 12.5.", "width": "default", "chrome": true, "config": {"x": "year", "series": "metro", "y": "homes_sold", "parse": "%Y-%m-%d", "highlight": [], "format": ",.0f", "scale": "independent"}}, {"id": "scene-shift", "kind": "simple", "headline": "Phoenix rose 14% between 2016 and 2024, the biggest shift of any metro", "commentary": "Denver, by contrast, fell 3.8%.", "source_line": "Source: Illustrative home sales by metro, in thousands (synthetic data).", "dataset": "shift", "alt": "Dot chart, sorted by change, of homes sold by metro, 2016 versus 2024: Phoenix goes from 80 to 91; Denver goes from 52 to 50.", "width": "default", "chrome": true, "config": {"label": "metro", "start": "start", "end": "end", "start_label": "2016", "end_label": "2024", "highlight": ["Phoenix", "Denver"], "format": ",.1f"}}], "datasets": {"trend": [{"year": "2016-01-01", "homes_sold": 197.9}, {"year": "2017-01-01", "homes_sold": 207.2}, {"year": "2018-01-01", "homes_sold": 214.2}, {"year": "2019-01-01", "homes_sold": 224.4}, {"year": "2020-01-01", "homes_sold": 242.4}, {"year": "2021-01-01", "homes_sold": 264.1}, {"year": "2022-01-01", "homes_sold": 224}, {"year": "2023-01-01", "homes_sold": 203.7}, {"year": "2024-01-01", "homes_sold": 209.6}], "panels": [{"year": "2016-01-01", "metro": "Austin", "homes_sold": 30}, {"year": "2017-01-01", "metro": "Austin", "homes_sold": 32}, {"year": "2018-01-01", "metro": "Austin", "homes_sold": 33}, {"year": "2019-01-01", "metro": "Austin", "homes_sold": 35}, {"year": "2020-01-01", "metro": "Austin", "homes_sold": 38}, {"year": "2021-01-01", "metro": "Austin", "homes_sold": 41}, {"year": "2022-01-01", "metro": "Austin", "homes_sold": 33}, {"year": "2023-01-01", "metro": "Austin", "homes_sold": 29}, {"year": "2024-01-01", "metro": "Austin", "homes_sold": 30}, {"year": "2016-01-01", "metro": "Boise", "homes_sold": 9}, {"year": "2017-01-01", "metro": "Boise", "homes_sold": 9.6}, {"year": "2018-01-01", "metro": "Boise", "homes_sold": 10.2}, {"year": "2019-01-01", "metro": "Boise", "homes_sold": 10.8}, {"year": "2020-01-01", "metro": "Boise", "homes_sold": 11.9}, {"year": "2021-01-01", "metro": "Boise", "homes_sold": 12.6}, {"year": "2022-01-01", "metro": "Boise", "homes_sold": 10.4}, {"year": "2023-01-01", "metro": "Boise", "homes_sold": 9.6}, {"year": "2024-01-01", "metro": "Boise", "homes_sold": 9.9}, {"year": "2016-01-01", "metro": "Denver", "homes_sold": 52}, {"year": "2017-01-01", "metro": "Denver", "homes_sold": 54}, {"year": "2018-01-01", "metro": "Denver", "homes_sold": 55}, {"year": "2019-01-01", "metro": "Denver", "homes_sold": 57}, {"year": "2020-01-01", "metro": "Denver", "homes_sold": 61}, {"year": "2021-01-01", "metro": "Denver", "homes_sold": 66}, {"year": "2022-01-01", "metro": "Denver", "homes_sold": 55}, {"year": "2023-01-01", "metro": "Denver", "homes_sold": 49}, {"year": "2024-01-01", "metro": "Denver", "homes_sold": 50}, {"year": "2016-01-01", "metro": "Fargo", "homes_sold": 3.1}, {"year": "2017-01-01", "metro": "Fargo", "homes_sold": 3.2}, {"year": "2018-01-01", "metro": "Fargo", "homes_sold": 3.2}, {"year": "2019-01-01", "metro": "Fargo", "homes_sold": 3.3}, {"year": "2020-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2021-01-01", "metro": "Fargo", "homes_sold": 3.6}, {"year": "2022-01-01", "metro": "Fargo", "homes_sold": 3.5}, {"year": "2023-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2024-01-01", "metro": "Fargo", "homes_sold": 3.4}, {"year": "2016-01-01", "metro": "Phoenix", "homes_sold": 80}, {"year": "2017-01-01", "metro": "Phoenix", "homes_sold": 84}, {"year": "2018-01-01", "metro": "Phoenix", "homes_sold": 88}, {"year": "2019-01-01", "metro": "Phoenix", "homes_sold": 93}, {"year": "2020-01-01", "metro": "Phoenix", "homes_sold": 101}, {"year": "2021-01-01", "metro": "Phoenix", "homes_sold": 112}, {"year": "2022-01-01", "metro": "Phoenix", "homes_sold": 96}, {"year": "2023-01-01", "metro": "Phoenix", "homes_sold": 88}, {"year": "2024-01-01", "metro": "Phoenix", "homes_sold": 91}, {"year": "2016-01-01", "metro": "Reno", "homes_sold": 6}, {"year": "2017-01-01", "metro": "Reno", "homes_sold": 6.2}, {"year": "2018-01-01", "metro": "Reno", "homes_sold": 6.3}, {"year": "2019-01-01", "metro": "Reno", "homes_sold": 6.4}, {"year": "2020-01-01", "metro": "Reno", "homes_sold": 6.9}, {"year": "2021-01-01", "metro": "Reno", "homes_sold": 7.2}, {"year": "2022-01-01", "metro": "Reno", "homes_sold": 6.1}, {"year": "2023-01-01", "metro": "Reno", "homes_sold": 5.6}, {"year": "2024-01-01", "metro": "Reno", "homes_sold": 5.8}, {"year": "2016-01-01", "metro": "Spokane", "homes_sold": 6.8}, {"year": "2017-01-01", "metro": "Spokane", "homes_sold": 7}, {"year": "2018-01-01", "metro": "Spokane", "homes_sold": 7.1}, {"year": "2019-01-01", "metro": "Spokane", "homes_sold": 7.3}, {"year": "2020-01-01", "metro": "Spokane", "homes_sold": 7.8}, {"year": "2021-01-01", "metro": "Spokane", "homes_sold": 8.2}, {"year": "2022-01-01", "metro": "Spokane", "homes_sold": 7.4}, {"year": "2023-01-01", "metro": "Spokane", "homes_sold": 6.9}, {"year": "2024-01-01", "metro": "Spokane", "homes_sold": 7}, {"year": "2016-01-01", "metro": "Tulsa", "homes_sold": 11}, {"year": "2017-01-01", "metro": "Tulsa", "homes_sold": 11.2}, {"year": "2018-01-01", "metro": "Tulsa", "homes_sold": 11.4}, {"year": "2019-01-01", "metro": "Tulsa", "homes_sold": 11.6}, {"year": "2020-01-01", "metro": "Tulsa", "homes_sold": 12.4}, {"year": "2021-01-01", "metro": "Tulsa", "homes_sold": 13.5}, {"year": "2022-01-01", "metro": "Tulsa", "homes_sold": 12.6}, {"year": "2023-01-01", "metro": "Tulsa", "homes_sold": 12.2}, {"year": "2024-01-01", "metro": "Tulsa", "homes_sold": 12.5}], "shift": [{"metro": "Austin", "start": 30, "end": 30}, {"metro": "Boise", "start": 9, "end": 9.9}, {"metro": "Denver", "start": 52, "end": 50}, {"metro": "Fargo", "start": 3.1, "end": 3.4}, {"metro": "Phoenix", "start": 80, "end": 91}, {"metro": "Reno", "start": 6, "end": 5.8}, {"metro": "Spokane", "start": 6.8, "end": 7}, {"metro": "Tulsa", "start": 11, "end": 12.5}]}};</script>
 <style data-dstory="data-panel">
 /* dstory data panel (see data-panel.js). Quiet by default, like the source
    line; colours inherit from the scene so contrast follows the theme. */
-.scene-data {
+.scene-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.25rem;
   margin: 0.75rem 0 0;
+}
+.scene-tools > .scene-data { flex: 1 1 12rem; min-width: 0; }
+.scene-data {
+  margin: 0;
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: var(--step--1, 0.85rem);
   color: inherit;
@@ -670,13 +704,13 @@ body.story-mode--slides .atmosphere--vignette { opacity: 0.5; }
   text-decoration: none;
 }
 .scene-data__all { display: block; margin-top: 0.6rem; }
-.scene--scrolly > .scene-data, .scene--pinned > .scene-data { grid-column: 1 / -1; }
-.scene--pinned > .scene-data { padding: 0 1.5rem; }
+.scene--scrolly > .scene-tools, .scene--pinned > .scene-tools { grid-column: 1 / -1; }
+.scene--pinned > .scene-tools { padding: 0 1.5rem; }
 
 /* Slides: a small "Data" tab in the slide's corner; open, it floats above
    the chart. Press "t" to toggle it. */
-body.story-mode--slides .scene > .scene-data,
-body.story-mode--slides .scene__bleedinner > .scene-data {
+body.story-mode--slides .scene > .scene-tools,
+body.story-mode--slides .scene__bleedinner > .scene-tools {
   position: absolute;
   top: 1rem;
   right: 1.5rem;
@@ -732,6 +766,25 @@ body.story-mode--slides .scene-data[open] .scene-data__scroll { max-height: 60vh
   padding: 0; box-shadow: none;
 }
 @media print { .scene-explore__live { display: none; } }
+
+/* dstory "Listen" button (see listen.js): as quiet as the Data summary. */
+.scene-listen {
+  flex: none;
+  color: inherit;
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--rule, currentColor) 80%, transparent);
+  border-radius: 999px;
+  padding: 0.15rem 0.7rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--step--1, 0.85rem);
+  line-height: 1.5;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.scene-listen:hover, .scene-listen[aria-pressed="true"] { opacity: 1; border-color: var(--accent, currentColor); }
+.scene-listen[aria-pressed="true"] { color: var(--accent, currentColor); }
+.scene-listen:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 3px; }
+@media print { .scene-listen { display: none; } }
 
 </style>
 <meta property="og:title" content="Every market cooled after 2021">
@@ -1385,10 +1438,22 @@ function buildCustomScene(scene) {
   return wrap;
 }
 
+// The scene's own headline and commentary, for kinds whose body is steps or a
+// pinned graphic. Without this, scrolly and pinned scenes dropped them (#28).
+function sceneLede(scene) {
+  if (scene.chrome === false || !(scene.headline || scene.commentary)) return null;
+  const lede = el("header", { class: "scene__lede" });
+  if (scene.headline) lede.append(el("h2", {}, scene.headline));
+  if (scene.commentary) lede.append(el("p", {}, scene.commentary));
+  return lede;
+}
+
 function buildScrollyScene(scene) {
   const wrap = el("section", { class: "scene scene--scrolly", "data-scene": scene.id, id: scene.id });
   wrap.append(el("div", { class: "scene__graphic", "data-mount": scene.id }));
   const text = el("div", { class: "scene__text" });
+  const lede = sceneLede(scene);
+  if (lede) text.append(lede);
   (scene.steps || []).forEach((step, i) => {
     const s = el("div", { class: "step", "data-step": String(i) });
     s.append(el("h3", {}, step.headline || ""));
@@ -1412,6 +1477,8 @@ function buildBleedScene(scene) {
 
 function buildPinnedScene(scene) {
   const wrap = el("section", { class: "scene scene--pinned", "data-scene": scene.id, id: scene.id });
+  const lede = sceneLede(scene);
+  if (lede) wrap.append(lede);
   const pin = el("div", { class: "scene__pin", "data-mount": scene.id });
   wrap.append(pin);
   if (scene.source_line) wrap.append(el("p", { class: "scene__source" }, scene.source_line));
@@ -1795,6 +1862,15 @@ function setupSlidesController(builtScenes, data) {
     syncHash();
   }
 
+  // A scene controller that arrived late (Vizzu): if its slide is showing,
+  // apply the current step now.
+  const ready = (entry) => {
+    const cur = slides[current];
+    if (cur?.kind === "scene" && cur.sceneEntry === entry && entry.ctrl?.onStep) {
+      entry.ctrl.onStep(cur.stepIdx, "down");
+    }
+  };
+
   // Trigger first slide's chart state if applicable.
   const first = slides[0];
   if (first?.kind === "scene") {
@@ -1842,6 +1918,7 @@ function setupSlidesController(builtScenes, data) {
     const idx = Math.min(slides.length - 1, Math.max(0, parseInt(hashMatch[1], 10) - 1));
     if (idx > 0) show(idx, "forward");
   }
+  return { ready };
 }
 
 async function init() {
@@ -1884,6 +1961,7 @@ async function init() {
   // library + WASM (CDN, up to a 4 s timeout offline), so they initialise in
   // parallel and never hold back the charts that follow them.
   const pending = [];
+  let deck = null;   // the slides controller, once it exists
   for (const entry of built) {
     const s = entry.scene;
     try {
@@ -1893,7 +1971,7 @@ async function init() {
       else if (s.kind === "vizzu") {
         pending.push(
           activateVizzuScene(entry.node, s, data, slidesMode)
-            .then(ctrl => { entry.ctrl = ctrl; })
+            .then(ctrl => { entry.ctrl = ctrl; if (deck) deck.ready(entry); })
             .catch(err => reportFailure(s, err))
         );
       }
@@ -1904,10 +1982,12 @@ async function init() {
     }
   }
 
-  // The slides controller drives each scene's ctrl, so it needs the Vizzu
-  // controllers too. Non-Vizzu slides are already painted meanwhile.
+  // The deck is navigable now, whatever Vizzu is doing: a Vizzu scene's
+  // controller is handed to the deck when it arrives (deck.ready), and a
+  // slide whose controller is still loading just shows without its frame.
+  // Offline, a Vizzu slide stays inert, as documented.
+  if (slidesMode) deck = setupSlidesController(built, data);
   await Promise.all(pending);
-  if (slidesMode) setupSlidesController(built, data);
 }
 
 // Defer init until DOMContentLoaded so all `<script defer>` scenes have had
@@ -2389,15 +2469,30 @@ STORY.register("scene-shift", function draw(mount, data, scene) {
     return details;
   }
 
-  function place(scene, section, panel) {
-    if (scene.kind === "custom") {
-      // A custom renderer owns its whole <section>: sit after it, never inside.
-      if (slides()) return false;
-      section.after(panel);
-      return true;
+  // One row of reader tools per scene ("Listen", "Data"), placed under the
+  // chart. Shared with the explorer's Listen button (explorer.js).
+  function toolsFor(scene, section) {
+    const sel = `[data-scene-tools="${CSS.escape(scene.id)}"]`;
+    const found = document.querySelector(sel);
+    if (found) return found;
+    // A custom renderer owns its whole <section>: sit after it, never inside
+    // (and not at all in slides, where the section is the slide).
+    if (scene.kind === "custom" && slides()) return null;
+    const tools = h("div", { class: "scene-tools", "data-scene-tools": scene.id });
+    // In slides mode a click anywhere advances the deck; the tools are not "anywhere".
+    tools.addEventListener("click", e => e.stopPropagation());
+    if (scene.kind === "custom") section.after(tools);
+    else {
+      const inner = scene.kind === "bleed" ? section.querySelector(".scene__bleedinner") : null;
+      (inner || section).append(tools);
     }
-    const inner = scene.kind === "bleed" ? section.querySelector(".scene__bleedinner") : null;
-    (inner || section).append(panel);
+    return tools;
+  }
+
+  function place(scene, section, panel) {
+    const tools = toolsFor(scene, section);
+    if (!tools) return false;
+    tools.append(panel);
     return true;
   }
 
@@ -2440,7 +2535,7 @@ STORY.register("scene-shift", function draw(mount, data, scene) {
   window.addEventListener("afterprint", () => { while (reopened.length) reopened.pop().open = false; });
 
   window.__DSTORY_DATA_PANEL__ = {
-    MAX_ROWS, attached, option, fmt, csvRow, csvCell, columnsOf, rowsOf, rawColumns, cellText,
+    MAX_ROWS, attached, option, fmt, csvRow, csvCell, columnsOf, rowsOf, rawColumns, cellText, toolsFor,
     expected: (scene) => {
       const data = dataOf();
       return { table: option(data, scene, "table"), download: option(data, scene, "download"),
@@ -2625,7 +2720,10 @@ STORY.register("scene-shift", function draw(mount, data, scene) {
     const keys = roles.series && groups.length > 1
       ? "Left and right arrows step through the points, up and down switch series"
       : "Arrow keys step through the data";
-    return `${headlineOf(scene)}. ${parts.join("; ")}. ${keys}; Escape leaves the chart.`;
+    const L = window.__DSTORY_LISTEN__;
+    const listen = L && L.available(scene) ? (roles.series && groups.length > 1
+      ? "; L plays this series as sound" : "; L plays the chart as sound") : "";
+    return `${headlineOf(scene)}. ${parts.join("; ")}. ${keys}${listen}; Escape leaves the chart.`;
   }
 
   // ---- the live region ---------------------------------------------------
@@ -2706,6 +2804,14 @@ STORY.register("scene-shift", function draw(mount, data, scene) {
       }
       case "Enter": say(summaryText(st.scene, st.rows, st.roles, st.groups)); e.preventDefault(); e.stopPropagation(); return;
       case "Escape": mount.blur(); e.preventDefault(); e.stopPropagation(); return;
+      case "l":
+      case "L": {
+        const L = window.__DSTORY_LISTEN__;
+        if (!L || !L.available(st.scene)) { handled = false; break; }
+        L.toggle(st.scene.id, st.groups.length > 1 ? st.g : null);
+        e.preventDefault(); e.stopPropagation();
+        return;
+      }
       default: handled = false;
     }
     if (!handled) return;
@@ -2741,7 +2847,7 @@ STORY.register("scene-shift", function draw(mount, data, scene) {
   }
 
   window.__DSTORY_EXPLORER__ = {
-    attached, rolesOf, groupsOf, pointText, summaryText,
+    attached, rolesOf, groupsOf, pointText, summaryText, groupSummary, say,
     expected: (scene) => !!(scene && scene.kind !== "custom" && opt(dataOf(), scene, "explorer")),
     // For tests and the vetter: what the explorer says for a scene's point.
     describe: (sceneId, g, k) => {
@@ -2751,6 +2857,216 @@ STORY.register("scene-shift", function draw(mount, data, scene) {
       return k == null ? summaryText(st.scene, st.rows, st.roles, st.groups)
         : pointText(st.rows, st.roles, st.groups[g], k);
     },
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
+})();
+
+// dstory "Listen": hear a chart's shape. Web Audio, no library.
+//
+// Injected by `dstory bundle` after the data panel and the explorer, whose
+// column roles it reuses. Under every chart with a numeric series sits a
+// "Listen" button: each series plays as a run of short tones, pitch rising
+// with the value (two octaves, low to high) and panning left to right as it
+// goes. Series play one after another, each announced first through the
+// explorer's aria-live region ("West, 6 points, from 100 to 171, rising").
+// Nothing ever plays until a reader asks. With a chart focused, "L" plays
+// the current series.
+//
+// Turn it off with "a11y": {"sonify": false} in meta or a scene, or for the
+// whole bundle with `dstory bundle my-story --no-a11y-extras`.
+(() => {
+  "use strict";
+  if (window.__DSTORY_LISTEN__) return;
+  const panel = () => window.__DSTORY_DATA_PANEL__;
+  const ex = () => window.__DSTORY_EXPLORER__;
+  const dataOf = () => window.__STORY_DATA__ || null;
+  const attached = {};
+
+  const LOW_HZ = 220, OCTAVES = 2;          // A3 .. A5
+  const SERIES_GAP = 0.6;                   // seconds of silence between series
+  const LEAD_IN = 0.08;
+
+  // ---- the plan: what plays, when (pure; the vetter and tests read it) ----
+  function planFor(scene, only) {
+    const P = panel(), E = ex();
+    if (!P || !E) return null;
+    const data = dataOf();
+    const rows = P.rowsOf(data, scene);
+    if (!rows) return null;
+    const roles = E.rolesOf(rows, P.columnsOf(rows, scene), scene);
+    const p = roles.primary;
+    if (!p) return null;
+    let groups = E.groupsOf(rows, roles);
+    const all = groups;
+    const vals = rows.map(r => (r ? r[p] : null)).filter(v => typeof v === "number" && isFinite(v));
+    if (!vals.length) return null;
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const freqOf = (v) => LOW_HZ * Math.pow(2, OCTAVES * (hi === lo ? 0.5 : (v - lo) / (hi - lo)));
+    if (only != null && groups[only]) groups = [groups[only]];
+    // A scatter (x and y both numbers, no ordered name) plays left to right
+    // along x, not in row order.
+    const cfg = (scene && typeof scene.config === "object" && scene.config) || {};
+    const xcol = roles.measures.length > 1 && roles.measures[0] !== p
+      && roles.measures[0] === (cfg.x || "x") && !roles.ordered ? roles.measures[0] : null;
+    if (xcol) {
+      const xv = (i) => (rows[i] && typeof rows[i][xcol] === "number" ? rows[i][xcol] : Infinity);
+      groups = groups.map(g => ({ key: g.key, idx: g.idx.slice().sort((a, b) => xv(a) - xv(b)) }));
+    }
+    const series = [];
+    let t = LEAD_IN;
+    for (const g of groups) {
+      const n = g.idx.length;
+      const step = Math.min(0.3, Math.max(0.09, 3.2 / n));   // ~3 s per series, clamped
+      const notes = [];
+      g.idx.forEach((ri, k) => {
+        const v = rows[ri] ? rows[ri][p] : null;
+        if (typeof v !== "number" || !isFinite(v)) return;      // a gap stays silent
+        notes.push({ t: t + k * step, dur: step * 0.8, freq: freqOf(v),
+                     pan: n > 1 ? -0.8 + 1.6 * (k / (n - 1)) : 0, value: v, row: ri });
+      });
+      series.push({ key: g.key, start: t, end: t + n * step,
+                    says: E.groupSummary(rows, roles, g), notes });
+      t += n * step + SERIES_GAP;
+    }
+    return { scene: scene.id, measure: p, low: lo, high: hi, series,
+             duration: t - SERIES_GAP, groups: all.length };
+  }
+
+  // ---- playback --------------------------------------------------------
+  let playing = null;    // { ctx, timers, button, sceneId }
+  const AC = () => window.AudioContext || window.webkitAudioContext;
+
+  function stop() {
+    if (!playing) return;
+    const cur = playing;
+    playing = null;
+    cur.timers.forEach(clearTimeout);
+    const live = document.getElementById("dstory-explore-live");
+    const focused = document.activeElement && document.activeElement.hasAttribute
+      && document.activeElement.hasAttribute("data-explore");
+    if (live && !focused) live.classList.remove("is-visible");
+    try { cur.ctx.close(); } catch (e) { /* already closed */ }
+    if (cur.button) setIdle(cur.button);
+  }
+
+  function play(sceneId, only) {
+    stop();
+    const data = dataOf();
+    const scene = data && (data.scenes || []).find(s => s && s.id === sceneId);
+    const plan = scene && planFor(scene, only);
+    const Ctx = AC();
+    if (!plan || !Ctx) return null;
+    const ctx = new Ctx();
+    const master = ctx.createGain();
+    master.gain.value = 0.22;
+    master.connect(ctx.destination);
+    const t0 = ctx.currentTime;
+    let oscillators = 0;
+    for (const s of plan.series) {
+      for (const n of s.notes) {
+        const osc = ctx.createOscillator();
+        osc.type = "triangle";
+        osc.frequency.value = n.freq;
+        const env = ctx.createGain();
+        const at = t0 + n.t, end = at + n.dur;
+        env.gain.setValueAtTime(0, at);
+        env.gain.linearRampToValueAtTime(1, at + 0.012);          // no clicks
+        env.gain.setValueAtTime(1, Math.max(at + 0.012, end - 0.04));
+        env.gain.linearRampToValueAtTime(0, end);
+        let node = osc.connect(env);
+        if (ctx.createStereoPanner) {
+          const pan = ctx.createStereoPanner();
+          pan.pan.value = n.pan;
+          node = env.connect(pan);
+        } else node = env;
+        node.connect(master);
+        osc.start(at);
+        osc.stop(end + 0.02);
+        oscillators += 1;
+      }
+    }
+    const button = document.querySelector(`[data-listen="${CSS.escape(sceneId)}"]`);
+    // The announcements also show on screen while the chart plays.
+    const live = () => document.getElementById("dstory-explore-live");
+    const say = (text) => {
+      if (ex() && ex().say) ex().say(text);
+      if (live()) live().classList.add("is-visible");
+    };
+    const timers = plan.series.map(s => setTimeout(() => say(s.says), Math.max(0, s.start * 1000 - 60)));
+    timers.push(setTimeout(stop, (plan.duration + 0.25) * 1000));
+    playing = { ctx, timers, button, sceneId };
+    if (button) setPlaying(button);
+    return { oscillators, duration: plan.duration };
+  }
+
+  function toggle(sceneId, only) {
+    if (playing && playing.sceneId === sceneId) { stop(); return null; }
+    return play(sceneId, only);
+  }
+
+  // ---- the button --------------------------------------------------------
+  const headlineOf = (s) => s.headline
+    || (s.steps && s.steps[0] && s.steps[0].headline)
+    || (s.frames && s.frames[0] && s.frames[0].headline) || s.id;
+  function setIdle(b) {
+    b.textContent = "▶ Listen";
+    b.setAttribute("aria-pressed", "false");
+  }
+  function setPlaying(b) {
+    b.textContent = "■ Stop";
+    b.setAttribute("aria-pressed", "true");
+  }
+
+  const available = (scene) => {
+    const P = panel();
+    if (!P || !AC() || !scene || !P.option(dataOf(), scene, "sonify")) return false;
+    const plan = planFor(scene);
+    return !!(plan && plan.series.some(s => s.notes.length > 1));
+  };
+
+  function attachAll() {
+    const data = dataOf(), P = panel();
+    if (!data || !Array.isArray(data.scenes) || !P || !ex()) return true;
+    let done = true;
+    for (const scene of data.scenes) {
+      if (!scene || !scene.id || attached[scene.id] !== undefined) continue;
+      if (!available(scene)) { attached[scene.id] = null; continue; }
+      const section = document.getElementById(scene.id);
+      if (!section || !section.matches("[data-scene]")) { done = false; continue; }
+      const tools = P.toolsFor(scene, section);
+      if (!tools) { attached[scene.id] = null; continue; }
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "scene-listen";
+      b.setAttribute("data-listen", scene.id);
+      b.setAttribute("aria-label", `Listen to the chart: ${headlineOf(scene)}`);
+      setIdle(b);
+      b.addEventListener("click", () => toggle(scene.id, null));
+      tools.prepend(b);
+      attached[scene.id] = b;
+    }
+    return done;
+  }
+
+  function start() {
+    if (attachAll()) return;
+    const obs = new MutationObserver(() => { if (attachAll()) obs.disconnect(); });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => obs.disconnect(), 15000);
+  }
+  // Capture phase: the explorer stops Escape from bubbling once it has used it.
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") stop(); }, true);
+  window.addEventListener("pagehide", stop);
+
+  window.__DSTORY_LISTEN__ = {
+    attached, plan: (sceneId, only) => {
+      const s = dataOf() && (dataOf().scenes || []).find(x => x && x.id === sceneId);
+      return s ? planFor(s, only) : null;
+    },
+    play, stop, toggle, available,
+    expected: (scene) => available(scene),
+    get playing() { return playing ? playing.sceneId : null; },
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
   else start();

@@ -228,6 +228,25 @@ body.story-mode--slides .progress-rail { display: none; }
   color: var(--ink-soft);
 }
 .scene--scrolly .scene__text { display: flex; flex-direction: column; gap: 0; }
+/* Scene headline + commentary for scrolly and pinned scenes (#28): sits at the
+   top of the text column (scrolly) or above the pinned graphic. */
+.scene__lede { padding-top: 10vh; }
+.scene__lede h2 {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.75rem;
+  text-wrap: balance;
+}
+.scene__lede p {
+  font-size: var(--step-0);
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 42ch;
+  text-wrap: pretty;
+}
+.scene--pinned > .scene__lede { max-width: 56rem; margin: 0 auto; padding: 4rem 1.5rem 2rem; }
 .scene--scrolly .step {
   min-height: 90vh;
   padding: 30vh 0;
@@ -404,6 +423,12 @@ body.story-mode--slides .scene--scrolly .step {
 body.story-mode--slides .scene--scrolly .step.is-active {
   display: block;
 }
+/* The scene lede sits above the active step on a slide (#28). */
+body.story-mode--slides .scene__lede { padding: 0 0 1.5rem; }
+body.story-mode--slides .scene__lede h2 { font-size: var(--step-1); color: var(--ink-soft); }
+body.story-mode--slides .scene--pinned { display: flex; flex-direction: column; }
+body.story-mode--slides .scene--pinned > .scene__lede { padding: 2.5rem 3rem 0; margin: 0; max-width: none; }
+body.story-mode--slides .scene--pinned > .scene__pin { flex: 1 1 0; min-height: 0; height: auto; }
 
 /* Vizzu scenes share the scrolly layout treatment in slides mode. */
 body.story-mode--slides .scene--vizzu .scene__graphic { padding: 0.25rem; }
@@ -524,5 +549,6 @@ body.story-mode--slides .atmosphere--vignette { opacity: 0.5; }
   .scene--pinned .scene__pin { position: static; height: auto; }
   .scene--scrolly .scene__graphic { position: static; height: auto; }
   .scene--scrolly .step { min-height: auto; padding: 1rem 0; opacity: 1; }
+  .scene__lede { padding-top: 0; }
   .scene, .step { break-inside: avoid; }
 }

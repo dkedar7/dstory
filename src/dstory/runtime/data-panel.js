@@ -160,15 +160,30 @@
     return details;
   }
 
-  function place(scene, section, panel) {
-    if (scene.kind === "custom") {
-      // A custom renderer owns its whole <section>: sit after it, never inside.
-      if (slides()) return false;
-      section.after(panel);
-      return true;
+  // One row of reader tools per scene ("Listen", "Data"), placed under the
+  // chart. Shared with the explorer's Listen button (explorer.js).
+  function toolsFor(scene, section) {
+    const sel = `[data-scene-tools="${CSS.escape(scene.id)}"]`;
+    const found = document.querySelector(sel);
+    if (found) return found;
+    // A custom renderer owns its whole <section>: sit after it, never inside
+    // (and not at all in slides, where the section is the slide).
+    if (scene.kind === "custom" && slides()) return null;
+    const tools = h("div", { class: "scene-tools", "data-scene-tools": scene.id });
+    // In slides mode a click anywhere advances the deck; the tools are not "anywhere".
+    tools.addEventListener("click", e => e.stopPropagation());
+    if (scene.kind === "custom") section.after(tools);
+    else {
+      const inner = scene.kind === "bleed" ? section.querySelector(".scene__bleedinner") : null;
+      (inner || section).append(tools);
     }
-    const inner = scene.kind === "bleed" ? section.querySelector(".scene__bleedinner") : null;
-    (inner || section).append(panel);
+    return tools;
+  }
+
+  function place(scene, section, panel) {
+    const tools = toolsFor(scene, section);
+    if (!tools) return false;
+    tools.append(panel);
     return true;
   }
 
@@ -211,7 +226,7 @@
   window.addEventListener("afterprint", () => { while (reopened.length) reopened.pop().open = false; });
 
   window.__DSTORY_DATA_PANEL__ = {
-    MAX_ROWS, attached, option, fmt, csvRow, csvCell, columnsOf, rowsOf, rawColumns, cellText,
+    MAX_ROWS, attached, option, fmt, csvRow, csvCell, columnsOf, rowsOf, rawColumns, cellText, toolsFor,
     expected: (scene) => {
       const data = dataOf();
       return { table: option(data, scene, "table"), download: option(data, scene, "download"),

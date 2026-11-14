@@ -287,6 +287,146 @@ def init(
     return dest
 
 
+def project_theme(project: str | Path) -> str | None:
+    """The theme a project currently looks like: index.html's data-theme."""
+    index = Path(project) / "index.html"
+    if not index.exists():
+        return None
+    m = re.search(r'<html\b[^>]*\bdata-theme="([^"]*)"', index.read_text(encoding="utf-8"))
+    return m.group(1) if m else None
+
+
+def theme_css_is_pristine(project: str | Path) -> bool:
+    """True when theme.css is exactly what its preset generates (nobody has
+    edited it, and it did not come from a brand TOML)."""
+    from .brand import list_presets
+    project = Path(project)
+    current = project_theme(project)
+    css = project / "theme.css"
+    if current not in list_presets() or not css.exists():
+        return False
+    norm = lambda t: t.replace("\r\n", "\n").strip()  # noqa: E731
+    return norm(css.read_text(encoding="utf-8")) == norm(Brand.from_preset(current).css())
+
+
+def apply_theme(project: str | Path, brand: Brand | str, *, update_data: bool = True) -> str:
+    """Re-theme an existing project: rewrite theme.css, the <html data-theme>
+    attribute and the web-font link from a preset name or Brand. With
+    update_data, meta.theme in data.json is set to match. Returns the slug.
+
+    Scenes, data and story.css are left alone (a brand's extra_css or
+    wordmark is not re-applied; re-run init(..., merge=True) for those)."""
+    project = Path(project)
+    if isinstance(brand, str):
+        brand = Brand.from_preset(brand)
+    slug = _slugify(brand.name) if brand.name else "custom"
+    (project / "theme.css").write_text(brand.css(), encoding="utf-8")
+    index = project / "index.html"
+    html = index.read_text(encoding="utf-8")
+    html = re.sub(r'data-theme="[^"]*"', f'data-theme="{slug}"', html, count=1)
+    html = _patch_html_google_fonts(html, brand)
+    index.write_text(html, encoding="utf-8")
+    data_path = project / "data.json"
+    if update_data and data_path.exists():
+        data = json.loads(data_path.read_text(encoding="utf-8"))
+        data.setdefault("meta", {})["theme"] = slug
+        data_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    return slug
+
+
+# ---------- keeping a project's runtime current ----------
+#
+# `init` copies story.js and story.css into the project, so a fix to either
+# never reached a project made with an older dstory. These helpers tell an
+# untouched copy from an older release (safe to refresh) from one the author
+# edited (kept unless forced, and then backed up first).
+
+RUNTIME_FILES = ("story.js", "story.css")
+_BRAND_EXTRAS = "/* --- brand extras:"
+
+
+def _runtime_hash(text: str) -> str:
+    import hashlib
+    return hashlib.sha256(text.replace("\r\n", "\n").encode("utf-8")).hexdigest()[:16]
+
+
+def _split_brand_extras(css: str) -> tuple[str, str]:
+    """story.css may end with a brand's extra_css block; split it off."""
+    css = css.replace("\r\n", "\n")
+    i = css.find(_BRAND_EXTRAS)
+    if i < 0:
+        return css, ""
+    base = css[:i]
+    if base.endswith("\n\n"):
+        base = base[:-2]
+    return base, "\n\n" + css[i:]
+
+
+def _packaged_runtime(name: str) -> str:
+    return (files(PACKAGE_TEMPLATES) / name).read_text(encoding="utf-8")
+
+
+def runtime_status(project: str | Path) -> dict[str, str]:
+    """For each runtime file: "current", "stale" (an untouched copy from an
+    older dstory release), "edited" (matches no release) or "missing"."""
+    from ._runtime_history import KNOWN
+    project = Path(project)
+    out: dict[str, str] = {}
+    for name in RUNTIME_FILES:
+        path = project / name
+        if not path.exists():
+            out[name] = "missing"
+            continue
+        text = path.read_text(encoding="utf-8")
+        if name == "story.css":
+            text = _split_brand_extras(text)[0]
+        h = _runtime_hash(text)
+        if h == _runtime_hash(_packaged_runtime(name)):
+            out[name] = "current"
+        elif h in KNOWN.get(name, ()):
+            out[name] = "stale"
+        else:
+            out[name] = "edited"
+    return out
+
+
+def upgrade_runtime(project: str | Path, *, force: bool = False,
+                    restore_missing: bool = True) -> list[str]:
+    """Bring a project's story.js / story.css up to this dstory version.
+
+    Untouched copies from older releases are replaced (story.css keeps any
+    brand extras appended to it). Edited files are kept and reported, unless
+    `force`, which first saves them to .dstory-backup/. Returns one note per
+    file changed or kept."""
+    import time
+    project = Path(project)
+    notes: list[str] = []
+    for name, state in runtime_status(project).items():
+        if state == "current" or (state == "missing" and not restore_missing):
+            continue
+        path = project / name
+        if state == "edited" and not force:
+            notes.append(f"{name} was edited, so it was kept at its old version. "
+                         f"Run `dstory upgrade {project.name} --force` to replace it "
+                         "(your copy is backed up first).")
+            continue
+        new = _packaged_runtime(name)
+        if state in ("edited", "stale") and name == "story.css":
+            new += _split_brand_extras(path.read_text(encoding="utf-8"))[1]
+        if state == "edited":
+            backup = project / ".dstory-backup" / f"{name}.{time.strftime('%Y%m%d-%H%M%S')}"
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, backup)
+            notes.append(f"Replaced edited {name}; your copy is in "
+                         f"{backup.relative_to(project).as_posix()}.")
+        elif state == "stale":
+            notes.append(f"Updated {name} to this dstory version.")
+        else:
+            notes.append(f"Restored missing {name}.")
+        path.write_text(new, encoding="utf-8")
+    return notes
+
+
 def _slugify(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 

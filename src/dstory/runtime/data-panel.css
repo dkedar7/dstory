@@ -1,7 +1,15 @@
 /* dstory data panel (see data-panel.js). Quiet by default, like the source
    line; colours inherit from the scene so contrast follows the theme. */
-.scene-data {
+.scene-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.25rem;
   margin: 0.75rem 0 0;
+}
+.scene-tools > .scene-data { flex: 1 1 12rem; min-width: 0; }
+.scene-data {
+  margin: 0;
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: var(--step--1, 0.85rem);
   color: inherit;
@@ -57,13 +65,13 @@
   text-decoration: none;
 }
 .scene-data__all { display: block; margin-top: 0.6rem; }
-.scene--scrolly > .scene-data, .scene--pinned > .scene-data { grid-column: 1 / -1; }
-.scene--pinned > .scene-data { padding: 0 1.5rem; }
+.scene--scrolly > .scene-tools, .scene--pinned > .scene-tools { grid-column: 1 / -1; }
+.scene--pinned > .scene-tools { padding: 0 1.5rem; }
 
 /* Slides: a small "Data" tab in the slide's corner; open, it floats above
    the chart. Press "t" to toggle it. */
-body.story-mode--slides .scene > .scene-data,
-body.story-mode--slides .scene__bleedinner > .scene-data {
+body.story-mode--slides .scene > .scene-tools,
+body.story-mode--slides .scene__bleedinner > .scene-tools {
   position: absolute;
   top: 1rem;
   right: 1.5rem;

@@ -10,6 +10,24 @@
 
 `dstory` is the deterministic infrastructure for data stories: a one-call builder, a single-file bundler, a 5-dimension vetter (renders / data fidelity / editorial integrity / visual / a11y), a brand system for your colors and typography, and pydantic schemas that surface authoring bugs at build time instead of delivery time.
 
+## In 30 seconds
+
+```bash
+pip install "dstory[all]" && playwright install chromium
+dstory draft sales.csv            # -> sales/dist/story.html
+```
+
+or, in a notebook, `dstory.build(pd.read_csv("sales.csv"), "sales")`.
+
+You get one HTML file to email or host (`--vendor` also inlines the chart
+libraries, so it works with no network). It picks the charts and writes the
+headlines from your numbers, and every number in the prose is checked against
+the data before the file is written. Every chart comes with a data table, a
+CSV download, a keyboard explorer for screen readers, and a Listen button.
+Add `--mode slides` for a deck. Then edit `sales/data.json` and run
+`dstory bundle sales` to make it yours. The rest of this page covers authoring
+by hand.
+
 ## Who is this for?
 
 - **Python data scientists (no JS):** animated chart sequences via declarative [Vizzu](#vizzu-scenes-no-javascript) scenes, plus a [cookbook](#the-cookbook) of finished D3 charts you copy and own. DataFrame → story.html in one notebook cell.
@@ -223,7 +241,15 @@ dstory bundle my-story --vendor
 dstory vet my-story/dist/story.html --data my-story/data.json
 ```
 
-Other commands: `dstory draft data.csv` (a vetted story from a data file, zero config), `dstory themes` (the 8 brand presets), `dstory recipes` (the cookbook), `dstory --help`.
+Other commands: `dstory draft data.csv` (a vetted story from a data file, zero config), `dstory themes` (the 8 brand presets), `dstory theme my-story warm-print` (re-theme a project), `dstory upgrade my-story` (bring a project's runtime up to date), `dstory recipes` (the cookbook), `dstory --help`.
+
+**Upgrading dstory upgrades your projects.** A project keeps its own copy of
+`story.js` and `story.css`. After `pip install -U dstory`, the next
+`dstory bundle` replaces copies you never touched with the new version, so
+fixes reach stories you made months ago. A copy you edited is kept, and the
+bundle tells you so; `dstory upgrade my-story --force` replaces it after saving
+yours to `.dstory-backup/`. `--no-upgrade` on `dstory bundle` (or
+`upgrade=False` in `bundle()`) keeps everything as it is.
 
 ## Claims that can't drift from the data
 
@@ -248,6 +274,13 @@ write it (`ClaimDriftError`; opt out with `check_claims=False` /
 (`"unit": "ratio"` or `"pct"`), so a 3.4× ratio is never printed as "3.4%" and a
 +2% change is never called "doubled". For a plain float, pass
 `kind="ratio"` or `kind="pct"`.
+
+A claim is only as good as the words the reader sees, so the vetter also checks
+the prose around it. Give a claim a `scene` and every "doubled"…"quintupled" or
+"N-fold" in that scene's headline, commentary, steps or alt text must fit one of
+its claims. Edit the headline to "quintupled" and forget the claim, and the
+build stops. A registered claim whose text appears in no reader-facing prose is
+flagged too.
 
 ## How is this different from…?
 
@@ -296,6 +329,12 @@ brand = Brand.from_toml("acme-brand.toml")     # or .from_preset("editorial-noir
 init("acme-story", brand=brand)
 ```
 
+To re-theme an existing project, set `meta.theme` in `data.json` and run
+`dstory bundle` (it switches when `theme.css` is still the stock preset, and
+warns, keeping your edits, when it isn't), or run `dstory theme my-story warm-print`
+(or a brand `.toml`) to switch outright. An unknown name in `meta.theme` gets a
+warning that lists the presets.
+
 The 8 bundled presets:
 
 | Name | Vibe |
@@ -314,9 +353,11 @@ The 8 bundled presets:
 A `data.json` story is composed of scenes; each declares its `kind`:
 
 - `simple` — single chart-driven moment (headline + commentary + chart mount)
-- `scrolly` — sticky chart + stepping text; chart morphs on each step (custom D3 logic)
+- `scrolly` — sticky chart + stepping text; chart morphs on each step (custom D3 logic). The scene's own `headline` and `commentary` open the text column, above the steps.
 - `bleed` — full-viewport cinematic moment
-- `pinned` — central object pinned for one scroll-section, transformed by scroll progress
+- `pinned` — central object pinned for one scroll-section, transformed by scroll progress. The scene's `headline` and `commentary` sit above it.
+
+Every kind except `custom` shows the scene `headline` and `commentary` you write; `"chrome": false` hides them (and the source line) on `simple`, `scrolly` and `pinned` scenes. The vetter grades only text a reader can see, so hidden text is never scored or blocked on.
 - `vizzu` — animated data pivots declared as `frames[]`; supports rectangle/circle/line/area geometries × cartesian/polar coordinates × all channel combos. See [`references/vizzu-chart-gallery.md`](src/dstory/references/vizzu-chart-gallery.md) for the 40+ chart types this enables.
 - `custom` — chrome-free; the renderer owns the entire `<section>` mount. Use for kinetic typography, embedded interactives, full-bleed magazine layouts, anything the four-h2-then-mount pattern doesn't fit.
 
@@ -372,7 +413,7 @@ opens each story in Chromium and checks that every table and CSV matches
 Tune it in `data.json`:
 
 ```json
-"meta":   {"a11y": {"table": true, "download": false, "explorer": true}},
+"meta":   {"a11y": {"table": true, "download": false, "explorer": true, "sonify": true}},
 "scenes": [{"id": "s1", "a11y": {"table": false}, "table_columns": ["month", "value"]}]
 ```
 
@@ -409,6 +450,24 @@ vetter tabs into each chart, presses `Home` and `End`, and fails the story if a
 chart cannot be reached or reads numbers that are not in its dataset. Turn it off
 with `"a11y": {"explorer": false}` in `meta` or a scene; `--no-a11y-extras`
 leaves it out along with the tables.
+
+### Every chart can be heard
+
+Next to each chart's **Data** summary sits a **▶ Listen** button. Press it and
+the chart plays as sound: every point is a short tone, higher for a bigger
+value (two octaves, the lowest value to the highest) and panning left to right
+as the series goes on. A chart with several series plays them one after
+another, each announced first ("West, 6 points, from 100 to 171, rising"),
+both to screen readers and on screen. With a chart focused, `L` plays just the
+series you're on, and `Esc` stops.
+
+It is plain Web Audio inside the HTML file, with no library and no network.
+Nothing plays until a reader asks. A scatter plays along its x axis; a chart
+with no numbers (a timeline of dates and labels) gets no button. The vetter
+checks that every chart that can be heard has its button, plays one tone per
+value, and never plays a bigger value at a lower pitch. Turn it off with
+`"a11y": {"sonify": false}` in `meta` or a scene; `--no-a11y-extras` leaves it
+out with the tables and the explorer.
 
 The vetter is audience-aware too: it scores the story's prose (Flesch reading
 ease) against `meta.audience` and notes when the writing is harder than that
@@ -464,7 +523,7 @@ dstory/
 │   ├── themes/         # 8 preset brand TOMLs
 │   └── templates/      # HTML/CSS/JS skeleton copied into new projects
 ├── docs/gallery/       # rendered cookbook gallery (GitHub Pages)
-├── tests/              # 134 tests, pytest (browser e2e skips without Chromium)
+├── tests/              # pytest; browser e2e (kind × mode matrix included) skips without Chromium
 └── pyproject.toml
 ```
 

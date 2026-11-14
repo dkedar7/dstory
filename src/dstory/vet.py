@@ -195,6 +195,37 @@ def flesch_reading_ease(text: str) -> Optional[float]:
             - 84.6 * (syllables / len(words)))
 
 
+def _scene_text_shown(s: dict[str, Any]) -> bool:
+    """Whether the template renders a scene's own headline and commentary.
+    `chrome: false` hides them for simple, scrolly and pinned scenes; every
+    other kind shows them (custom renderers are free to draw them)."""
+    return not (s.get("chrome") is False
+                and (s.get("kind") or "simple") in ("simple", "scrolly", "pinned"))
+
+
+def _visible_text(data: dict[str, Any]) -> str:
+    """Everything in data.json a reader can see on the page: meta text, scene
+    prose, source lines, credits, and dataset cells (shown in the data
+    tables). Not claims, ids or config, which no reader sees."""
+    meta = data.get("meta") or {}
+    parts = [_reader_prose(data)]
+    for k in ("author", "credits", "published"):
+        if meta.get(k):
+            parts.append(str(meta[k]))
+    for src in meta.get("sources") or []:
+        if isinstance(src, dict):
+            parts += [str(src[k]) for k in ("name", "note") if src.get(k)]
+    for sc in data.get("scenes", []):
+        if isinstance(sc, dict) and sc.get("source_line"):
+            parts.append(str(sc["source_line"]))
+    for rows in (data.get("datasets") or {}).values():
+        if isinstance(rows, list):
+            for row in rows:
+                if isinstance(row, dict):
+                    parts += [v for v in row.values() if isinstance(v, str)]
+    return "\n".join(parts)
+
+
 def _story_prose(data: dict[str, Any]) -> str:
     """Collect the reader-facing prose from data.json (headlines, commentary,
     steps, frames, deck) — the text a reader actually encounters."""
@@ -205,7 +236,7 @@ def _story_prose(data: dict[str, Any]) -> str:
             parts.append(str(meta[k]))
     for s in data.get("scenes", []):
         for k in ("headline", "commentary"):
-            if s.get(k):
+            if s.get(k) and _scene_text_shown(s):
                 parts.append(str(s[k]))
         for step in (s.get("steps") or []) + (s.get("frames") or []):
             for k in ("headline", "commentary"):
@@ -214,6 +245,28 @@ def _story_prose(data: dict[str, Any]) -> str:
     # Join with ". " so unpunctuated headlines count as their own sentences
     # instead of fusing into one run-on (which would tank the score).
     return ". ".join(parts)
+
+
+def _scene_prose(s: dict[str, Any]) -> str:
+    """Everything a reader can see or hear for one scene."""
+    keys = ("headline", "commentary", "alt") if _scene_text_shown(s) else ("alt",)
+    parts = [str(s[k]) for k in keys if s.get(k)]
+    for step in (s.get("steps") or []) + (s.get("frames") or []):
+        if isinstance(step, dict):
+            parts += [str(step[k]) for k in ("headline", "commentary") if step.get(k)]
+    ann = s.get("annotation")
+    if isinstance(ann, dict) and ann.get("text"):
+        parts.append(str(ann["text"]))
+    return ". ".join(parts)
+
+
+def _reader_prose(data: dict[str, Any]) -> str:
+    """The reader-facing text in data.json: meta title/deck and every scene's
+    prose. Never the claims array, which no reader sees."""
+    meta = data.get("meta") or {}
+    parts = [str(meta[k]) for k in ("title", "subtitle", "deck", "description") if meta.get(k)]
+    parts += [_scene_prose(s) for s in data.get("scenes", []) if isinstance(s, dict)]
+    return ". ".join(p for p in parts if p)
 
 
 def _strip_html_for_prose(html: str) -> str:
@@ -229,10 +282,11 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
         r.note("No claims in data.json — skipping cross-check. Add a 'claims' array to enable.")
         return r
 
-    # Combine static HTML prose + data JSON, since dynamic scenes' commentary
-    # lives in data.json and is rendered by JS at runtime — invisible to a
-    # static HTML scan.
-    prose = _strip_html_for_prose(html) + "\n" + json.dumps(data, ensure_ascii=False)
+    # What the reader sees: the static HTML (scripts stripped, so the inlined
+    # data.json is not counted) plus the prose the runtime renders from
+    # data.json. Not json.dumps(data): that contains the claims themselves,
+    # so every claim would always be "found".
+    prose = _strip_html_for_prose(html) + "\n" + _reader_prose(data)
     prose_lower = re.sub(r"\s+", " ", prose.lower())
 
     for c in claims:
@@ -245,7 +299,8 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
 
         norm_text = re.sub(r"\s+", " ", text.strip().lower())
         if norm_text and norm_text not in prose_lower:
-            r.note(f"Claim {cid!r} text not found verbatim in prose; check chart and prose match.")
+            r.note(f"Claim {cid!r} (\"{text}\") is not in any reader-facing text; the "
+                   "story may say something else. Check the headline and commentary.")
 
         unit = c.get("unit")
         # Normalise the value to the two scales the rules need.
@@ -293,7 +348,52 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
             r.fail(f"Claim {cid!r}: prose says {f.group(0)}, but the ratio is "
                    f"{as_ratio:.2f}.")
 
+    _check_scene_prose_against_claims(r, data, claims)
     return r
+
+
+def _claim_ratio(c: dict[str, Any]) -> Optional[float]:
+    value, unit = c.get("value"), c.get("unit")
+    if value is None or unit == "pp":
+        return None
+    if unit == "pct":
+        return 1.0 + value / 100.0
+    return value
+
+
+def _check_scene_prose_against_claims(r: "Dimension", data: dict[str, Any],
+                                      claims: list[dict[str, Any]]) -> None:
+    """The prose a reader sees must agree with the claims tied to its scene.
+
+    A claim registered with compute_claim() can be right while the headline
+    above the chart was edited later ("tripled" -> "quintupled"). For every
+    scene with claims, each ratio word or N-fold in its prose must fit at
+    least one of those claims' values; otherwise the scene has drifted."""
+    by_scene: dict[str, list[dict[str, Any]]] = {}
+    for c in claims:
+        if isinstance(c, dict) and c.get("scene") and _claim_ratio(c) is not None:
+            by_scene.setdefault(str(c["scene"]), []).append(c)
+    if not by_scene:
+        return
+    for s in data.get("scenes", []):
+        if not isinstance(s, dict) or s.get("id") not in by_scene:
+            continue
+        mine = by_scene[s["id"]]
+        ratios = [_claim_ratio(c) for c in mine]
+        prose = _scene_prose(s)
+        ids = ", ".join(repr(c.get("id", "?")) for c in mine)
+        for pattern, predicate in PHRASE_RULES:
+            if (pattern, predicate) == MAJORITY_RULE:
+                continue
+            m = pattern.search(prose)
+            if m and not any(predicate(x) for x in ratios):
+                r.fail(f"Scene {s['id']!r} says \"{m.group(0)}\", but its claim(s) {ids} "
+                       f"have ratio {', '.join(f'{x:.2f}' for x in ratios)}. The prose has "
+                       "drifted from the data: fix the text or the claim.")
+        for f in _FOLD_RE.finditer(prose):
+            if not any(abs(x - float(f.group(1))) <= 0.5 for x in ratios):
+                r.fail(f"Scene {s['id']!r} says \"{f.group(0)}\", but its claim(s) {ids} "
+                       f"have ratio {', '.join(f'{x:.2f}' for x in ratios)}.")
 
 
 def _check_points_claim(r: "Dimension", cid: str, text: str, value: Optional[float]) -> None:
@@ -377,11 +477,12 @@ def check_vizzu_overdraw(data: dict[str, Any]) -> list[str]:
 
 def check_editorial(html: str, data: dict[str, Any]) -> Dimension:
     r = Dimension("Editorial integrity")
-    # Scan both static HTML AND the data dict — scenes built dynamically from
-    # data.json don't appear in the static HTML body, so we'd miss slop there.
+    # Scan the static HTML and the text the runtime renders from data.json.
+    # Not json.dumps(data): that would block a story over text no reader sees
+    # (a hidden headline, a claim note, an id).
     sources = [
         _strip_html_for_prose(html),
-        json.dumps(data, ensure_ascii=False),
+        _visible_text(data),
     ]
     low = "\n".join(sources).lower()
     for phrase in SLOP_PHRASES:
@@ -407,7 +508,7 @@ def check_editorial(html: str, data: dict[str, Any]) -> Dimension:
         references_data = bool(s.get("dataset")) or bool(s.get("frames"))
         if references_data and not s.get("source_line"):
             r.note(f"Scene {s.get('id', '?')} has no source_line — add one for stories with data.")
-        h = s.get("headline", "")
+        h = s.get("headline", "") if _scene_text_shown(s) else ""
         if re.search(r"\b(analysis|overview|summary|breakdown)\b\s*$", h, re.I):
             r.note(f"Scene {s.get('id', '?')} headline {h!r} reads as a topic, not an insight.")
 
@@ -677,6 +778,37 @@ EXPLORER_AUDIT_JS = r"""
 })()
 """
 
+# "Listen": every chart that can be heard has a button, plays one tone per
+# numeric point, and a higher value is never a lower pitch. Returns null when
+# the bundle has no sonifier.
+LISTEN_AUDIT_JS = r"""
+(() => {
+  const L = window.__DSTORY_LISTEN__, api = window.__DSTORY_DATA_PANEL__, data = window.__STORY_DATA__;
+  if (!L || !api || !data || !Array.isArray(data.scenes)) return null;
+  const issues = [];
+  for (const s of data.scenes) {
+    if (!s || !s.id || !api.rowsOf(data, s) || !L.expected(s)) continue;
+    if (s.kind === 'custom' && document.body.classList.contains('story-mode--slides')) continue;
+    if (!document.querySelector(`[data-listen="${CSS.escape(s.id)}"]`)) {
+      issues.push(`${s.id}: no Listen button under the chart.`); continue;
+    }
+    const plan = L.plan(s.id);
+    const rows = api.rowsOf(data, s);
+    const want = rows.filter(r => r && typeof r[plan.measure] === 'number' && isFinite(r[plan.measure])).length;
+    const got = plan.series.reduce((n, x) => n + x.notes.length, 0);
+    if (got !== want) issues.push(`${s.id}: Listen plays ${got} tones for ${want} values of ${plan.measure}.`);
+    const notes = plan.series.flatMap(x => x.notes);
+    for (let i = 1; i < notes.length; i++) {
+      const a = notes[i - 1], b = notes[i];
+      if ((b.value - a.value) * (b.freq - a.freq) < 0) {
+        issues.push(`${s.id}: Listen plays a higher value at a lower pitch.`); break;
+      }
+    }
+  }
+  return issues;
+})()
+"""
+
 _EMPTY_DATASET_WARNING = re.compile(r"^\[[\w-]+\] empty dataset")
 
 SLIDES_AUDIT_JS = r"""
@@ -804,6 +936,13 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
                     extra_notes.append(f"keyboard-explorer check skipped — {e}")
                 for issue in explorer_issues or []:
                     extras.append(f"Chart explorer: {issue}")
+                try:
+                    listen_issues = page.evaluate(LISTEN_AUDIT_JS)
+                except Exception as e:
+                    listen_issues = None
+                    extra_notes.append(f"Listen check skipped — {e}")
+                for issue in listen_issues or []:
+                    extras.append(f"Listen: {issue}")
 
             if facts["imgsWithoutAlt"] > 0:
                 extras.append(f"viewport {w}x{h}: {facts['imgsWithoutAlt']} <img> without alt text.")

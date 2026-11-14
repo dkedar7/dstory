@@ -148,10 +148,22 @@ function buildCustomScene(scene) {
   return wrap;
 }
 
+// The scene's own headline and commentary, for kinds whose body is steps or a
+// pinned graphic. Without this, scrolly and pinned scenes dropped them (#28).
+function sceneLede(scene) {
+  if (scene.chrome === false || !(scene.headline || scene.commentary)) return null;
+  const lede = el("header", { class: "scene__lede" });
+  if (scene.headline) lede.append(el("h2", {}, scene.headline));
+  if (scene.commentary) lede.append(el("p", {}, scene.commentary));
+  return lede;
+}
+
 function buildScrollyScene(scene) {
   const wrap = el("section", { class: "scene scene--scrolly", "data-scene": scene.id, id: scene.id });
   wrap.append(el("div", { class: "scene__graphic", "data-mount": scene.id }));
   const text = el("div", { class: "scene__text" });
+  const lede = sceneLede(scene);
+  if (lede) text.append(lede);
   (scene.steps || []).forEach((step, i) => {
     const s = el("div", { class: "step", "data-step": String(i) });
     s.append(el("h3", {}, step.headline || ""));
@@ -175,6 +187,8 @@ function buildBleedScene(scene) {
 
 function buildPinnedScene(scene) {
   const wrap = el("section", { class: "scene scene--pinned", "data-scene": scene.id, id: scene.id });
+  const lede = sceneLede(scene);
+  if (lede) wrap.append(lede);
   const pin = el("div", { class: "scene__pin", "data-mount": scene.id });
   wrap.append(pin);
   if (scene.source_line) wrap.append(el("p", { class: "scene__source" }, scene.source_line));
@@ -558,6 +572,15 @@ function setupSlidesController(builtScenes, data) {
     syncHash();
   }
 
+  // A scene controller that arrived late (Vizzu): if its slide is showing,
+  // apply the current step now.
+  const ready = (entry) => {
+    const cur = slides[current];
+    if (cur?.kind === "scene" && cur.sceneEntry === entry && entry.ctrl?.onStep) {
+      entry.ctrl.onStep(cur.stepIdx, "down");
+    }
+  };
+
   // Trigger first slide's chart state if applicable.
   const first = slides[0];
   if (first?.kind === "scene") {
@@ -605,6 +628,7 @@ function setupSlidesController(builtScenes, data) {
     const idx = Math.min(slides.length - 1, Math.max(0, parseInt(hashMatch[1], 10) - 1));
     if (idx > 0) show(idx, "forward");
   }
+  return { ready };
 }
 
 async function init() {
@@ -647,6 +671,7 @@ async function init() {
   // library + WASM (CDN, up to a 4 s timeout offline), so they initialise in
   // parallel and never hold back the charts that follow them.
   const pending = [];
+  let deck = null;   // the slides controller, once it exists
   for (const entry of built) {
     const s = entry.scene;
     try {
@@ -656,7 +681,7 @@ async function init() {
       else if (s.kind === "vizzu") {
         pending.push(
           activateVizzuScene(entry.node, s, data, slidesMode)
-            .then(ctrl => { entry.ctrl = ctrl; })
+            .then(ctrl => { entry.ctrl = ctrl; if (deck) deck.ready(entry); })
             .catch(err => reportFailure(s, err))
         );
       }
@@ -667,10 +692,12 @@ async function init() {
     }
   }
 
-  // The slides controller drives each scene's ctrl, so it needs the Vizzu
-  // controllers too. Non-Vizzu slides are already painted meanwhile.
+  // The deck is navigable now, whatever Vizzu is doing: a Vizzu scene's
+  // controller is handed to the deck when it arrives (deck.ready), and a
+  // slide whose controller is still loading just shows without its frame.
+  // Offline, a Vizzu slide stays inert, as documented.
+  if (slidesMode) deck = setupSlidesController(built, data);
   await Promise.all(pending);
-  if (slidesMode) setupSlidesController(built, data);
 }
 
 // Defer init until DOMContentLoaded so all `<script defer>` scenes have had
