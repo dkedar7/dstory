@@ -43,7 +43,8 @@ class ClaimDriftError(ValueError):
 
 
 def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
-           check_claims: bool = True, a11y_extras: bool = True) -> BundleResult:
+           check_claims: bool = True, a11y_extras: bool = True,
+           upgrade: bool = True) -> BundleResult:
     """Bundle <slug>/index.html → <slug>/dist/story.html.
 
     Args:
@@ -66,6 +67,10 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
                 an aria-live region) and a "Listen" button that plays each
                 series as tones. Tune it with meta.a11y / scene.a11y in
                 data.json; False leaves all three out.
+        upgrade: if True (default), a project's story.js / story.css that are
+                untouched copies from an older dstory release are refreshed
+                to this version first, so runtime fixes reach old projects.
+                Edited copies are kept, with a warning.
     """
     project = Path(slug)
     if not project.is_dir():
@@ -90,6 +95,9 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
             )
 
     theme_notes = _sync_theme(project, json.loads(data_json.read_text(encoding="utf-8")))
+    if upgrade:
+        from .scaffold import upgrade_runtime
+        theme_notes = upgrade_runtime(project, restore_missing=False) + theme_notes
 
     if check_claims:
         from .vet import check_data_fidelity  # local import: vet is heavier

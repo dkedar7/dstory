@@ -20,6 +20,13 @@ All notable changes to `dstory` are documented here. This project adheres to
   - The vetter checks every chart that can be heard has its button, plays one
     tone per value, and never maps a bigger value to a lower pitch.
 - `dstory theme SLUG THEME`: re-theme a project from a preset or brand TOML.
+- **Upgrading dstory upgrades your projects.** `dstory bundle` (and
+  `bundle()`) now refreshes a project's `story.js` / `story.css` when they are
+  untouched copies from any earlier release, so runtime fixes (#27, #28)
+  reach existing projects with no action. Edited copies are kept with a
+  warning. New `dstory upgrade SLUG [--force]` shows the state, restores a
+  deleted file, or replaces edited ones after backing them up to
+  `.dstory-backup/`. `--no-upgrade` / `upgrade=False` opts out.
 
 ### Changed
 - The Data panel now sits in a `.scene-tools` row under the chart, shared with
@@ -45,8 +52,7 @@ All notable changes to `dstory` are documented here. This project adheres to
   ready. Arrow keys used to do nothing (counter "0 / 0") until Vizzu loaded,
   4 s offline, and presses were dropped. A Vizzu slide now applies its frame
   when its controller arrives. New projects and `build()` get it directly; an
-  existing CLI project keeps its copied `story.js` until it is refreshed with
-  `dstory.init("SLUG", brand="<its theme>", merge=True)` (#27).
+  existing CLI project gets it on its next `dstory bundle` (#27).
 - Scrolly and pinned scenes show their own `headline` and `commentary`. They
   were accepted but never rendered, so the scene `dstory draft` writes for a
   plain ranking ("Red leads on wins") shipped without its headline. They now
@@ -54,8 +60,8 @@ All notable changes to `dstory` are documented here. This project adheres to
   above the active step on a slide); `"chrome": false` still hides them. The
   vetter now grades only text a reader can see: the placeholder scan reads the
   page, the scene prose and the data tables instead of the raw data.json, and
-  hidden headlines are not scored. Existing CLI projects get the new layout
-  once `story.js` / `story.css` are refreshed, as for #27 (#28).
+  hidden headlines are not scored. Existing CLI projects get it on their next
+  `dstory bundle` (#28).
 
 ## [0.12.0] - 2026-11-10
 

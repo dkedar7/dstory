@@ -31,6 +31,8 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
+      # Call the synced venv directly afterwards: `uv run` would re-sync
+      # without the extras and remove Playwright.
       - name: Install dependencies
         run: uv sync --all-extras --dev --python ${{ matrix.python-version }}
 
@@ -41,10 +43,10 @@ jobs:
           key: pw-${{ runner.os }}-${{ hashFiles('uv.lock') }}
 
       - name: Install Chromium
-        run: uv run playwright install --with-deps chromium
+        run: .venv/bin/python -m playwright install --with-deps chromium
 
       - name: Run the full suite
-        run: uv run pytest -q -p no:cacheprovider
+        run: .venv/bin/python -m pytest -q -p no:cacheprovider
 
   # The wheel a user gets from PyPI: build it, install it into a clean venv
   # with no dev tools, and make and vet a story from the CLI.

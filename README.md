@@ -223,7 +223,15 @@ dstory bundle my-story --vendor
 dstory vet my-story/dist/story.html --data my-story/data.json
 ```
 
-Other commands: `dstory draft data.csv` (a vetted story from a data file, zero config), `dstory themes` (the 8 brand presets), `dstory theme my-story warm-print` (re-theme a project), `dstory recipes` (the cookbook), `dstory --help`.
+Other commands: `dstory draft data.csv` (a vetted story from a data file, zero config), `dstory themes` (the 8 brand presets), `dstory theme my-story warm-print` (re-theme a project), `dstory upgrade my-story` (bring a project's runtime up to date), `dstory recipes` (the cookbook), `dstory --help`.
+
+**Upgrading dstory upgrades your projects.** A project keeps its own copy of
+`story.js` and `story.css`. After `pip install -U dstory`, the next
+`dstory bundle` replaces copies you never touched with the new version, so
+fixes reach stories you made months ago. A copy you edited is kept, and the
+bundle tells you so; `dstory upgrade my-story --force` replaces it after saving
+yours to `.dstory-backup/`. `--no-upgrade` on `dstory bundle` (or
+`upgrade=False` in `bundle()`) keeps everything as it is.
 
 ## Claims that can't drift from the data
 
@@ -497,7 +505,7 @@ dstory/
 │   ├── themes/         # 8 preset brand TOMLs
 │   └── templates/      # HTML/CSS/JS skeleton copied into new projects
 ├── docs/gallery/       # rendered cookbook gallery (GitHub Pages)
-├── tests/              # 134 tests, pytest (browser e2e skips without Chromium)
+├── tests/              # pytest; browser e2e (kind × mode matrix included) skips without Chromium
 └── pyproject.toml
 ```
 

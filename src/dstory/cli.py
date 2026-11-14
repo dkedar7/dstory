@@ -100,14 +100,18 @@ def init(slug: str, theme: str, audience: str, mode: str, title: str, overwrite:
 @click.option("--no-check-claims", is_flag=True,
               help="Bundle even when a claim's text contradicts its value.")
 @click.option("--no-a11y-extras", is_flag=True,
-              help="Leave out the Data panel (table + CSV download) under each chart.")
+              help="Leave out the Data panel, chart explorer and Listen button.")
+@click.option("--no-upgrade", is_flag=True,
+              help="Keep the project's story.js / story.css even when they are "
+                   "untouched copies from an older dstory.")
 def bundle(slug: str, no_validate: bool, vendor: bool, no_check_claims: bool,
-           no_a11y_extras: bool) -> None:
+           no_a11y_extras: bool, no_upgrade: bool) -> None:
     """Bundle SLUG into a single self-contained HTML file."""
     try:
         result = bundle_story(slug, validate=not no_validate, vendor=vendor,
                               check_claims=not no_check_claims,
-                              a11y_extras=not no_a11y_extras)
+                              a11y_extras=not no_a11y_extras,
+                              upgrade=not no_upgrade)
     except (FileNotFoundError, ValueError) as e:
         console.print(f"[red]{CROSS} Bundle failed:[/red] {e}")
         sys.exit(1)
@@ -365,6 +369,32 @@ def theme(slug: str, theme: str) -> None:
         sys.exit(1)
     console.print(f"[green]{CHECK}[/green] {slug} now uses [bold]{name}[/bold]. "
                   f"Run `dstory bundle {slug}` to rebuild.")
+
+
+@cli.command()
+@click.argument("slug")
+@click.option("--force", is_flag=True,
+              help="Also replace story.js / story.css you edited (backed up to "
+                   ".dstory-backup/ first).")
+def upgrade(slug: str, force: bool) -> None:
+    """Bring project SLUG's story.js and story.css up to this dstory version.
+
+    `dstory bundle` already does this for untouched copies; use this command
+    to see the state, restore a deleted file, or (with --force) replace files
+    you edited."""
+    from .scaffold import runtime_status, upgrade_runtime
+    project = Path(slug)
+    if not (project / "index.html").exists():
+        console.print(f"[red]{CROSS}[/red] {project} is not a dstory project (no index.html).")
+        sys.exit(1)
+    before = runtime_status(project)
+    notes = upgrade_runtime(project, force=force)
+    for name, state in before.items():
+        if state == "current":
+            console.print(f"[green]{CHECK}[/green] {name} is current")
+    for n in notes:
+        mark = f"[yellow]{WARN}[/yellow]" if "kept" in n else f"[green]{CHECK}[/green]"
+        console.print(f"{mark} {n}")
 
 
 @cli.command()
