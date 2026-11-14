@@ -21,7 +21,7 @@ from .scaffold import init, wire_scenes, write_scene, starter_scene_js
 from .schema import Story, Meta, Scene, Claim, VizzuFrame, Step, Source, Annotation, SeriesSpec
 from .vet import vet, Report, Dimension
 
-__version__ = "0.12.0"
+__version__ = "0.13.0"
 
 __all__ = [
     "build", "BuildResult",

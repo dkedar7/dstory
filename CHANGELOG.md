@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-13
+
 ### Added
 - **Every chart can be heard** (#14, milestone 3, which completes #14). Every
   chart with a numeric series gets a **▶ Listen** button beside its Data
