@@ -131,11 +131,42 @@ def bundle(slug: str, no_validate: bool, vendor: bool, no_check_claims: bool,
               help="Path to data.json")
 @click.option("--no-browser", is_flag=True,
               help="Skip browser-driven checks (renders, screenshots, dynamic a11y).")
-def vet(html_path: str, data_path: str, no_browser: bool) -> None:
+@click.option("--json", "as_json", is_flag=True,
+              help="Print the report as JSON (for CI and AI assistants). Exit code is unchanged.")
+def vet(html_path: str, data_path: str, no_browser: bool, as_json: bool) -> None:
     """Vet a bundled HTML against the 5-dimension rubric."""
+    if as_json:
+        import contextlib
+        with contextlib.redirect_stdout(sys.stderr):   # stdout carries only the JSON
+            report = vet_story(html_path, data=data_path, browser=not no_browser)
+        click.echo(json.dumps(report.to_json(), indent=2))
+        if not report.passed:
+            sys.exit(1)
+        return
     report = vet_story(html_path, data=data_path, browser=not no_browser)
     if not _print_report(report, Path(html_path).name):
         sys.exit(1)
+
+
+@cli.command()
+@click.option("--root", default=".", show_default=True,
+              type=click.Path(exists=True, file_okay=False),
+              help="Directory the assistant may read data from and write projects to.")
+def mcp(root: str) -> None:
+    """Serve dstory to an AI assistant over MCP (stdio).
+
+    Register it once, e.g. `claude mcp add dstory -- dstory mcp`. The assistant
+    can then draft, vet, look at and bundle stories, and gets structured results
+    back. Needs the [mcp] extra.
+    """
+    try:
+        from .mcp_server import run
+        import mcp as _sdk  # noqa: F401
+    except ImportError:
+        click.echo('dstory mcp needs the MCP SDK. Install it with: pip install "dstory[mcp]"',
+                   err=True)
+        sys.exit(1)
+    run(root)
 
 
 def _print_report(report, name: str) -> bool:

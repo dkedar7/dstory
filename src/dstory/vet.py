@@ -62,17 +62,36 @@ class Report:
         return not self.skipped
 
     def to_json(self) -> dict[str, Any]:
+        """The report as JSON (`dstory vet --json`, the MCP `vet_story` tool).
+
+        `failures` flattens every issue to {dimension, message, claim, scene},
+        with the claim and scene ids pulled from the message when it names
+        them, so a program can act on a failure without parsing prose."""
+        failures = []
+        for d in self.dimensions:
+            for msg in d.issues:
+                claim = re.search(r"\b[Cc]laim(?:\(s\))? '([^']+)'", msg)
+                scene = re.search(r"\bScene '([^']+)'", msg)
+                failures.append({"dimension": _slug(d.name), "message": msg,
+                                 "claim": claim.group(1) if claim else None,
+                                 "scene": scene.group(1) if scene else None})
         return {
             "html_path": self.html_path,
             "data_path": self.data_path,
             "passed": self.passed,
             "complete": self.complete,
+            "skipped": self.skipped,
+            "failures": failures,
             "dimensions": [
-                {"name": d.name, "passed": d.passed, "skipped": d.skipped,
-                 "issues": d.issues, "notes": d.notes}
+                {"name": d.name, "key": _slug(d.name), "passed": d.passed,
+                 "skipped": d.skipped, "issues": d.issues, "notes": d.notes}
                 for d in self.dimensions
             ],
         }
+
+
+def _slug(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
 
 # ---------- color / contrast ----------

@@ -5,6 +5,20 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Added
+- `dstory mcp`: dstory as an MCP server, so Claude Code, Claude Desktop, Cursor
+  or any MCP client can draft, vet, look at and bundle a story, with the
+  vetter as its feedback loop (#21, milestone 1). Tools: `draft_story`,
+  `vet_story`, `get_screenshot` (an image the assistant can see) and
+  `bundle_story` (a drifted claim comes back as data, not a traceback).
+  Paths are confined to `--root`. Install with `pip install "dstory[mcp]"`;
+  without it, `dstory mcp` prints the install line.
+- `dstory vet --json`: the report as JSON, the same schema `vet_story`
+  returns, with a flat `failures` list naming the claim and scene behind each
+  failure. The exit code is unchanged. `Report.to_json()` gains `skipped`,
+  `failures` and a `key` per dimension; existing fields are unchanged.
+- `dstory.agent`: the tools as plain functions returning dicts.
+
 ## [0.13.1] - 2026-11-14
 
 ### Fixed
