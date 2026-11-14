@@ -500,6 +500,41 @@ By default the story plays as a scroll-driven essay. Set `meta.mode: "slides"` i
 | `"scroll"` (default) | A film | Published web essays, blogs, mobile, social shares |
 | `"slides"` | A presentation | Live talks, exec briefings, screen-shared meetings, walkthroughs |
 
+## From an AI assistant: `dstory mcp`
+
+More and more data stories start in an AI assistant with a CSV attached.
+`dstory mcp` serves dstory to Claude Code, Claude Desktop, Cursor or any MCP
+client, and gives the assistant the vetter as its feedback loop: it drafts a
+story, reads which claim drifted or which check failed as data, looks at each
+scene as an image, fixes `data.json` and re-bundles until the vet passes. No
+key, no account, all local.
+
+```bash
+pip install "dstory[mcp]" && playwright install chromium
+claude mcp add dstory -- dstory mcp            # Claude Code
+```
+
+Claude Desktop (`claude_desktop_config.json`) or Cursor (`.cursor/mcp.json`):
+
+```json
+{ "mcpServers": { "dstory": { "command": "dstory", "args": ["mcp", "--root", "/path/to/your/data"] } } }
+```
+
+Then ask: *"Here's sales.csv. Make me a scrollytelling story in warm-print and
+make sure every number is right."*
+
+| Tool | Does | Returns |
+|---|---|---|
+| `draft_story(path, title?, theme?, mode?, out?, source?, vendor?, opener?)` | `dstory draft` | project, html, scenes, claims, `explain`, vet report |
+| `vet_story(project, browser?)` | `dstory vet` | `{passed, complete, failures: [{dimension, message, claim, scene}], dimensions}` |
+| `get_screenshot(project, scene?, width?, height?)` | opens the story in Chromium | a PNG image |
+| `bundle_story(project, vendor?)` | `dstory bundle` | `{bundled, html, bytes, self_contained}`, or `{bundled: false, claim_drift}` |
+
+The assistant can only read and write inside `--root` (default: the directory
+the server starts in). Every tool is a plain function in `dstory.agent`, and
+the vet JSON is also one flag away for CI: `dstory vet story.html --data
+data.json --json` (same exit code as without it).
+
 ## Vetting (mandatory)
 
 `dstory vet` (or `dstory.vet()`) grades the bundled HTML on five dimensions:
@@ -525,6 +560,8 @@ dstory/
 │   ├── vet.py          # vet() — 5-dimension report (Playwright optional)
 │   ├── prep.py         # pandas helpers + compute_claim() (vetter-aligned)
 │   ├── cli.py          # `dstory` CLI
+│   ├── agent.py        # draft/vet/bundle/screenshot as plain JSON functions
+│   ├── mcp_server.py   # `dstory mcp` (stdio MCP server over agent.py)
 │   ├── cookbook/       # 10 complete scene recipes (+ registry & demos)
 │   ├── themes/         # 8 preset brand TOMLs
 │   └── templates/      # HTML/CSS/JS skeleton copied into new projects

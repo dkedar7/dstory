@@ -113,6 +113,7 @@
     <a class="item" href="#vet">Vetting</a>
     <a class="item" href="#claims">Claims &amp; data fidelity</a>
     <a class="item" href="#vendor">Offline bundles</a>
+    <a class="item" href="#agents">From an AI assistant</a>
     <div class="group">Reference</div>
     <a class="item" href="#cli-ref">CLI reference</a>
     <a class="item" href="#api-ref">Python API</a>
@@ -314,6 +315,34 @@ claim = compute_claim(
     text_template=<span class="c-str">"Signups {phrase} in Q1"</span>,    <span class="c-com"># → "Signups tripled in Q1"</span>
     value=ratio,
 )</code></pre>
+
+<h2 id="agents">Use dstory from an AI assistant</h2>
+<p><code>dstory mcp</code> serves dstory to Claude Code, Claude Desktop, Cursor or
+any other MCP client. The assistant drafts a story from your file, reads the vet
+report as data (which claim drifted, which dimension failed), looks at each scene
+as an image, fixes <code>data.json</code> and re-bundles until the vet passes. It
+needs no key and no account, and everything runs on your machine.</p>
+<pre><code>pip install <span class="c-str">"dstory[mcp]"</span> &amp;&amp; playwright install chromium
+claude mcp add dstory -- dstory mcp          <span class="c-com"># Claude Code</span></code></pre>
+<p>For Claude Desktop (<code>claude_desktop_config.json</code>) or Cursor
+(<code>.cursor/mcp.json</code>):</p>
+<pre><code>{
+  <span class="c-str">"mcpServers"</span>: {
+    <span class="c-str">"dstory"</span>: { <span class="c-str">"command"</span>: <span class="c-str">"dstory"</span>, <span class="c-str">"args"</span>: [<span class="c-str">"mcp"</span>, <span class="c-str">"--root"</span>, <span class="c-str">"/path/to/your/data"</span>] }
+  }
+}</code></pre>
+<p>Then ask: <em>"Here's sales.csv. Make me a scrollytelling story in warm-print and
+make sure every number is right."</em></p>
+<table>
+  <tr><td><code>draft_story</code></td><td>Draft, bundle and vet a story from a CSV, TSV, JSON, Parquet or Excel file. Returns the project, the HTML path, the scenes, the claims, why each chart was chosen, and the vet report.</td></tr>
+  <tr><td><code>vet_story</code></td><td>The five-dimension vet as JSON: <code>{passed, failures: [{dimension, message, claim, scene}], dimensions}</code>.</td></tr>
+  <tr><td><code>get_screenshot</code></td><td>A PNG of the first screen, or of one scene scrolled into view (<code>width: 390</code> for a phone).</td></tr>
+  <tr><td><code>bundle_story</code></td><td>Re-bundle after editing <code>data.json</code>. A drifted claim stops the bundle and comes back as data.</td></tr>
+</table>
+<p>The assistant can only read and write inside <code>--root</code> (default: the
+directory the server starts in). The same JSON is available without MCP:
+<code>dstory vet story.html --data data.json --json</code>, with the usual exit code,
+so CI can read it too.</p>
 
 <h2 id="vendor">Offline bundles</h2>
 <p><code>dstory bundle --vendor</code> downloads and inlines the CDN runtime libraries
