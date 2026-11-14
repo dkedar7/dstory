@@ -99,7 +99,7 @@ def test_listen_schedules_one_oscillator_per_point_with_pitch_following_value(pw
     assert b.text_content() == "■ Stop" and b.get_attribute("aria-pressed") == "true"
     # The series is announced, and shown, while it plays.
     live = page.locator("#dstory-explore-live")
-    page.wait_for_function("document.getElementById('dstory-explore-live').textContent.length > 0")
+    page.wait_for_function("(document.getElementById('dstory-explore-live')?.textContent || '').length > 0")
     assert "6 points, from 1,200,000 to 3,900,000, rising" in live.text_content()
     assert live.evaluate("e => e.classList.contains('is-visible')")
     b.click()                                              # stop
@@ -127,8 +127,8 @@ def test_series_play_in_turn_and_l_plays_the_focused_series(pw, recipes):
     page.keyboard.press("ArrowDown")                            # Northeast
     page.keyboard.press("l")
     assert page.evaluate("window.__audio.oscillators") == 6     # just that series
-    page.wait_for_function("document.getElementById('dstory-explore-live')"
-                           ".textContent.startsWith('Northeast')")
+    page.wait_for_function("(document.getElementById('dstory-explore-live')?.textContent || '')"
+                           ".startsWith('Northeast')")
     page.keyboard.press("Escape")                               # stops, and leaves the chart
     assert page.evaluate("window.__DSTORY_LISTEN__.playing") is None
     assert not errors, errors
