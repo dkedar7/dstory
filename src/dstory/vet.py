@@ -449,21 +449,29 @@ def _check_scene_prose_against_claims(r: "Dimension", data: dict[str, Any],
                    f"{have}. The prose has drifted from the data: fix the text, or the "
                    "claim (register one for every change the scene states).")
 
-        ratio_have = f"have ratio {', '.join(f'{x:.2f}' for x in ratios)}"
-        if ratios:
+        # A scene with only unit-carrying claims states no change without one
+        # behind it. A legacy unit-less claim may be a share or a ratio, so
+        # such scenes are only checked against the claims they have.
+        strict = all(c.get("unit") is not None for c in mine)
+
+        def have_ratio() -> str:
+            return (f"have ratio {', '.join(f'{x:.2f}' for x in ratios)}" if ratios
+                    else "include no ratio or percent-change claim")
+
+        if ratios or strict:
             for pattern, predicate in PHRASE_RULES:
                 if (pattern, predicate) == MAJORITY_RULE:
                     continue
                 m = pattern.search(prose)
                 if m and not any(predicate(x) for x in ratios):
-                    drift(m.group(0), ratio_claims, ratio_have)
+                    drift(m.group(0), mine, have_ratio())
             for f in _FOLD_RE.finditer(prose):
                 if not any(abs(x - float(f.group(1))) <= 0.5 for x in ratios):
-                    drift(f.group(0), ratio_claims, ratio_have)
-            for t in (_TIMES_RE.finditer(prose) if unit_ratios else ()):
-                num, more = None, False
+                    drift(f.group(0), mine, have_ratio())
+        if unit_ratios or strict:
+            for t in _TIMES_RE.finditer(prose):
                 if t.group(1):
-                    num = float(t.group(1))
+                    num, more = float(t.group(1)), False
                 elif t.group(2):
                     num, more = float(t.group(2)), bool(t.group(3))
                 else:
@@ -472,25 +480,25 @@ def _check_scene_prose_against_claims(r: "Dimension", data: dict[str, Any],
                 # "3 times more" is read both ways (3x, or 4x) to stay fair.
                 targets = [num, num + 1] if more else [num]
                 if not any(abs(x - n) <= 0.5 for x in unit_ratios for n in targets):
-                    drift(t.group(0), ratio_claims, ratio_have)
-            for h in (_HALF_RE.finditer(prose) if unit_ratios else ()):
+                    drift(t.group(0), mine, have_ratio())
+            for h in _HALF_RE.finditer(prose):
                 want = 0.5 if _scene_sign(h.group(1)) < 0 else 1.5
                 if not any(abs(x - want) <= 0.05 for x in unit_ratios):
-                    drift(h.group(0), ratio_claims, ratio_have)
-        if pcts:
-            pct_claims = [c for c in ratio_claims if c.get("unit") in ("pct", "ratio")]
-            have = "change by " + ", ".join(f"{p:+.1f}%" for p in pcts)
+                    drift(h.group(0), mine, have_ratio())
+        if pcts or strict:
+            have = ("change by " + ", ".join(f"{p:+.1f}%" for p in pcts) if pcts
+                    else "include no percent-change claim")
             for m in _SCENE_PCT_RE.finditer(prose):
                 stated, tol = _stated_change(m)
                 if not any(abs(p - stated) <= tol for p in pcts):
-                    drift(m.group(0), pct_claims, have)
-        if points:
-            pp_claims = [c for c in mine if c.get("unit") == "pp"]
-            have = "change by " + ", ".join(f"{p:+.1f} points" for p in points)
+                    drift(m.group(0), mine, have)
+        if points or strict:
+            have = ("change by " + ", ".join(f"{p:+.1f} points" for p in points) if points
+                    else "include no percentage-point claim")
             for m in _SCENE_POINTS_RE.finditer(prose):
                 stated, tol = _stated_change(m)
                 if not any(abs(p - stated) <= tol for p in points):
-                    drift(m.group(0), pp_claims, have)
+                    drift(m.group(0), mine, have)
 
 
 def _check_points_claim(r: "Dimension", cid: str, text: str, value: Optional[float]) -> None:

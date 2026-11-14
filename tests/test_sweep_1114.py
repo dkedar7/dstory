@@ -97,3 +97,17 @@ def test_bundle_stops_on_reversed_direction(tmp_path, monkeypatch):
     d["scenes"][1]["headline"] = "Churn rose 30% in Q1"
     p.write_text(json.dumps(d), encoding="utf-8")
     assert bundle("q1").out.exists()
+
+
+@pytest.mark.parametrize("headline", [
+    "Share quintupled",            # a ratio word, but the scene's claim is in points
+    "Share grew 5x",
+    "Share rose 30%",              # a percent change, but the claim is in points
+])
+def test_change_with_no_claim_of_its_kind_fails(headline):
+    """Drafted stories register point claims; a headline edited to state a
+    ratio or percent change has nothing behind it."""
+    d = _story(c=headline)
+    r = check_data_fidelity("", d)
+    assert not r.passed
+    assert any("include no" in i for i in r.issues)
