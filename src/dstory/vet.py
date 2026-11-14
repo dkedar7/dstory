@@ -361,17 +361,70 @@ def _claim_ratio(c: dict[str, Any]) -> Optional[float]:
     return value
 
 
+# Scene-prose drift (#25, #29). A change stated with a direction is checked
+# against the scene's claims: "rose 30%", "down 4%", "a 30% drop", "5x",
+# "five times over", "fell by half", "up 2 points". A bare "12%" with no
+# direction may be a level or a share, so it is left alone.
+_SCENE_UP = _UP_STEMS
+_SCENE_DOWN = _DOWN_STEMS + ("cut", "plung", "sank", "sunk", "tumbl")
+_NOUN_UP = ("increase", "rise", "gain", "jump", "growth", "climb", "surge")
+_NOUN_DOWN = ("decrease", "drop", "decline", "fall", "loss", "cut", "slump", "plunge")
+_VERB = rf"(?:(?P<verb>{'|'.join(_SCENE_UP + _SCENE_DOWN)})\w*|(?<!made )(?<!make )(?<!makes )(?<!making )(?<!ended )(?<!end )(?P<updown>up|down))"
+_QUAL = r"(?P<qual>about|around|roughly|nearly|almost|over|more than|less than|under)?\s*"
+_NOUN = rf"(?P<noun>{'|'.join(_NOUN_UP + _NOUN_DOWN)})\w*"
+_SCENE_PCT_RE = re.compile(
+    rf"\b{_VERB}\s+(?:by\s+)?{_QUAL}(?P<n>\d+(?:\.\d+)?)\s*(?:%|percent\b)"
+    rf"|\b{_QUAL.replace('qual', 'qual2')}(?P<n2>\d+(?:\.\d+)?)\s*(?:%|percent)\s+{_NOUN}",
+    re.I)
+_SCENE_POINTS_RE = re.compile(
+    rf"\b{_VERB}\s+(?:by\s+)?{_QUAL}(?P<n>\d+(?:\.\d+)?)\s*"
+    r"(?:percentage[- ]points?|points?|pp)\b"
+    rf"|\b{_QUAL.replace('qual', 'qual2')}(?P<n2>\d+(?:\.\d+)?)[- ]?"
+    rf"(?:percentage[- ]points?|points?|pp)\s+{_NOUN}",
+    re.I)
+_NUM_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+              "eight": 8, "nine": 9, "ten": 10, "twice": 2}
+_TIMES_RE = re.compile(
+    r"(?<![\w.])(\d+(?:\.\d+)?)\s*[x×](?!\w)"
+    r"|\b(\d+(?:\.\d+)?)\s+times\b(\s+more\b)?"
+    rf"|\b({'|'.join(k for k in _NUM_WORDS if k != 'twice')})[- ]fold\b"
+    rf"|\b({'|'.join(k for k in _NUM_WORDS if k != 'twice')})\s+times\s+"
+    r"(over|as|larger|bigger|higher|greater|more)\b", re.I)
+_HALF_RE = re.compile(rf"\b({'|'.join(_SCENE_UP + _SCENE_DOWN)})\w*\s+(?:by\s+)?(?:a\s+|one\s+)?half\b", re.I)
+
+
+def _scene_sign(word: str) -> int:
+    w = (word or "").lower()
+    if w == "down" or any(w.startswith(s) for s in _SCENE_DOWN + _NOUN_DOWN):
+        return -1
+    return 1
+
+
+def _stated_change(m: "re.Match") -> tuple[float, float]:
+    """(signed value, tolerance) for a _SCENE_PCT_RE / _SCENE_POINTS_RE match.
+    A hedge ("about", "nearly", "over") widens the tolerance to 10%."""
+    if m.group("n") is not None:
+        word = m.group("verb") or m.group("updown")
+        n, qual = float(m.group("n")), m.group("qual")
+    else:
+        word, n, qual = m.group("noun"), float(m.group("n2")), m.group("qual2")
+    tol = max(PCT_TOLERANCE_PP, 0.1 * n) if qual else PCT_TOLERANCE_PP
+    return _scene_sign(word) * n, tol
+
+
 def _check_scene_prose_against_claims(r: "Dimension", data: dict[str, Any],
                                       claims: list[dict[str, Any]]) -> None:
     """The prose a reader sees must agree with the claims tied to its scene.
 
     A claim registered with compute_claim() can be right while the headline
-    above the chart was edited later ("tripled" -> "quintupled"). For every
-    scene with claims, each ratio word or N-fold in its prose must fit at
-    least one of those claims' values; otherwise the scene has drifted."""
+    above the chart was edited later ("tripled" -> "quintupled", "rose 30%"
+    -> "fell 30%"). For every scene with claims, each ratio word, N-fold,
+    Nx, directed percent change ("fell 30%") and directed points change in
+    its prose must fit at least one of those claims; otherwise the scene
+    has drifted."""
     by_scene: dict[str, list[dict[str, Any]]] = {}
     for c in claims:
-        if isinstance(c, dict) and c.get("scene") and _claim_ratio(c) is not None:
+        if isinstance(c, dict) and c.get("scene") and c.get("value") is not None:
             by_scene.setdefault(str(c["scene"]), []).append(c)
     if not by_scene:
         return
@@ -379,21 +432,65 @@ def _check_scene_prose_against_claims(r: "Dimension", data: dict[str, Any],
         if not isinstance(s, dict) or s.get("id") not in by_scene:
             continue
         mine = by_scene[s["id"]]
-        ratios = [_claim_ratio(c) for c in mine]
+        ratio_claims = [c for c in mine if _claim_ratio(c) is not None]
+        ratios = [_claim_ratio(c) for c in ratio_claims]
+        # Percent changes are compared only with claims that carry a unit;
+        # a legacy unit-less claim may be a share, not a change.
+        pcts = [(_claim_ratio(c) - 1.0) * 100.0 for c in ratio_claims
+                if c.get("unit") in ("pct", "ratio")]
+        unit_ratios = [_claim_ratio(c) for c in ratio_claims if c.get("unit") in ("pct", "ratio")]
+        points = [float(c["value"]) for c in mine if c.get("unit") == "pp"]
         prose = _scene_prose(s)
-        ids = ", ".join(repr(c.get("id", "?")) for c in mine)
-        for pattern, predicate in PHRASE_RULES:
-            if (pattern, predicate) == MAJORITY_RULE:
-                continue
-            m = pattern.search(prose)
-            if m and not any(predicate(x) for x in ratios):
-                r.fail(f"Scene {s['id']!r} says \"{m.group(0)}\", but its claim(s) {ids} "
-                       f"have ratio {', '.join(f'{x:.2f}' for x in ratios)}. The prose has "
-                       "drifted from the data: fix the text or the claim.")
-        for f in _FOLD_RE.finditer(prose):
-            if not any(abs(x - float(f.group(1))) <= 0.5 for x in ratios):
-                r.fail(f"Scene {s['id']!r} says \"{f.group(0)}\", but its claim(s) {ids} "
-                       f"have ratio {', '.join(f'{x:.2f}' for x in ratios)}.")
+        sid = s["id"]
+
+        def drift(said: str, against: list[dict[str, Any]], have: str) -> None:
+            ids = ", ".join(repr(c.get("id", "?")) for c in against)
+            r.fail(f"Scene {sid!r} says \"{said.strip()}\", but its claim(s) {ids} "
+                   f"{have}. The prose has drifted from the data: fix the text, or the "
+                   "claim (register one for every change the scene states).")
+
+        ratio_have = f"have ratio {', '.join(f'{x:.2f}' for x in ratios)}"
+        if ratios:
+            for pattern, predicate in PHRASE_RULES:
+                if (pattern, predicate) == MAJORITY_RULE:
+                    continue
+                m = pattern.search(prose)
+                if m and not any(predicate(x) for x in ratios):
+                    drift(m.group(0), ratio_claims, ratio_have)
+            for f in _FOLD_RE.finditer(prose):
+                if not any(abs(x - float(f.group(1))) <= 0.5 for x in ratios):
+                    drift(f.group(0), ratio_claims, ratio_have)
+            for t in (_TIMES_RE.finditer(prose) if unit_ratios else ()):
+                num, more = None, False
+                if t.group(1):
+                    num = float(t.group(1))
+                elif t.group(2):
+                    num, more = float(t.group(2)), bool(t.group(3))
+                else:
+                    num = float(_NUM_WORDS[(t.group(4) or t.group(5)).lower()])
+                    more = (t.group(6) or "").lower() == "more"
+                # "3 times more" is read both ways (3x, or 4x) to stay fair.
+                targets = [num, num + 1] if more else [num]
+                if not any(abs(x - n) <= 0.5 for x in unit_ratios for n in targets):
+                    drift(t.group(0), ratio_claims, ratio_have)
+            for h in (_HALF_RE.finditer(prose) if unit_ratios else ()):
+                want = 0.5 if _scene_sign(h.group(1)) < 0 else 1.5
+                if not any(abs(x - want) <= 0.05 for x in unit_ratios):
+                    drift(h.group(0), ratio_claims, ratio_have)
+        if pcts:
+            pct_claims = [c for c in ratio_claims if c.get("unit") in ("pct", "ratio")]
+            have = "change by " + ", ".join(f"{p:+.1f}%" for p in pcts)
+            for m in _SCENE_PCT_RE.finditer(prose):
+                stated, tol = _stated_change(m)
+                if not any(abs(p - stated) <= tol for p in pcts):
+                    drift(m.group(0), pct_claims, have)
+        if points:
+            pp_claims = [c for c in mine if c.get("unit") == "pp"]
+            have = "change by " + ", ".join(f"{p:+.1f} points" for p in points)
+            for m in _SCENE_POINTS_RE.finditer(prose):
+                stated, tol = _stated_change(m)
+                if not any(abs(p - stated) <= tol for p in points):
+                    drift(m.group(0), pp_claims, have)
 
 
 def _check_points_claim(r: "Dimension", cid: str, text: str, value: Optional[float]) -> None:

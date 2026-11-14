@@ -5,6 +5,15 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Fixed
+- The vetter now catches scene prose that contradicts its claim in percent,
+  "Nx" / "N times" or direction, not only in ratio words (#29). "Churn fell
+  30%" against a claim that churn rose 30%, "Signups grew 5x" against a 2.9x
+  ratio, or "up 5 points" against a 2-point claim now fail data fidelity, and
+  `build()` / `dstory bundle` stop with `ClaimDriftError`. Figures with no
+  direction (a level or a share) are not checked. If a scene states a change
+  you have no claim for, register one, or bundle with `--no-check-claims`.
+
 ## [0.13.0] - 2026-11-13
 
 ### Added

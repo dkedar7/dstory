@@ -276,11 +276,17 @@ write it (`ClaimDriftError`; opt out with `check_claims=False` /
 `kind="ratio"` or `kind="pct"`.
 
 A claim is only as good as the words the reader sees, so the vetter also checks
-the prose around it. Give a claim a `scene` and every "doubled"…"quintupled" or
-"N-fold" in that scene's headline, commentary, steps or alt text must fit one of
-its claims. Edit the headline to "quintupled" and forget the claim, and the
-build stops. A registered claim whose text appears in no reader-facing prose is
-flagged too.
+the prose around it. Give a claim a `scene` and every change that scene's
+headline, commentary, steps or alt text states must fit one of its claims:
+"doubled"…"quintupled", "N-fold", "5x", "three times over", "fell by half", a
+percent change with a direction ("rose 30%", "down 4%", "a 30% drop") and a
+change in points ("up 2 points"). The direction counts, so "Churn fell 30%"
+against a claim that churn rose 30% stops the build, as does editing the
+headline to "quintupled" and forgetting the claim. A bare figure with no
+direction ("12% of users", "made up 47%") is a level or a share, not a change,
+and is left alone. If a scene states a second change, register a claim for it
+too. A registered claim whose text appears in no reader-facing prose is flagged
+as well.
 
 ## How is this different from…?
 
