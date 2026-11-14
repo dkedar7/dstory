@@ -10,6 +10,24 @@
 
 `dstory` is the deterministic infrastructure for data stories: a one-call builder, a single-file bundler, a 5-dimension vetter (renders / data fidelity / editorial integrity / visual / a11y), a brand system for your colors and typography, and pydantic schemas that surface authoring bugs at build time instead of delivery time.
 
+## In 30 seconds
+
+```bash
+pip install "dstory[all]" && playwright install chromium
+dstory draft sales.csv            # -> sales/dist/story.html
+```
+
+or, in a notebook, `dstory.build(pd.read_csv("sales.csv"), "sales")`.
+
+You get one HTML file to email or host (`--vendor` also inlines the chart
+libraries, so it works with no network). It picks the charts and writes the
+headlines from your numbers, and every number in the prose is checked against
+the data before the file is written. Every chart comes with a data table, a
+CSV download, a keyboard explorer for screen readers, and a Listen button.
+Add `--mode slides` for a deck. Then edit `sales/data.json` and run
+`dstory bundle sales` to make it yours. The rest of this page covers authoring
+by hand.
+
 ## Who is this for?
 
 - **Python data scientists (no JS):** animated chart sequences via declarative [Vizzu](#vizzu-scenes-no-javascript) scenes, plus a [cookbook](#the-cookbook) of finished D3 charts you copy and own. DataFrame → story.html in one notebook cell.
