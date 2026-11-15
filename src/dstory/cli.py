@@ -8,6 +8,7 @@ from pathlib import Path
 
 import click
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from .brand import Brand, list_presets
@@ -79,7 +80,7 @@ def init(slug: str, theme: str, audience: str, mode: str, title: str, overwrite:
         dest = scaffold_init(slug, brand=brand, audience=audience, mode=mode,
                              title=title, overwrite=overwrite)
     except FileExistsError as e:
-        console.print(f"[red]{CROSS}[/red] {e}")
+        console.print(f"[red]{CROSS}[/red] {escape(str(e))}")
         sys.exit(1)
 
     console.print(f"[green]{CHECK}[/green] Scaffolded [bold]{dest}[/bold] (theme={brand.name}, audience={audience}, mode={mode})")
@@ -113,7 +114,7 @@ def bundle(slug: str, no_validate: bool, vendor: bool, no_check_claims: bool,
                               a11y_extras=not no_a11y_extras,
                               upgrade=not no_upgrade)
     except (FileNotFoundError, ValueError) as e:
-        console.print(f"[red]{CROSS} Bundle failed:[/red] {e}")
+        console.print(f"[red]{CROSS} Bundle failed:[/red] {escape(str(e))}")
         sys.exit(1)
 
     console.print(f"[green]{CHECK}[/green] Wrote {result.out} ({result.size_bytes/1024:.1f} KB)")
@@ -205,7 +206,8 @@ def draft(data_file: str, out: str | None, title: str | None, theme: str | None,
     try:
         import pandas as pd
     except ImportError:
-        console.print(f'[red]{CROSS}[/red] dstory draft needs pandas: pip install "dstory[prep]"')
+        console.print(f'[red]{CROSS}[/red] dstory draft needs pandas: '
+                      + escape('pip install "dstory[prep]"'))
         sys.exit(1)
     from .api import build
     from .draft import draft as draft_df
@@ -221,7 +223,7 @@ def draft(data_file: str, out: str | None, title: str | None, theme: str | None,
     try:
         df = getattr(pd, reader)(path, **kwargs)
     except Exception as e:  # pandas raises many types; surface the message
-        console.print(f"[red]{CROSS}[/red] Could not read {path.name}: {e}")
+        console.print(f"[red]{CROSS}[/red] Could not read {escape(path.name)}: {escape(str(e))}")
         sys.exit(1)
 
     slug = out or path.stem.lower().replace(" ", "-")
@@ -236,7 +238,7 @@ def draft(data_file: str, out: str | None, title: str | None, theme: str | None,
         d = draft_df(df, title=title, theme=theme, audience=audience, mode=mode,
                      max_scenes=max_scenes, source=source, opener=opener and not vendor)
     except (ValueError, TypeError) as e:
-        console.print(f"[red]{CROSS} Draft failed:[/red] {e}")
+        console.print(f"[red]{CROSS} Draft failed:[/red] {escape(str(e))}")
         sys.exit(1)
     console.print(d.explain(), markup=False, highlight=False)
 
@@ -244,7 +246,7 @@ def draft(data_file: str, out: str | None, title: str | None, theme: str | None,
         result = build(d.story, target, scenes=d.scenes, vendor=vendor, vet=not no_vet,
                        browser=False if no_browser else None, overwrite=True)
     except (FileNotFoundError, ValueError) as e:
-        console.print(f"[red]{CROSS} Build failed:[/red] {e}")
+        console.print(f"[red]{CROSS} Build failed:[/red] {escape(str(e))}")
         sys.exit(1)
     console.print(f"[green]{CHECK}[/green] Wrote {result.html} ({result.bundle.size_bytes/1024:.1f} KB)")
     if result.report is not None and not _print_report(result.report, result.html.name):
@@ -291,7 +293,7 @@ def scene(slug: str, scene_id: str, kind: str, recipe: str | None) -> None:
             js = starter_scene_js(scene_id, kind)
         target = write_scene(slug, scene_id, js)
     except (FileNotFoundError, KeyError, ValueError) as e:
-        console.print(f"[red]{CROSS}[/red] {e}")
+        console.print(f"[red]{CROSS}[/red] {escape(str(e))}")
         sys.exit(1)
     src_desc = f"recipe={recipe}, kind={kind}" if recipe else f"kind={kind}"
     console.print(f"[green]{CHECK}[/green] Wrote [bold]{target}[/bold] ({src_desc}) and wired it in index.html")
@@ -340,7 +342,7 @@ def preview(slug: str, port: int, no_open: bool) -> None:
     except KeyboardInterrupt:
         console.print("\n[dim]Stopped.[/dim]")
     except OSError as e:
-        console.print(f"[red]{CROSS}[/red] Could not bind port {port}: {e} (try --port)")
+        console.print(f"[red]{CROSS}[/red] Could not bind port {port}: {escape(str(e))} (try --port)")
         sys.exit(1)
 
 
@@ -365,7 +367,7 @@ def theme(slug: str, theme: str) -> None:
             raise FileNotFoundError(f"{slug} is not a dstory project (no index.html).")
         name = apply_theme(slug, brand)
     except (FileNotFoundError, ValueError) as e:
-        console.print(f"[red]{CROSS} Theme failed:[/red] {e}")
+        console.print(f"[red]{CROSS} Theme failed:[/red] {escape(str(e))}")
         sys.exit(1)
     console.print(f"[green]{CHECK}[/green] {slug} now uses [bold]{name}[/bold]. "
                   f"Run `dstory bundle {slug}` to rebuild.")

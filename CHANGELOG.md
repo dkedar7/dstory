@@ -14,6 +14,11 @@ All notable changes to `dstory` are documented here. This project adheres to
   hand-written claim. Claim text and scene prose now read "1,200" as 1200 in
   every check (percent, points, N-fold, Nx, N times), and a misgrouped
   "1,2000%" is checked as 12000 rather than skipped.
+- CLI error messages and install hints keep their square brackets. Rich read
+  `[prep]` as markup, so `dstory draft` without pandas told you to run
+  `pip install "dstory"`, which installs nothing new; it now says
+  `pip install "dstory[prep]"`. Any error text with brackets in it (claim ids,
+  extras) is printed as written.
 
 ## [0.13.1] - 2026-11-14
 
