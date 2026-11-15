@@ -503,7 +503,7 @@ By default the story plays as a scroll-driven essay. Set `meta.mode: "slides"` i
 ## From an AI assistant: `dstory mcp`
 
 > **Coming in 0.14.** `dstory mcp`, the `[mcp]` extra and `dstory vet --json`
-> are on `main` but not yet on PyPI (latest: 0.13.1). Until 0.14 ships,
+> are on `main` but not yet on PyPI (latest: 0.13.2). Until 0.14 ships,
 > install from GitHub: `pip install "dstory[mcp] @ git+https://github.com/dkedar7/dstory"`.
 
 More and more data stories start in an AI assistant with a CSV attached.
