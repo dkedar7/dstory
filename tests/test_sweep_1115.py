@@ -109,3 +109,48 @@ def test_bundle_stops_on_drift_with_a_thousands_separator(tmp_path, monkeypatch)
     p.write_text(json.dumps(d), encoding="utf-8")
     assert bundle("rs").out.exists()
 
+
+
+# ---------- the CLI prints install hints and errors as written ----------
+
+def test_draft_without_pandas_names_the_extra(tmp_path, monkeypatch):
+    """`[prep]` was read as Rich markup and dropped, so the hint said
+    `pip install "dstory"`, which installs nothing new."""
+    import builtins
+
+    from click.testing import CliRunner
+
+    from dstory.cli import cli
+
+    real = builtins.__import__
+
+    def fake(name, *a, **k):
+        if name == "pandas" or name.startswith("pandas."):
+            raise ImportError(name)
+        return real(name, *a, **k)
+
+    (tmp_path / "x.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(builtins, "__import__", fake)
+    r = CliRunner().invoke(cli, ["draft", "x.csv", "--no-browser"])
+    assert r.exit_code == 1
+    assert 'pip install "dstory[prep]"' in r.output
+
+
+def test_cli_errors_keep_their_brackets(tmp_path, monkeypatch):
+    """An error message with brackets in it ("[prep]", a list of ids) is
+    printed as is, not swallowed as markup."""
+    from click.testing import CliRunner
+
+    import dstory.cli as cli_mod
+
+    def boom(*a, **k):
+        raise ValueError("claims ['c1', 'c2'] drifted; see [docs] and pip install \"dstory[vet]\"")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli_mod, "bundle_story", boom)
+    from dstory.scaffold import init
+    init("p", brand="minimal-light")
+    r = CliRunner().invoke(cli_mod.cli, ["bundle", "p"])
+    assert r.exit_code != 0
+    assert "['c1', 'c2']" in r.output and "[docs]" in r.output and 'dstory[vet]' in r.output
