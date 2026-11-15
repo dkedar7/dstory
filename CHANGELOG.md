@@ -5,6 +5,16 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-11-15
+
+### Fixed
+- A thousands separator no longer splits a number in the vetter (#31).
+  "Revenue fell 1,200%" against a +1200% claim passed and bundled, while a
+  correct "a 1,200% increase" was blocked as "200%", and so was a correct
+  hand-written claim. Claim text and scene prose now read "1,200" as 1200 in
+  every check (percent, points, N-fold, Nx, N times), and a misgrouped
+  "1,2000%" is checked as 12000 rather than skipped.
+
 ## [0.13.1] - 2026-11-14
 
 ### Fixed
