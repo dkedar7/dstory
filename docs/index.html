@@ -55,6 +55,9 @@
   p, li { color: var(--ink-soft); max-width: 68ch; }
   strong { color: var(--ink); }
   hr { border: 0; border-top: 1px solid var(--rule); margin: 3.5rem 0; }
+  p.unreleased { border-left: 3px solid var(--accent); padding: 0.5rem 0 0.5rem 1rem;
+                 background: var(--bg-elev); }
+  p.unreleased code { overflow-wrap: anywhere; }
 
   pre { background: var(--bg-elev); border: 1px solid var(--rule); border-radius: 6px;
         padding: 1rem 1.25rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
@@ -317,6 +320,10 @@ claim = compute_claim(
 )</code></pre>
 
 <h2 id="agents">Use dstory from an AI assistant</h2>
+<p class="unreleased"><strong>Coming in 0.14.</strong> <code>dstory mcp</code>, the
+<code>[mcp]</code> extra and <code>dstory vet --json</code> are not on PyPI yet (latest:
+0.13.1). Until 0.14 ships, install from GitHub:
+<code>pip install "dstory[mcp] @ git+https://github.com/dkedar7/dstory"</code></p>
 <p><code>dstory mcp</code> serves dstory to Claude Code, Claude Desktop, Cursor or
 any other MCP client. The assistant drafts a story from your file, reads the vet
 report as data (which claim drifted, which dimension failed), looks at each scene

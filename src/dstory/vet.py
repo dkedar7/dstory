@@ -148,10 +148,22 @@ _UP_STEMS = ("increas", "rose", "rise", "risen", "grew", "grow", "gain", "climb"
 _DOWN_STEMS = ("decreas", "fell", "fall", "drop", "declin", "lost", "lose", "shrank",
                "shrunk", "slid", "slump")
 _DIRECTION = "|".join(_UP_STEMS + _DOWN_STEMS)
-_PCT_RE = re.compile(rf"(?:\b({_DIRECTION})\w*\s+(?:by\s+)?)?(\d+(?:\.\d+)?)\s*%", re.I)
-_POINTS_RE = re.compile(rf"(?:\b({_DIRECTION})\w*\s+(?:by\s+)?)?(\d+(?:\.\d+)?)\s*"
+# A number as people write it: "1200", "1,200", "1,200.5" (#31). Digits
+# joined by commas are one number, even when misgrouped ("1,2000" reads
+# 12000 and is checked, not skipped), and the lookbehind keeps a match from
+# starting partway through one, so "1,200%" is never read as "200%".
+# Pass a match through _num().
+_NUMBER = r"(?<![\d,.])\d+(?:,\d+)*(?:\.\d+)?"
+
+
+def _num(s: str) -> float:
+    return float(s.replace(",", ""))
+
+
+_PCT_RE = re.compile(rf"(?:\b({_DIRECTION})\w*\s+(?:by\s+)?)?({_NUMBER})\s*%", re.I)
+_POINTS_RE = re.compile(rf"(?:\b({_DIRECTION})\w*\s+(?:by\s+)?)?({_NUMBER})\s*"
                         r"(?:percentage[- ]points?|points?|pp)\b", re.I)
-_FOLD_RE = re.compile(r"\b(\d+(?:\.\d+)?)[- ]?fold\b", re.I)
+_FOLD_RE = re.compile(rf"\b({_NUMBER})[- ]?fold\b", re.I)
 
 
 def _signed(direction: Optional[str], stated: float) -> float:
@@ -354,7 +366,7 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
 
         m = _PCT_RE.search(text)
         if m and value is not None:
-            direction, stated = m.group(1), float(m.group(2))
+            direction, stated = m.group(1), _num(m.group(2))
             stated = _signed(direction, stated)
             # Without an explicit direction word, compare magnitudes only.
             got = actual_pct if direction else abs(actual_pct)
@@ -363,7 +375,7 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
                        f"{actual_pct:+.2f}% (tolerance {PCT_TOLERANCE_PP}pp).")
 
         f = _FOLD_RE.search(text)
-        if f and value is not None and abs(as_ratio - float(f.group(1))) > 0.5:
+        if f and value is not None and abs(as_ratio - _num(f.group(1))) > 0.5:
             r.fail(f"Claim {cid!r}: prose says {f.group(0)}, but the ratio is "
                    f"{as_ratio:.2f}.")
 
@@ -392,20 +404,20 @@ _VERB = rf"(?:(?P<verb>{'|'.join(_SCENE_UP + _SCENE_DOWN)})\w*|(?<!made )(?<!mak
 _QUAL = r"(?P<qual>about|around|roughly|nearly|almost|over|more than|less than|under)?\s*"
 _NOUN = rf"(?P<noun>{'|'.join(_NOUN_UP + _NOUN_DOWN)})\w*"
 _SCENE_PCT_RE = re.compile(
-    rf"\b{_VERB}\s+(?:by\s+)?{_QUAL}(?P<n>\d+(?:\.\d+)?)\s*(?:%|percent\b)"
-    rf"|\b{_QUAL.replace('qual', 'qual2')}(?P<n2>\d+(?:\.\d+)?)\s*(?:%|percent)\s+{_NOUN}",
+    rf"\b{_VERB}\s+(?:by\s+)?{_QUAL}(?P<n>{_NUMBER})\s*(?:%|percent\b)"
+    rf"|\b{_QUAL.replace('qual', 'qual2')}(?P<n2>{_NUMBER})\s*(?:%|percent)\s+{_NOUN}",
     re.I)
 _SCENE_POINTS_RE = re.compile(
-    rf"\b{_VERB}\s+(?:by\s+)?{_QUAL}(?P<n>\d+(?:\.\d+)?)\s*"
+    rf"\b{_VERB}\s+(?:by\s+)?{_QUAL}(?P<n>{_NUMBER})\s*"
     r"(?:percentage[- ]points?|points?|pp)\b"
-    rf"|\b{_QUAL.replace('qual', 'qual2')}(?P<n2>\d+(?:\.\d+)?)[- ]?"
+    rf"|\b{_QUAL.replace('qual', 'qual2')}(?P<n2>{_NUMBER})[- ]?"
     rf"(?:percentage[- ]points?|points?|pp)\s+{_NOUN}",
     re.I)
 _NUM_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
               "eight": 8, "nine": 9, "ten": 10, "twice": 2}
 _TIMES_RE = re.compile(
-    r"(?<![\w.])(\d+(?:\.\d+)?)\s*[x×](?!\w)"
-    r"|\b(\d+(?:\.\d+)?)\s+times\b(\s+more\b)?"
+    rf"(?<![\w.])({_NUMBER})\s*[x×](?!\w)"
+    rf"|\b({_NUMBER})\s+times\b(\s+more\b)?"
     rf"|\b({'|'.join(k for k in _NUM_WORDS if k != 'twice')})[- ]fold\b"
     rf"|\b({'|'.join(k for k in _NUM_WORDS if k != 'twice')})\s+times\s+"
     r"(over|as|larger|bigger|higher|greater|more)\b", re.I)
@@ -424,9 +436,9 @@ def _stated_change(m: "re.Match") -> tuple[float, float]:
     A hedge ("about", "nearly", "over") widens the tolerance to 10%."""
     if m.group("n") is not None:
         word = m.group("verb") or m.group("updown")
-        n, qual = float(m.group("n")), m.group("qual")
+        n, qual = _num(m.group("n")), m.group("qual")
     else:
-        word, n, qual = m.group("noun"), float(m.group("n2")), m.group("qual2")
+        word, n, qual = m.group("noun"), _num(m.group("n2")), m.group("qual2")
     tol = max(PCT_TOLERANCE_PP, 0.1 * n) if qual else PCT_TOLERANCE_PP
     return _scene_sign(word) * n, tol
 
@@ -485,14 +497,14 @@ def _check_scene_prose_against_claims(r: "Dimension", data: dict[str, Any],
                 if m and not any(predicate(x) for x in ratios):
                     drift(m.group(0), mine, have_ratio())
             for f in _FOLD_RE.finditer(prose):
-                if not any(abs(x - float(f.group(1))) <= 0.5 for x in ratios):
+                if not any(abs(x - _num(f.group(1))) <= 0.5 for x in ratios):
                     drift(f.group(0), mine, have_ratio())
         if unit_ratios or strict:
             for t in _TIMES_RE.finditer(prose):
                 if t.group(1):
-                    num, more = float(t.group(1)), False
+                    num, more = _num(t.group(1)), False
                 elif t.group(2):
-                    num, more = float(t.group(2)), bool(t.group(3))
+                    num, more = _num(t.group(2)), bool(t.group(3))
                 else:
                     num = float(_NUM_WORDS[(t.group(4) or t.group(5)).lower()])
                     more = (t.group(6) or "").lower() == "more"
@@ -533,7 +545,7 @@ def _check_points_claim(r: "Dimension", cid: str, text: str, value: Optional[flo
     if not m:
         r.note(f"Claim {cid!r} (unit 'pp') states no 'N points' figure to check.")
         return
-    direction, stated = m.group(1), float(m.group(2))
+    direction, stated = m.group(1), _num(m.group(2))
     got = value if direction else abs(value)
     if abs(got - _signed(direction, stated)) > PCT_TOLERANCE_PP:
         r.fail(f"Claim {cid!r}: prose says {m.group(0).strip()}, value is "
