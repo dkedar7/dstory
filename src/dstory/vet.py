@@ -15,7 +15,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
 
 from .prep import RATIO_WINDOWS
 
@@ -179,8 +179,27 @@ SLOP_PHRASES = [
 PII_PATTERNS = [
     (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "email address"),
     (re.compile(r"\b\d{3}-\d{2}-\d{4}\b"), "SSN-shaped number"),
-    (re.compile(r"\b\+?\d{1,2}[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"), "phone-shaped number"),
+    # A phone is written with separators: "555-123-4567", "(555) 123-4567",
+    # "555.123.4567", "+1 555 123 4567". A bare run of digits is far more
+    # often an amount or an id than a phone, so it is not matched (#33).
+    (re.compile(r"(?<![\w.+-])(?:\+?\d{1,3}[-.\s]?)?(?:\(\d{3}\)\s?|\d{3}[-.\s])"
+                r"\d{3}[-.\s]\d{4}(?![\w-])"), "phone-shaped number"),
 ]
+
+
+def _strings(node: Any, path: str = "") -> Iterator[tuple[str, str]]:
+    """(path, text) for every string in data.json, keys included. Numbers are
+    skipped: a JSON number is a measurement, not contact details (#33)."""
+    if isinstance(node, str):
+        yield path, node
+    elif isinstance(node, dict):
+        for k, v in node.items():
+            sub = f"{path}.{k}" if path else str(k)
+            yield sub, str(k)
+            yield from _strings(v, sub)
+    elif isinstance(node, (list, tuple)):
+        for i, v in enumerate(node):
+            yield from _strings(v, f"{path}[{i}]")
 
 
 # ---------- readability ----------
@@ -673,10 +692,13 @@ def _strip_vendored(html: str) -> str:
 
 def check_static_a11y(html: str, data: dict[str, Any]) -> Dimension:
     r = Dimension("Accessibility & ethics (static)")
-    flat = json.dumps(data, ensure_ascii=False)
+    texts = list(_strings(data))
     for pat, label in PII_PATTERNS:
-        if pat.search(flat):
-            r.fail(f"data.json contains a {label}; verify this isn't sensitive PII.")
+        hit = next(((where, m.group(0)) for where, text in texts
+                    for m in [pat.search(text)] if m), None)
+        if hit:
+            r.fail(f"data.json contains a {label} ({hit[1]!r} at {hit[0]}); "
+                   "verify this isn't sensitive PII.")
 
     # Library code inlined by `bundle --vendor` (d3 defines both axisLeft and
     # axisRight, for one) must not trip the author-code heuristics below.

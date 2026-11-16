@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-16
+
 ### Added
 - `dstory mcp`: dstory as an MCP server, so Claude Code, Claude Desktop, Cursor
   or any MCP client can draft, vet, look at and bundle a story, with the
@@ -18,6 +20,16 @@ All notable changes to `dstory` are documented here. This project adheres to
   failure. The exit code is unchanged. `Report.to_json()` gains `skipped`,
   `failures` and a `key` per dimension; existing fields are unchanged.
 - `dstory.agent`: the tools as plain functions returning dicts.
+
+### Fixed
+- The vetter's PII check no longer blocks ordinary numbers (#33). It scanned
+  all of data.json as text, so an 11-digit budget ($12.5B) or a computed mean
+  such as 14285.714285714286 failed as a "phone-shaped number" and stopped
+  `dstory draft` and `build(vet=True)`. It now reads only strings (numbers are
+  measurements, not contact details), matches phones as people write them
+  (`555-123-4567`, `(555) 123-4567`, `555.123.4567`, `+1 555 123 4567`, which
+  it used to miss), and names the value and where it is, e.g.
+  `'555-123-4567' at datasets.d[1].contact`.
 
 ## [0.13.2] - 2026-11-15
 
