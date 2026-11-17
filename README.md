@@ -543,7 +543,7 @@ data.json --json` (same exit code as without it).
 
 1. **Renders correctly** — headless browser at 1440/768/480, no console errors, charts paint
 2. **Data fidelity** — every numeric claim cross-checked against `data.json` (catches "tripled" vs `value=2.4`)
-3. **Editorial integrity** — no slop phrases, no placeholders, sources present, headlines are insights
+3. **Editorial integrity** — no slop phrases, no leftover template text (the "Untitled Story" title, `{{…}}`, `[Insert …]`, "… goes here", XXX / TBD / FIXME, each failure naming the field), sources present, headlines are insights
 4. **Visual quality** — full-page screenshots saved at all viewports for manual review
 5. **Accessibility & ethics** — color contrast, no PII leaks, dual-axis warnings, alt text
 
