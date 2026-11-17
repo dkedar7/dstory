@@ -5,6 +5,19 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-11-17
+
+### Fixed
+- The vetter fails a story that still has template text in it (#35). The
+  "Untitled Story" title that `dstory init` writes, `{{source}}` or `{pct}`
+  slots, `[Insert headline here]`, "Your commentary goes here.", and bare
+  XXX / TBD / FIXME / TKTK markers in any reader-facing field (meta title,
+  subtitle, deck, author, credits, source names; scene headline, commentary,
+  alt, source line, steps, frames, annotations) now fail Editorial integrity,
+  and each failure names the field, e.g. `scene 'scene-trend' headline still
+  has template text`. Text a scene hides (`chrome: false`) is not checked.
+  `dstory bundle` also warns when `meta.title` is still the default.
+
 ## [0.14.0] - 2026-11-16
 
 ### Added
