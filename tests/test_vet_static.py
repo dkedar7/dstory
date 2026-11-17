@@ -7,7 +7,7 @@ from dstory.vet import check_data_fidelity, check_editorial, check_static_a11y
 
 
 def _scaffold_with_data(tmp_path: Path, scenes: list, claims: list, datasets: dict | None = None) -> Path:
-    dest = init(tmp_path / "demo", brand="editorial-noir")
+    dest = init(tmp_path / "demo", brand="editorial-noir", title="Vet static demo")
     data = json.loads((dest / "data.json").read_text())
     data["scenes"]   = scenes
     data["claims"]   = claims

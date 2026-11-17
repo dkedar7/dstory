@@ -176,6 +176,63 @@ SLOP_PHRASES = [
     "many believe", "it could be argued", "click here", "learn more →",
 ]
 
+# Template text left in reader-facing fields (#35). The title `dstory init`
+# writes, and patterns that only ever mean "fill this in".
+SCAFFOLD_TITLES = ("untitled story", "untitled")
+_PLACEHOLDER_RES = [
+    (re.compile(r"\{\{[^{}]*\}\}"), "a {{template}} slot"),
+    (re.compile(r"(?<![{\w])\{\s*[A-Za-z_][A-Za-z0-9_]*\s*\}(?!\})"), "a {template} slot"),
+    (re.compile(r"\[\s*(?:insert|add|enter|your|write|tbd|tk)\b[^\]]*\]", re.I), "an [Insert …] slot"),
+    (re.compile(r"\bgo(?:es)? here\b", re.I), "'… goes here'"),
+    (re.compile(r"\byour [a-z]+(?: [a-z]+)? here\b", re.I), "'your … here'"),
+    (re.compile(r"\b(?:XXX|TBD|FIXME|TKTK)\b"), "a XXX / TBD / FIXME marker"),
+]
+
+
+def _reader_fields(data: dict[str, Any]) -> Iterator[tuple[str, str]]:
+    """(field path, text) for every reader-facing string in data.json."""
+    meta = data.get("meta") or {}
+    for k in ("title", "subtitle", "deck", "description", "author", "credits"):
+        if isinstance(meta.get(k), str):
+            yield f"meta.{k}", meta[k]
+    for i, src in enumerate(meta.get("sources") or []):
+        if isinstance(src, dict):
+            for k in ("name", "note"):
+                if isinstance(src.get(k), str):
+                    yield f"meta.sources[{i}].{k}", src[k]
+    for s in data.get("scenes") or []:
+        if not isinstance(s, dict):
+            continue
+        sid = f"scene {s.get('id', '?')!r}"
+        keys = ("headline", "commentary", "alt", "source_line") if _scene_text_shown(s) \
+            else ("alt", "source_line")
+        for k in keys:
+            if isinstance(s.get(k), str):
+                yield f"{sid} {k}", s[k]
+        for kind in ("steps", "frames"):
+            for j, step in enumerate(s.get(kind) or []):
+                if isinstance(step, dict):
+                    for k in ("headline", "commentary"):
+                        if isinstance(step.get(k), str):
+                            yield f"{sid} {kind}[{j}].{k}", step[k]
+        ann = s.get("annotation")
+        if isinstance(ann, dict) and isinstance(ann.get("text"), str):
+            yield f"{sid} annotation.text", ann["text"]
+
+
+def _check_placeholders(r: "Dimension", data: dict[str, Any]) -> None:
+    for where, text in _reader_fields(data):
+        if where == "meta.title" and text.strip().lower() in SCAFFOLD_TITLES:
+            r.fail(f"meta.title is still the scaffold default {text.strip()!r}: "
+                   "give the story a real title.")
+            continue
+        for pat, what in _PLACEHOLDER_RES:
+            m = pat.search(text)
+            if m:
+                r.fail(f"{where} still has template text ({what}): {m.group(0)!r}. "
+                       "Replace it before publishing.")
+                break
+
 PII_PATTERNS = [
     (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "email address"),
     (re.compile(r"\b\d{3}-\d{2}-\d{4}\b"), "SSN-shaped number"),
@@ -643,6 +700,7 @@ def check_editorial(html: str, data: dict[str, Any]) -> Dimension:
     for phrase in SLOP_PHRASES:
         if phrase.lower() in low:
             r.fail(f"Slop / placeholder phrase found: {phrase!r}")
+    _check_placeholders(r, data)
 
     meta = data.get("meta", {})
     if not meta.get("title"):

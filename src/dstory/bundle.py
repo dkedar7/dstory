@@ -111,6 +111,11 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
 
     html = index.read_text(encoding="utf-8")
     warnings: list[str] = list(theme_notes)
+    from .vet import SCAFFOLD_TITLES
+    title = (json.loads(data_json.read_text(encoding="utf-8")).get("meta") or {}).get("title")
+    if isinstance(title, str) and title.strip().lower() in SCAFFOLD_TITLES:
+        warnings.append(f"meta.title is still the scaffold default {title.strip()!r}; "
+                        "set a real title in data.json (`dstory vet` fails until you do).")
     counts = {"styles": 0, "scripts": 0, "images": 0}
 
     # 1. Inline <link rel="stylesheet" href="LOCAL.css">
