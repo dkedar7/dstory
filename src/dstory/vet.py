@@ -1,5 +1,5 @@
 """Vet a bundled story HTML against five dimensions:
-  1. Renders correctly (headless browser, 3 viewports, no console errors)
+  1. Renders correctly (headless browser, 3 viewports down to a phone, no console errors)
   2. Data fidelity (claims cross-checked against data.json)
   3. Editorial integrity (no slop phrases, sources present, no placeholders)
   4. Visual quality (screenshots for manual review)
@@ -71,7 +71,7 @@ class Report:
         for d in self.dimensions:
             for msg in d.issues:
                 claim = re.search(r"\b[Cc]laim(?:\(s\))? '([^']+)'", msg)
-                scene = re.search(r"\bScene '([^']+)'", msg)
+                scene = re.search(r"\b[Ss]cene '([^']+)'", msg)
                 failures.append({"dimension": _slug(d.name), "message": msg,
                                  "claim": claim.group(1) if claim else None,
                                  "scene": scene.group(1) if scene else None})
@@ -177,16 +177,62 @@ SLOP_PHRASES = [
 ]
 
 # Template text left in reader-facing fields (#35). The title `dstory init`
-# writes, and patterns that only ever mean "fill this in".
+# writes, and patterns that only ever mean "fill this in". Markers that are
+# also real words ("Super Bowl XXX", "2025 figures TBD", "table {A1}") only
+# fail when nothing else could be meant (#37); otherwise they are a note.
+# `meta.vet.allow_text` lists copy the check must leave alone.
 SCAFFOLD_TITLES = ("untitled story", "untitled")
+# Slot names a story template uses: compute_claim's, and the field names.
+_TEMPLATE_SLOTS = (
+    "phrase|value|pct|percent|number|figure|amount|date|year|"
+    "headline|commentary|title|subtitle|deck|description|author|caption|label|"
+    "source|source_line|sources|alt|alt_text|text|name|note|insight|takeaway|summary"
+)
+_SCAFFOLD_NOUNS = (
+    "headline|title|subtitle|deck|commentary|text|copy|caption|label|description|"
+    "source|source line|alt text|alt|summary|note|insight|takeaway|chart|image|link|content"
+)
 _PLACEHOLDER_RES = [
     (re.compile(r"\{\{[^{}]*\}\}"), "a {{template}} slot"),
-    (re.compile(r"(?<![{\w])\{\s*[A-Za-z_][A-Za-z0-9_]*\s*\}(?!\})"), "a {template} slot"),
-    (re.compile(r"\[\s*(?:insert|add|enter|your|write|tbd|tk)\b[^\]]*\]", re.I), "an [Insert …] slot"),
-    (re.compile(r"\bgo(?:es)? here\b", re.I), "'… goes here'"),
+    (re.compile(r"(?<![{\w])\{\s*(?:" + _TEMPLATE_SLOTS + r")\s*\}(?!\})", re.I),
+     "a {template} slot"),
+    (re.compile(r"\[\s*(?:insert|add|enter|your|write|tbd|tk|xxx|todo|placeholder)\b[^\]]*\]", re.I),
+     "an [Insert …] slot"),
+    (re.compile(r"[(<]\s*(?:TBD|XXX|TK)\s*[)>]"), "a bracketed TBD / XXX marker"),
+    (re.compile(r"\b(?:your\s+)?(?:" + _SCAFFOLD_NOUNS + r")\s+go(?:es)?\s+here\b", re.I),
+     "'… goes here'"),
     (re.compile(r"\byour [a-z]+(?: [a-z]+)? here\b", re.I), "'your … here'"),
-    (re.compile(r"\b(?:XXX|TBD|FIXME|TKTK)\b"), "a XXX / TBD / FIXME marker"),
+    (re.compile(r"\b(?:FIXME|TKTK)\b"), "a FIXME / TKTK marker"),
+    # A bare marker is template text only when it is the whole field, or opens
+    # it as a note to self ("TBD: add the June number").
+    (re.compile(r"^\W*(?:XXX|TBD|TK)\W*$|^\s*(?:XXX|TBD)\s*:"), "a XXX / TBD marker"),
 ]
+# Could be template text, could be real copy: a note, never a failure.
+_MAYBE_PLACEHOLDER_RES = [
+    (re.compile(r"\b(?:XXX|TBD)\b"), "a XXX / TBD marker"),
+    (re.compile(r"(?<![{\w])\{\s*[A-Za-z_][A-Za-z0-9_]*\s*\}(?!\})"), "a {name} slot"),
+]
+
+
+def _allowed_spans(text: str, allow: list[str]) -> list[tuple[int, int]]:
+    low = text.lower()
+    spans = []
+    for a in allow:
+        a = a.lower()
+        if not a:
+            continue
+        i = low.find(a)
+        while i >= 0:
+            spans.append((i, i + len(a)))
+            i = low.find(a, i + 1)
+    return spans
+
+
+def _first_match(pat: "re.Pattern[str]", text: str, spans: list[tuple[int, int]]):
+    for m in pat.finditer(text):
+        if not any(a <= m.start() and m.end() <= b for a, b in spans):
+            return m
+    return None
 
 
 def _reader_fields(data: dict[str, Any]) -> Iterator[tuple[str, str]]:
@@ -221,17 +267,32 @@ def _reader_fields(data: dict[str, Any]) -> Iterator[tuple[str, str]]:
 
 
 def _check_placeholders(r: "Dimension", data: dict[str, Any]) -> None:
+    vet_opts = (data.get("meta") or {}).get("vet") or {}
+    allow_raw = vet_opts.get("allow_text") if isinstance(vet_opts, dict) else None
+    allow = [a for a in (allow_raw or []) if isinstance(a, str)]
     for where, text in _reader_fields(data):
+        spans = _allowed_spans(text, allow)
         if where == "meta.title" and text.strip().lower() in SCAFFOLD_TITLES:
-            r.fail(f"meta.title is still the scaffold default {text.strip()!r}: "
-                   "give the story a real title.")
+            if not any(a.strip().lower() == text.strip().lower() for a in allow):
+                r.fail(f"meta.title is still the scaffold default {text.strip()!r}: "
+                       "give the story a real title.")
             continue
         for pat, what in _PLACEHOLDER_RES:
-            m = pat.search(text)
+            m = _first_match(pat, text, spans)
             if m:
-                r.fail(f"{where} still has template text ({what}): {m.group(0)!r}. "
-                       "Replace it before publishing.")
+                r.fail(f"{where} still has template text ({what}): {m.group(0).strip()!r}. "
+                       "Replace it before publishing, or list it in meta.vet.allow_text "
+                       "if it is real copy.")
                 break
+        else:
+            for pat, what in _MAYBE_PLACEHOLDER_RES:
+                m = _first_match(pat, text, spans)
+                if m:
+                    r.note(f"{where} has {m.group(0).strip()!r}, which can be template text "
+                           f"({what}). If it is real copy, ignore this or list it in "
+                           "meta.vet.allow_text.")
+                    break
+
 
 PII_PATTERNS = [
     (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "email address"),
@@ -903,6 +964,22 @@ OVERFLOW_AUDIT_JS = r"""
 })()
 """
 
+# A chart squeezed into a sliver neither overflows nor fails to paint, so
+# measure it (#36): a chart column the layout sizes (scrolly / Vizzu graphic,
+# pinned stage) narrower than both 240 px and half the viewport is
+# unreadable. Simple scenes are sized by their own content, so they are left
+# out. Returns [[scene id, width px], ...].
+SQUEEZE_AUDIT_JS = r"""
+(() => {
+  const vw = window.innerWidth, min = Math.min(240, vw / 2), out = [];
+  for (const g of document.querySelectorAll('.scene--scrolly > .scene__graphic[data-mount], .scene__pin[data-mount]')) {
+    const r = g.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0 && r.width < min) out.push([g.getAttribute('data-mount'), Math.round(r.width)]);
+  }
+  return out;
+})()
+"""
+
 # The data panel (bundle a11y extras): every data scene's table and CSV must
 # match the inlined dataset, so the numbers a reader can inspect are exactly
 # the numbers the author supplied. Returns null when the bundle has no panel
@@ -1056,7 +1133,8 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
         return renders, visual, extras, extra_notes
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    viewports = [(1440, 900), (768, 1024), (480, 800)]
+    # A phone (390 px, iPhone 12-15) is the narrowest a reader brings (#36).
+    viewports = [(1440, 900), (768, 1024), (390, 844)]
     url = "file://" + str(html_abs)
 
     with sync_playwright() as p:
@@ -1120,6 +1198,14 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
                 renders.fail(f"viewport {w}x{h}: chart overflows its card in scene(s) "
                              f"{', '.join(overflowing)} — it covers the source line or "
                              "runs off the slide.")
+            try:
+                squeezed = page.evaluate(SQUEEZE_AUDIT_JS)
+            except Exception:
+                squeezed = []
+            if squeezed:
+                renders.fail(f"viewport {w}x{h}: chart squeezed too narrow to read in scene(s) "
+                             + ", ".join(f"{sid} ({px} px wide)" for sid, px in squeezed)
+                             + " — the layout leaves it no room at this width.")
             if facts["svgCount"] == 0 and facts["canvasCount"] == 0:
                 renders.note(f"viewport {w}x{h}: no SVG or Canvas charts detected.")
 

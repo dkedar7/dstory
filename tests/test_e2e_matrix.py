@@ -167,3 +167,42 @@ def test_phone_never_scrolls_sideways(pw, built, mode):
     assert over <= 1, f"{mode}: page is {over}px wider than the phone"
     assert not errors, errors
     page.close()
+
+
+@pytest.mark.parametrize("mode", ["scroll", "slides"])
+@pytest.mark.parametrize("extras", [True, False], ids=["extras", "plain"])
+def test_phone_charts_are_readable_width(pw, built, mode, extras):
+    """#36: slides kept two columns on a phone, squeezing a scrolly chart to
+    66 px of a 390 px screen. No chart is narrower than half the phone, and
+    the active step's text sits below it, not beside it."""
+    page, errors = _open(pw, built[mode, extras], 390, 844)
+    if mode == "slides":
+        page.wait_for_selector("[data-slide-controls]:not([hidden])", timeout=15000)
+    widths = page.evaluate("""[...document.querySelectorAll('[data-mount]')].map(g => {
+        const r = g.getBoundingClientRect(); return [g.dataset.mount, Math.round(r.width)]; })""")
+    narrow = [(sid, w) for sid, w in widths if 0 < w < min(240, 390 / 2)]
+    assert not narrow, f"{mode}: charts squeezed on a 390 px phone: {narrow}"
+    for sid in ("s-scrolly", "s-vizzu"):
+        g = page.locator(f"#{sid} .scene__graphic").bounding_box()
+        t = page.locator(f"#{sid} .scene__text").bounding_box()
+        assert g and t and t["y"] >= g["y"] + g["height"] - 1, (mode, sid, g, t)
+    assert not errors, errors
+    page.close()
+
+
+def test_vet_flags_a_squeezed_chart(tmp_path):
+    """The vetter's phone viewport catches a chart squeezed to a sliver."""
+    pytest.importorskip("playwright.sync_api")
+    from dstory.vet import browser_available, vet
+    ok, why = browser_available()
+    if not ok:
+        pytest.skip(why)
+    css = "<style>.scene--scrolly{grid-template-columns:1fr 5fr !important}</style>"
+    story = {"meta": dict(META, mode="scroll"), "scenes": [SCENES[1]], "datasets": {"bars": BARS}}
+    res = build(story, tmp_path / "p", scenes={"s-scrolly": JS["s-scrolly"]}, vendor=True,
+                check_claims=False)
+    html = res.html.read_text(encoding="utf-8").replace("</head>", css + "</head>", 1)
+    res.html.write_text(html, encoding="utf-8")
+    rep = vet(res.html, data=tmp_path / "p" / "data.json")
+    renders = next(d for d in rep.dimensions if d.name.startswith("Renders"))
+    assert any("390x844" in i and "squeezed" in i and "s-scrolly" in i for i in renders.issues), renders.issues

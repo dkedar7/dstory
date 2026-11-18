@@ -32,6 +32,14 @@ class A11yOptions(BaseModel):
     sonify: Optional[bool] = None     # a "Listen" button that plays each series as tones
 
 
+class VetOptions(BaseModel):
+    """Per-story vetter settings (meta.vet)."""
+    model_config = ConfigDict(extra="forbid")
+    # Real copy the template-text check must leave alone, e.g. "Super Bowl XXX"
+    # or "TBD" in a source note (#37). Matched case-insensitively.
+    allow_text: list[str] = Field(default_factory=list)
+
+
 class Meta(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str
@@ -62,6 +70,9 @@ class Meta(BaseModel):
 
     # The data panel under every chart (table + CSV download); all on by default.
     a11y: Optional[A11yOptions] = None
+
+    # Vetter settings for this story.
+    vet: Optional[VetOptions] = None
 
 
 class Claim(BaseModel):
