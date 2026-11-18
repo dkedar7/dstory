@@ -965,12 +965,14 @@ OVERFLOW_AUDIT_JS = r"""
 """
 
 # A chart squeezed into a sliver neither overflows nor fails to paint, so
-# measure it (#36): a chart mount narrower than both 240 px and half the
-# viewport is unreadable. Returns [[scene id, width px], ...].
+# measure it (#36): a chart column the layout sizes (scrolly / Vizzu graphic,
+# pinned stage) narrower than both 240 px and half the viewport is
+# unreadable. Simple scenes are sized by their own content, so they are left
+# out. Returns [[scene id, width px], ...].
 SQUEEZE_AUDIT_JS = r"""
 (() => {
   const vw = window.innerWidth, min = Math.min(240, vw / 2), out = [];
-  for (const g of document.querySelectorAll('[data-mount]')) {
+  for (const g of document.querySelectorAll('.scene--scrolly > .scene__graphic[data-mount], .scene__pin[data-mount]')) {
     const r = g.getBoundingClientRect();
     if (r.width > 0 && r.height > 0 && r.width < min) out.push([g.getAttribute('data-mount'), Math.round(r.width)]);
   }

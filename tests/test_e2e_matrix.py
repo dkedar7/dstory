@@ -173,14 +173,14 @@ def test_phone_never_scrolls_sideways(pw, built, mode):
 @pytest.mark.parametrize("extras", [True, False], ids=["extras", "plain"])
 def test_phone_charts_are_readable_width(pw, built, mode, extras):
     """#36: slides kept two columns on a phone, squeezing a scrolly chart to
-    66 px of a 390 px screen. Every chart gets at least ~half the phone, and
+    66 px of a 390 px screen. No chart is narrower than half the phone, and
     the active step's text sits below it, not beside it."""
     page, errors = _open(pw, built[mode, extras], 390, 844)
     if mode == "slides":
         page.wait_for_selector("[data-slide-controls]:not([hidden])", timeout=15000)
     widths = page.evaluate("""[...document.querySelectorAll('[data-mount]')].map(g => {
         const r = g.getBoundingClientRect(); return [g.dataset.mount, Math.round(r.width)]; })""")
-    narrow = [(sid, w) for sid, w in widths if 0 < w < 300]
+    narrow = [(sid, w) for sid, w in widths if 0 < w < min(240, 390 / 2)]
     assert not narrow, f"{mode}: charts squeezed on a 390 px phone: {narrow}"
     for sid in ("s-scrolly", "s-vizzu"):
         g = page.locator(f"#{sid} .scene__graphic").bounding_box()
