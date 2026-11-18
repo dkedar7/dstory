@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-11-18
+
 ### Fixed
 - The template-text check from 0.14.1 no longer blocks real prose (#37).
   "Super Bowl XXX", "2025 figures TBD", "most new capacity goes here" and
