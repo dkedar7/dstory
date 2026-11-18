@@ -473,6 +473,30 @@ body.story-mode--slides .scene--simple .scene__graphic > svg {
 }
 body.story-mode--slides .scene--simple .scene__graphic > :not(svg) { flex: 0 0 auto; }
 
+/* Slides on a phone (#36): two columns left a 66 px chart on a 390 px
+   screen. Stack chart over text, as scroll mode does, and trim the desktop
+   padding; the chart takes the height the text leaves. */
+@media (max-width: 720px) {
+  body.story-mode--slides .scene--scrolly {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1.25rem 1rem 5.5rem;
+  }
+  body.story-mode--slides .scene--scrolly .scene__graphic {
+    flex: 1 1 0;
+    min-height: 40vh;
+    height: auto;
+    max-height: none;
+  }
+  body.story-mode--slides .scene--scrolly .scene__text,
+  body.story-mode--slides .scene--scrolly .scene__source { flex: 0 0 auto; }
+  body.story-mode--slides .scene--scrolly .scene__lede { padding: 0 0 0.5rem; }
+  body.story-mode--slides .scene--simple { padding: 2rem 1rem 5.5rem; }
+  body.story-mode--slides .scene--pinned > .scene__lede { padding: 1.5rem 1rem 0; }
+}
+
 /* Shown in a Vizzu mount when the library can't load (offline bundle). */
 .scene__fallback {
   margin: auto;

@@ -5,6 +5,24 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Fixed
+- The template-text check from 0.14.1 no longer blocks real prose (#37).
+  "Super Bowl XXX", "2025 figures TBD", "most new capacity goes here" and
+  "table {A1}" pass. A field that is only a marker ("TBD", "XXX"), a note to
+  self ("TBD: the June number"), a bracketed marker ("[TBD]", "(XXX)"),
+  `{{…}}`, `[Insert …]`, a template slot such as `{phrase}` or `{headline}`,
+  "Headline goes here" and FIXME / TKTK still fail. A marker that could be
+  either is now a note, and `meta.vet.allow_text: ["Super Bowl XXX"]`
+  silences the check for copy you mean.
+- `Report.to_json()` / `dstory vet --json` now fill `scene` for editorial
+  failures, so an agent can route the fix without parsing the message (#37).
+- Slides on a phone stack the chart over the text, as scroll mode does (#36).
+  Scrolly and Vizzu slides kept two columns at every width, squeezing the
+  chart to 66 px of a 390 px screen.
+- The vetter renders at a 390 px phone instead of 480 px and fails a chart
+  squeezed narrower than 240 px and half the screen, which neither overflows
+  nor fails to paint, so it used to pass (#36).
+
 ## [0.14.1] - 2026-11-17
 
 ### Fixed
