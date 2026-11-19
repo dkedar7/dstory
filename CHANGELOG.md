@@ -5,6 +5,17 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Fixed
+- Claims can no longer go stale when the data changes (#38). Edit a drafted
+  story's data.json as the README says, and a headline like "Coal share fell
+  24 points, the biggest shift of any source" used to ship next to a chart
+  showing a 2-point fall. Every claim `dstory draft` writes now records where
+  its number comes from (`"from"`: dataset rows, the operation, and any
+  "biggest" / "largest" / "least" ranking). `dstory bundle` (ClaimDriftError)
+  and `dstory vet` (Data fidelity) recompute it and fail on a mismatch, naming
+  the claim with the old and new numbers. Hand-written claims opt in with
+  `compute_claim(..., from_=claim_from(...))`.
+
 ## [0.14.2] - 2026-11-18
 
 ### Fixed

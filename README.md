@@ -288,6 +288,30 @@ and is left alone. If a scene states a second change, register a claim for it
 too. A registered claim whose text appears in no reader-facing prose is flagged
 as well.
 
+A claim can also say where its number comes from, so it can't go stale when
+the data changes. `dstory draft` records this on every claim it writes, and you
+can add it to your own with `from_=`:
+
+```python
+from dstory.prep import claim_from, compute_claim, compute_point_change, operand
+
+claim = compute_claim(
+    id="c-coal", scene="scene-shift", kind="pp",
+    text_template="Coal's share {phrase}, the biggest shift of any source",
+    value=compute_point_change(after=16, before=40),            # -24 points
+    from_=claim_from("pp", after=operand("end", source="Coal"),
+                     before=operand("start", source="Coal"),
+                     rank={"by": "source", "is": 1}),            # "the biggest"
+)
+```
+
+`bundle` and `vet` recompute the value from the scene's dataset. If someone
+edits a row and the claim now says -24 points where the data gives -2, or
+"the biggest" no longer holds, the build stops and names the claim with the
+old and new numbers. An operand is the sum of a column over the rows that
+match, so a total is `operand("value", year=2024)`. Ops: `pct`, `ratio`, `pp`
+(with `scale=100` for 0..1 shares), `share` (`part` / `whole`) and `value`.
+
 ## How is this different from…?
 
 | | dstory |

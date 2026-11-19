@@ -541,18 +541,23 @@ class _Drafter:
     # ----- claims -----
 
     def _claim(self, cid: str, text: str, value: float, scene: str, *,
-               kind: str = "auto") -> str:
+               kind: str = "auto", src: Optional[dict[str, Any]] = None) -> str:
+        """`src` is the claim's `from`: how the value follows from the scene's
+        dataset, so bundle and vet recompute it when the data changes (#38)."""
         c = compute_claim(id=cid, text_template=_esc(_sentence_case(text)), value=value,
-                          scene=scene, kind=kind)
+                          scene=scene, kind=kind, from_=src)
         self.claims.append(c)
         return c["text"]
 
-    def _share_claim(self, cid: str, text: str, share: float, scene: str) -> str:
+    def _share_claim(self, cid: str, text: str, share: float, scene: str,
+                     src: Optional[dict[str, Any]] = None) -> str:
         # A share is not a change, so it carries no "ratio"/"pct" unit: the
         # vetter reads a unit-less 0..1 value as a share and checks "N%" against
         # value x 100. (compute_claim would warn on the untagged float.)
         text = _sentence_case(text)
         c = {"id": cid, "text": text, "value": round(float(share), 6), "scene": scene}
+        if src is not None:
+            c["from"] = src
         self.claims.append(c)
         return text
 
@@ -584,8 +589,9 @@ class _Drafter:
         (k0, v0), (k1, v1) = pts[0], pts[-1]
         t0, t1 = label(k0), label(k1)
         values = [v for _, v in pts]
-        headline, commentary, ipk, peak_drop = self._trend_text(pts, label, subject,
-                                                               share_scale, sid)
+        headline, commentary, ipk, peak_drop = self._trend_text(
+            pts, label, subject, share_scale, sid,
+            at=lambda k: {"sum": M, "where": {T: iso(k)}})
 
         alt = (f"Line chart of {in_text} from {t0} to {t1}: "
                f"it goes from {_fmt_value(v0)} to {_fmt_value(v1)}")
@@ -638,10 +644,18 @@ class _Drafter:
             f"time series detected; {M} has gaps across {C}, so it follows the largest {C} "
             f"in {label(periods[-1])} ({leader})", proper=True)
 
-    def _trend_text(self, pts, label, subject: str, share_scale, sid: str):
+    def _trend_text(self, pts, label, subject: str, share_scale, sid: str, *, at):
         """Headline + commentary for a series of (key, value) points, with
-        their claims registered against scene `sid`. Returns (headline,
-        commentary, index of the peak, whether a drop from the peak is told)."""
+        their claims registered against scene `sid`. `at(key)` is the operand
+        (see prep.claim_from) that reads that point back from the scene's
+        dataset. Returns (headline, commentary, index of the peak, whether a
+        drop from the peak is told)."""
+        def src(after, before):
+            if share_scale:
+                return {"op": "pp", "after": at(after), "before": at(before),
+                        "scale": share_scale}
+            return {"op": "pct", "after": at(after), "before": at(before)}
+
         (k0, v0), (k1, v1) = pts[0], pts[-1]
         t0, t1 = label(k0), label(k1)
         values = [v for _, v in pts]
@@ -652,7 +666,7 @@ class _Drafter:
                 crossed = i
         if change is not None:
             headline = self._claim("c-trend", f"{subject} {_move(change)} between {t0} and {t1}",
-                                   change, sid)
+                                   change, sid, src=src(k1, k0))
         elif crossed is not None and (v0 < 0) != (v1 < 0):
             sign = "negative" if v1 < 0 else "positive"
             headline = _sentence_case(f"{subject} turned {sign} {self._at(label(pts[crossed][0]))}")
@@ -668,7 +682,7 @@ class _Drafter:
             commentary = self._claim(
                 "c-trend-peak",
                 f"It peaked {self._at(label(pts[ipk][0]))}, then {_move(from_peak)} by {t1}.",
-                from_peak, sid)
+                from_peak, sid, src=src(k1, pts[ipk][0]))
         else:
             steps = [(i, _delta(values[i], values[i - 1], share_scale))
                      for i in range(1, len(values))]
@@ -679,7 +693,8 @@ class _Drafter:
                 commentary = self._claim(
                     "c-trend-step",
                     f"The sharpest move came {self._at(label(pts[i][0]))}, when it {_move(p)} "
-                    f"from {label(pts[i - 1][0])}.", p, sid)
+                    f"from {label(pts[i - 1][0])}.", p, sid,
+                    src=src(pts[i][0], pts[i - 1][0]))
         return headline, commentary, ipk, peak_drop
 
     def _opener_scene(self, T, C, M, wide, periods, label, why: str) -> bool:
@@ -711,19 +726,23 @@ class _Drafter:
         pts = [(k, float(totals.loc[k])) for k in periods]
         t0, t1 = label(periods[0]), label(periods[-1])
         subject = f"Total {_humanize(M)}"
-        h1, c1, _, _ = self._trend_text(pts, label, subject, None, sid)
+        h1, c1, _, _ = self._trend_text(pts, label, subject, None, sid,
+                                        at=lambda k: {"sum": M, "where": {T: label(k)}})
         last = full.loc[periods[-1]].sort_values(ascending=False)
         total1 = float(last.sum())
         frame2 = {"headline": "", "commentary": ""}
         if total1 > 0:
             (lead, vl), (second, vs) = (str(last.index[0]), float(last.iloc[0])), \
                                        (str(last.index[1]), float(last.iloc[1]))
+            def share_src(lab, rank):
+                return {"op": "share", "part": {"sum": M, "where": {T: t1, C: lab}},
+                        "whole": {"sum": M, "where": {T: t1}}, "rank": {"by": C, "is": rank}}
             frame2["headline"] = self._share_claim(
                 "c-opener-lead", f"In {t1}, {lead} made up {_pct_str(vl / total1 * 100)}% "
-                                 f"of the total", vl / total1, sid)
+                                 f"of the total", vl / total1, sid, share_src(lead, 1))
             frame2["commentary"] = self._share_claim(
                 "c-opener-next", f"{second} was next, at {_pct_str(vs / total1 * 100)}%.",
-                vs / total1, sid)
+                vs / total1, sid, share_src(second, 2))
             self.featured.add(lead)
         else:
             frame2["headline"] = _sentence_case(f"Each {_humanize(C)} on its own")
@@ -778,6 +797,16 @@ class _Drafter:
         def subj(lab: str) -> str:
             return f"{lab} share" if share_scale else lab
 
+        def src(lab: str, rank: Optional[int] = None) -> dict[str, Any]:
+            spec: dict[str, Any] = {"op": "pp" if share_scale else "pct",
+                                    "after": {"sum": "end", "where": {C: lab}},
+                                    "before": {"sum": "start", "where": {C: lab}}}
+            if share_scale:
+                spec["scale"] = share_scale
+            if rank is not None:
+                spec["rank"] = {"by": C, "is": rank}
+            return spec
+
         headline, commentary, highlight = "", "", []
         if movers:
             top, tp = max(movers, key=lambda lp: abs(lp[1]))
@@ -788,7 +817,8 @@ class _Drafter:
             else:
                 biggest = f", the biggest shift of any {cname}" if complete else ""
                 headline = self._claim(
-                    "c-shift", f"{subj(top)} {_move(tp)} between {t0} and {t1}{biggest}", tp, sid)
+                    "c-shift", f"{subj(top)} {_move(tp)} between {t0} and {t1}{biggest}", tp, sid,
+                    src=src(top, 1 if complete else None))
             highlight.append(top)
             rest = [(lab, p) for lab, p in movers if lab != top]
             opposite = [(lab, p) for lab, p in rest if (p > 0) != (tp > 0) and abs(p) >= 0.05]
@@ -802,12 +832,14 @@ class _Drafter:
             elif opposite:
                 lab, p = max(opposite, key=lambda lp: abs(lp[1]))
                 commentary = self._claim("c-shift-contrast",
-                                         f"{subj(lab)}, by contrast, {_move(p)}.", p, sid)
+                                         f"{subj(lab)}, by contrast, {_move(p)}.", p, sid,
+                                         src=src(lab))
                 highlight.append(lab)
             elif rest and complete:
                 lab, p = min(rest, key=lambda lp: abs(lp[1]))
                 commentary = self._claim("c-shift-least",
-                                         f"{subj(lab)} changed least: it {_move(p)}.", p, sid)
+                                         f"{subj(lab)} changed least: it {_move(p)}.", p, sid,
+                                         src=src(lab, -1))
                 highlight.append(lab)
         elif crossers:
             lab, sign = crossers[0]
@@ -1006,11 +1038,15 @@ class _Drafter:
         shares = [(lab, v / total) for lab, v in vals]
         (lead, s1), (second, s2) = shares[0], shares[1]
         when = f"In {period}, " if period else ""
+        def src(lab, rank):
+            return {"op": "share", "part": {"sum": M, "where": {C: lab}}, "whole": {"sum": M},
+                    "rank": {"by": C, "is": rank}}
         headline = self._share_claim(
             "c-mix-lead", f"{when}{lead} holds the largest share: {_pct_str(s1 * 100)}%",
-            s1, sid)
+            s1, sid, src(lead, 1))
         commentary = self._share_claim("c-mix-next",
-                                       f"{second} is next, at {_pct_str(s2 * 100)}%.", s2, sid)
+                                       f"{second} is next, at {_pct_str(s2 * 100)}%.", s2, sid,
+                                       src(second, 2))
         alt = (f"Waffle chart of {_humanize(M)} by {_humanize(C)}"
                + (f" in {period}" if period else "") + ": "
                + ", ".join(f"{lab} {_pct_str(s * 100)}%" for lab, s in shares) + ".")
@@ -1029,7 +1065,10 @@ class _Drafter:
         mname = _humanize(M)
         p = _pct(vt, vb)
         lead_note = (self._claim("c-rank", f"{top} is {_pct_str(p)}% higher than {bottom}.",
-                                 p, sid) if p is not None and len(rows) > 1 else
+                                 p, sid, src={"op": "pct",
+                                              "after": {"sum": M, "where": {L: top}},
+                                              "before": {"sum": M, "where": {L: bottom}}})
+                     if p is not None and len(rows) > 1 else
                      f"{top} has the highest {mname}.")
         steps = [{"headline": _sentence_case(f"{top} ranks first"), "commentary": lead_note, "state": top}]
         if len(rows) > 1:
@@ -1226,8 +1265,12 @@ class _Drafter:
         from .vet import check_data_fidelity
 
         bad_scenes = set()
+        # Each scene's dataset (not its prose: one claim at a time can't
+        # cover a scene's text), so each claim's `from` is recomputed (#38).
+        where = [{"id": s["id"], "dataset": s.get("dataset")} for s in story["scenes"]]
         for c in story["claims"]:
-            if not check_data_fidelity("", {"claims": [c]}).passed:
+            if not check_data_fidelity("", {"claims": [c], "scenes": where,
+                                            "datasets": story["datasets"]}).passed:
                 bad_scenes.add(c.get("scene"))
         scenes = [s for s in story["scenes"] if s["id"] not in bad_scenes]
         for sid in sorted(s for s in bad_scenes if s):

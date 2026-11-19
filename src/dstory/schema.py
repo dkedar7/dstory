@@ -76,7 +76,7 @@ class Meta(BaseModel):
 
 
 class Claim(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
     id: str
     text: str
     value: Optional[float] = None
@@ -86,6 +86,9 @@ class Claim(BaseModel):
     # vetter then guesses (0..1 is a share, otherwise percent points).
     unit: Optional[Literal["ratio", "pct", "pp"]] = None
     scene: Optional[str] = None
+    # How `value` follows from a dataset (see dstory.prep.claim_from), so the
+    # bundler and vetter recompute it when the data changes (#38).
+    from_: Optional[dict[str, Any]] = Field(default=None, alias="from")
 
 
 class Annotation(BaseModel):

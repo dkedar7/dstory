@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
-from .prep import RATIO_WINDOWS
+from .prep import RATIO_WINDOWS, recompute_claim
 
 
 # ---------- result types ----------
@@ -517,7 +517,66 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
                    f"{as_ratio:.2f}.")
 
     _check_scene_prose_against_claims(r, data, claims)
+    _check_claim_provenance(r, data, claims)
     return r
+
+
+# How far a recomputed value may sit from the stored one: prose rounds a
+# percent or point change to 0.1 and a share to 0.1 point.
+_FROM_TOLERANCE = {"pct": 0.05, "pp": 0.05, "share": 0.0005}
+
+
+def _fmt_from(op: str, v: float) -> str:
+    if op == "share":
+        return f"{v * 100:.1f}%"
+    if op == "pct":
+        return f"{v:+.1f}%"
+    if op == "pp":
+        return f"{v:+.1f} points"
+    if op == "ratio":
+        return f"{v:.2f}x"
+    return f"{v:g}"
+
+
+def _check_claim_provenance(r: "Dimension", data: dict[str, Any], claims: list) -> None:
+    """A claim with `from` must still follow from its dataset (#38): editing
+    data.json without updating the claim fails here, in bundle and in vet."""
+    if "datasets" not in data:
+        return   # a claims-only check (no data to recompute from)
+    datasets = data.get("datasets") or {}
+    scene_ds ={s.get("id"): s.get("dataset") for s in data.get("scenes") or []
+                if isinstance(s, dict)}
+    for c in claims:
+        if not isinstance(c, dict) or not isinstance(c.get("from"), dict):
+            continue
+        spec, cid = c["from"], c.get("id", "?")
+        where = f"Claim {cid!r}" + (f" (scene {c['scene']!r})" if c.get("scene") else "")
+        ds = spec.get("dataset") or scene_ds.get(c.get("scene"))
+        rows = datasets.get(ds) if ds else None
+        if not isinstance(rows, list):
+            r.fail(f"{where}: its `from` names dataset {ds!r}, which is not in data.json.")
+            continue
+        try:
+            got, problem = recompute_claim(spec, rows)
+        except (ValueError, TypeError, KeyError) as e:
+            r.fail(f"{where}: its `from` is malformed ({e}).")
+            continue
+        if got is None:
+            r.fail(f"{where} (\"{c.get('text', '')}\") no longer follows from dataset "
+                   f"{ds!r}: {problem}. Update the claim, or re-run `dstory draft`.")
+            continue
+        value, op = c.get("value"), spec.get("op")
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            tol = _FROM_TOLERANCE.get(op, 0.005 * max(abs(got), 1e-9))
+            if abs(float(value) - got) > tol + 1e-9 * abs(got):
+                r.fail(f"{where} (\"{c.get('text', '')}\") no longer matches dataset {ds!r}: "
+                       f"it states {_fmt_from(op, float(value))}, the data now gives "
+                       f"{_fmt_from(op, got)}. Update the claim and its text, or re-run "
+                       "`dstory draft`.")
+                continue
+        if problem:
+            r.fail(f"{where} (\"{c.get('text', '')}\") no longer holds in dataset {ds!r}: "
+                   f"{problem}. Update the claim and its text.")
 
 
 def _claim_ratio(c: dict[str, Any]) -> Optional[float]:

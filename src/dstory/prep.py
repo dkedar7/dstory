@@ -191,6 +191,7 @@ def compute_claim(
     value: float,
     scene: Optional[str] = None,
     kind: str = "auto",
+    from_: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Build a `Claim` dict ready to drop into `data['claims']`.
 
@@ -210,6 +211,11 @@ def compute_claim(
         )
         # -> {"id": "c1", "text": "Monthly volume tripled between ...",
         #     "value": 3.04, "unit": "ratio", ...}
+
+    Pass `from_` (built with `claim_from`) to record how the value follows
+    from the scene's dataset. The bundler and vetter then recompute it, so
+    editing the data without updating the claim fails instead of shipping a
+    stale number (#38).
     """
     unit = _resolve_unit(value, kind)
     if unit is None:
@@ -226,7 +232,169 @@ def compute_claim(
         out["unit"] = unit
     if scene is not None:
         out["scene"] = scene
+    if from_ is not None:
+        out["from"] = from_
     return out
+
+
+# ---------- claim provenance (#38) ----------
+#
+# A claim's `from` says how its value follows from a dataset, so the value can
+# be recomputed whenever the data changes:
+#
+#   {"op": "pct",   "after": <operand>, "before": <operand>}   percent change
+#   {"op": "ratio", "after": <operand>, "before": <operand>}   after / before
+#   {"op": "pp",    "after": <operand>, "before": <operand>, "scale": 100}
+#                   point change, (after - before) x scale
+#   {"op": "share", "part": <operand>, "whole": <operand>}     part / whole (0..1)
+#   {"op": "value", "of": <operand>}                           a level
+#
+# An operand is {"sum": "<column>", "where": {"<column>": <value>, ...}}: the
+# sum of a column over the rows that match (one row, or a total). Optional:
+# "dataset" (defaults to the claim's scene dataset) and "rank": {"by":
+# "<column>", "is": 1}, which says the claim is a superlative ("the biggest
+# shift of any source"): recomputed for every value of that column, this one
+# must rank `is` (1 = largest, 2 = second, -1 = smallest; by size of change
+# for pct / pp / ratio, by value for share / value).
+
+_FROM_OPS = {"pct": ("after", "before"), "ratio": ("after", "before"),
+             "pp": ("after", "before"), "share": ("part", "whole"), "value": ("of",)}
+
+
+def claim_from(op: str, *, dataset: Optional[str] = None, rank: Optional[dict] = None,
+               scale: Optional[float] = None, **operands: dict[str, Any]) -> dict[str, Any]:
+    """Build a claim's `from` spec, for `compute_claim(..., from_=...)`.
+
+    Example: Coal's share fell 24 points, the biggest shift of any source:
+        claim_from("pp", after=operand("end", source="Coal"),
+                   before=operand("start", source="Coal"),
+                   rank={"by": "source", "is": 1})
+    """
+    if op not in _FROM_OPS:
+        raise ValueError(f"op must be one of {', '.join(_FROM_OPS)}, got {op!r}.")
+    missing = [k for k in _FROM_OPS[op] if k not in operands]
+    if missing:
+        raise ValueError(f"op {op!r} needs operand(s) {', '.join(missing)}.")
+    spec: dict[str, Any] = {"op": op, **{k: operands[k] for k in _FROM_OPS[op]}}
+    if dataset is not None:
+        spec["dataset"] = dataset
+    if scale is not None:
+        spec["scale"] = scale
+    if rank is not None:
+        spec["rank"] = rank
+    return spec
+
+
+def operand(column: str, **where: Any) -> dict[str, Any]:
+    """One operand of `claim_from`: the sum of `column` over matching rows."""
+    return {"sum": column, "where": where} if where else {"sum": column}
+
+
+def _same(a: Any, b: Any) -> bool:
+    if a == b:
+        return True
+    if isinstance(a, bool) or isinstance(b, bool):
+        return False
+    try:
+        return float(a) == float(b)
+    except (TypeError, ValueError):
+        return str(a) == str(b)
+
+
+def _operand_value(o: Any, rows: list[dict[str, Any]]) -> Optional[float]:
+    if not isinstance(o, dict) or not isinstance(o.get("sum"), str):
+        raise ValueError(f"an operand must be {{'sum': column, 'where': {{...}}}}, got {o!r}")
+    col, where = o["sum"], o.get("where") or {}
+    total, hit = 0.0, False
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        if all(_same(r.get(k), v) for k, v in where.items()):
+            v = r.get(col)
+            if v is None or isinstance(v, bool):
+                continue
+            try:
+                total += float(v)
+            except (TypeError, ValueError):
+                continue
+            hit = True
+    return total if hit else None
+
+
+def _evaluate(spec: dict[str, Any], rows: list[dict[str, Any]]) -> Optional[float]:
+    op = spec.get("op")
+    if op not in _FROM_OPS:
+        raise ValueError(f"unknown op {op!r} (use {', '.join(_FROM_OPS)})")
+    vals = [_operand_value(spec.get(k), rows) for k in _FROM_OPS[op]]
+    if any(v is None for v in vals):
+        return None
+    if op == "value":
+        return vals[0]
+    a, b = vals
+    if op == "pp":
+        return (a - b) * float(spec.get("scale", 1) or 1)
+    if b == 0:
+        return None
+    if op == "pct":
+        return (a - b) / b * 100.0
+    return a / b   # ratio, share
+
+
+def _magnitude(op: str, v: float) -> float:
+    if op in ("pct", "pp"):
+        return abs(v)
+    if op == "ratio":
+        return abs(math.log(v)) if v > 0 else float("inf")
+    return v
+
+
+def _with_key(o: Any, by: str, key: Any) -> Any:
+    if isinstance(o, dict) and by in (o.get("where") or {}):
+        return {**o, "where": {**o["where"], by: key}}
+    return o
+
+
+def recompute_claim(spec: dict[str, Any], rows: list[dict[str, Any]]
+                    ) -> tuple[Optional[float], Optional[str]]:
+    """Recompute a claim's value from its `from` spec over a dataset's rows.
+
+    Returns (value, problem). value is None when the rows the spec names are
+    gone. problem says what no longer holds: the rows are missing, or the
+    claim's superlative now belongs to someone else. Raises ValueError on a
+    malformed spec."""
+    value = _evaluate(spec, rows)
+    if value is None:
+        return None, "the rows it was computed from are gone or have no numbers"
+    rank = spec.get("rank")
+    if not isinstance(rank, dict) or not isinstance(rank.get("by"), str):
+        return value, None
+    by, pos = rank["by"], int(rank.get("is", 1))
+    ops = _FROM_OPS[spec["op"]]
+    me = next((spec[k]["where"][by] for k in ops
+               if isinstance(spec.get(k), dict) and by in (spec[k].get("where") or {})), None)
+    if me is None:
+        return value, None
+    keys: list[Any] = []
+    for r in rows:
+        k = r.get(by) if isinstance(r, dict) else None
+        if k is not None and not any(_same(k, x) for x in keys):
+            keys.append(k)
+    scored = []
+    for k in keys:
+        sub = {**spec, **{n: _with_key(spec.get(n), by, k) for n in ops}}
+        v = _evaluate(sub, rows)
+        if v is not None:
+            scored.append((k, _magnitude(spec["op"], v)))
+    order = sorted(scored, key=lambda kv: -kv[1])
+    idx = pos - 1 if pos > 0 else len(order) + pos
+    word = {1: "first", 2: "second", -1: "last"}.get(pos, f"at position {pos}")
+    if not 0 <= idx < len(order):
+        return value, f"it says {me} ranks {word} by {by}, but only {len(order)} can be ranked"
+    target = order[idx][1]
+    mine = next((m for k, m in scored if _same(k, me)), None)
+    if mine is None or abs(mine - target) > 1e-9 * max(1.0, abs(target)):
+        return value, f"it says {me} ranks {word} by {by}, but {order[idx][0]} now does"
+    return value, None
 
 
 # ---------- number formatting (no pandas needed) ----------
