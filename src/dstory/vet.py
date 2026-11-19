@@ -541,8 +541,10 @@ def _fmt_from(op: str, v: float) -> str:
 def _check_claim_provenance(r: "Dimension", data: dict[str, Any], claims: list) -> None:
     """A claim with `from` must still follow from its dataset (#38): editing
     data.json without updating the claim fails here, in bundle and in vet."""
+    if "datasets" not in data:
+        return   # a claims-only check (no data to recompute from)
     datasets = data.get("datasets") or {}
-    scene_ds = {s.get("id"): s.get("dataset") for s in data.get("scenes") or []
+    scene_ds ={s.get("id"): s.get("dataset") for s in data.get("scenes") or []
                 if isinstance(s, dict)}
     for c in claims:
         if not isinstance(c, dict) or not isinstance(c.get("from"), dict):
