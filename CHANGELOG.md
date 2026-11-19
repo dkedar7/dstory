@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.14.3] - 2026-11-19
+
 ### Fixed
 - Claims can no longer go stale when the data changes (#38). Edit a drafted
   story's data.json as the README says, and a headline like "Coal share fell
