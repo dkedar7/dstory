@@ -115,7 +115,7 @@ def build(
         title=meta.title, overwrite=overwrite,
     )
     (project / "data.json").write_text(
-        story_obj.model_dump_json(indent=2, exclude_none=True), encoding="utf-8"
+        story_obj.model_dump_json(indent=2, exclude_none=True, by_alias=True), encoding="utf-8"
     )
     for scene_id, js in (scenes or {}).items():
         write_scene(project, scene_id, js)
