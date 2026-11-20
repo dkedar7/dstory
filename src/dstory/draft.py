@@ -1076,7 +1076,7 @@ class _Drafter:
         p = _pct(vt, vb)
         fold = fold_phrase(1.0 + p / 100.0) if p is not None else None
         compare = (f"{top}'s {mname} is {fold} that of {bottom}." if fold else
-                   f"{top} is {_pct_str(p)}% higher than {bottom}.")
+                   f"{top} is {_pct_str(p)}% higher than {bottom}." if p is not None else "")
         lead_note = (self._claim("c-rank", compare,
                                  p, sid, src={"op": "pct",
                                               "after": {"sum": M, "where": {L: top}},

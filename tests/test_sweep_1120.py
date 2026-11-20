@@ -65,3 +65,12 @@ def test_a_wrong_fold_in_the_text_fails_vet():
     c = next(c for c in d.story["claims"] if c["id"] == "c-rank")
     c["text"] = "CA's population is 12-fold that of WY."
     assert not check_data_fidelity("", d.story).passed
+
+
+def test_a_zero_lowest_past_twelve_rows_has_no_percent_comparison():
+    csv = "team,score\n" + "\n".join(f"T{i},{(14 - i) * 10}" for i in range(15)) + "\n"
+    d = _draft(csv)
+    s = _rank_scene(d)
+    assert s["steps"][0]["commentary"] == "T0 has the highest score."
+    assert "T14 has the lowest score, at 0." in s["steps"][-1]["commentary"]
+    assert check_data_fidelity("", d.story).passed
