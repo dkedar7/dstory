@@ -1,0 +1,65 @@
+# Deploy the docs site (docs/) from the latest release tag, not from main, so
+# the site never documents a feature PyPI does not have yet (#32).
+#
+# - Pushing a vX.Y.Z tag deploys docs/ as of that tag.
+# - "Run workflow" (workflow_dispatch) deploys a chosen ref; it defaults to the
+#   newest v* tag. Use it for a docs-only fix: pass the ref to deploy.
+name: Docs
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag, branch or SHA to deploy (default: the newest v* tag)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Pick the ref to deploy
+        id: ref
+        env:
+          INPUT_REF: ${{ github.event.inputs.ref }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            ref="${GITHUB_REF_NAME}"
+          elif [ -n "${INPUT_REF}" ]; then
+            ref="${INPUT_REF}"
+          else
+            ref="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
+          fi
+          if [ -z "${ref}" ]; then
+            echo "No ref to deploy." >&2
+            exit 1
+          fi
+          echo "Deploying docs/ from ${ref}"
+          echo "ref=${ref}" >> "${GITHUB_OUTPUT}"
+      - name: Check out the ref
+        env:
+          REF: ${{ steps.ref.outputs.ref }}
+        run: git checkout --quiet "${REF}"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deployment
+        uses: actions/deploy-pages@v4
