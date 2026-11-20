@@ -18,6 +18,12 @@ All notable changes to `dstory` are documented here. This project adheres to
   because the console read `[vet]` as styling; it now says
   `pip install "dstory[vet]"`. Vet issues, notes, bundle warnings and output
   paths are printed as written.
+- A numeric claim with no `from` (hand-written, or drafted before 0.14.3)
+  now gets a note from `dstory vet` and a warning from `dstory bundle` naming
+  it: edits to data.json are not checked against it. It still builds; re-run
+  `dstory draft` or add `from` to tie it to the data.
+- The docs site now deploys from the latest release tag instead of main, so it
+  no longer documents features PyPI does not have yet (#32).
 
 ## [0.14.4] - 2026-11-20
 

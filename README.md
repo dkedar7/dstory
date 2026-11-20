@@ -313,6 +313,10 @@ edits a row and the claim now says -24 points where the data gives -2, or
 old and new numbers. An operand is the sum of a column over the rows that
 match, so a total is `operand("value", year=2024)`. Ops: `pct`, `ratio`, `pp`
 (with `scale=100` for 0..1 shares), `share` (`part` / `whole`) and `value`.
+A numeric claim on a scene with data but no `from` (a hand-written one, or one
+drafted before 0.14.3) still builds, with a note from `bundle` and `vet` naming
+it: edits to data.json are not checked against it until you re-run
+`dstory draft` or add `from`.
 
 ## How is this different from…?
 

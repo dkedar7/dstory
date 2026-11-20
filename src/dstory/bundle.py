@@ -111,6 +111,9 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
 
     html = index.read_text(encoding="utf-8")
     warnings: list[str] = list(theme_notes)
+    if check_claims:
+        from .vet import UNTIED_CLAIMS_NOTE
+        warnings.extend(n for n in fidelity.notes if n.startswith(UNTIED_CLAIMS_NOTE))
     from .vet import SCAFFOLD_TITLES
     title = (json.loads(data_json.read_text(encoding="utf-8")).get("meta") or {}).get("title")
     if isinstance(title, str) and title.strip().lower() in SCAFFOLD_TITLES:

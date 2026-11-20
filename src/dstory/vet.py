@@ -538,6 +538,10 @@ def _fmt_from(op: str, v: float) -> str:
     return f"{v:g}"
 
 
+# Starts the note for numeric claims with no `from`; bundle repeats it.
+UNTIED_CLAIMS_NOTE = "Claims not tied to their scene's data:"
+
+
 def _check_claim_provenance(r: "Dimension", data: dict[str, Any], claims: list) -> None:
     """A claim with `from` must still follow from its dataset (#38): editing
     data.json without updating the claim fails here, in bundle and in vet."""
@@ -546,6 +550,16 @@ def _check_claim_provenance(r: "Dimension", data: dict[str, Any], claims: list) 
     datasets = data.get("datasets") or {}
     scene_ds ={s.get("id"): s.get("dataset") for s in data.get("scenes") or []
                 if isinstance(s, dict)}
+    untied = [c.get("id", "?") for c in claims
+              if isinstance(c, dict) and "from" not in c
+              and isinstance(c.get("value"), (int, float)) and not isinstance(c.get("value"), bool)
+              and scene_ds.get(c.get("scene")) in datasets]
+    if untied:
+        shown = ", ".join(repr(x) for x in untied[:5]) + (
+            f" and {len(untied) - 5} more" if len(untied) > 5 else "")
+        r.note(f"{UNTIED_CLAIMS_NOTE} {shown}: an edit to data.json will not be checked "
+               "against them. Re-run `dstory draft`, or add `from` (README: \"Claims that can't "
+               "drift from the data\").")
     for c in claims:
         if not isinstance(c, dict) or not isinstance(c.get("from"), dict):
             continue
