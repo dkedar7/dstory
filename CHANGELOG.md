@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.14.4] - 2026-11-20
+
 ### Fixed
 - A drafted bar chart of more than 12 rows no longer names the wrong row as
   lowest (#40). `dstory draft` kept only the 12 largest, then wrote "X ranks
