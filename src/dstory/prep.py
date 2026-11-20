@@ -158,7 +158,24 @@ def _pct_phrase(pct: float) -> str:
     return f"decreased by {abs(pct):.1f}%"
 
 
-def derive_claim_text(value: float, *, kind: str = "auto") -> str:
+def _change_phrase(pct: float, style: str, ratio: Optional[float] = None) -> str:
+    """A percent change in words. style="auto" follows draft()'s newsroom
+    rules: 12x reads "rose 12-fold" and a change that rounds to 0.0% reads
+    "held steady" (#39). style="percent" is the pre-0.15 wording."""
+    ratio = 1.0 + pct / 100.0 if ratio is None else ratio
+    word = ratio_phrase(ratio)
+    if word:
+        return word
+    if style == "auto":
+        fold = fold_phrase(ratio)
+        if fold:
+            return f"rose {fold}"
+        if abs(pct) < 0.05:
+            return "held steady, a 0% change"
+    return _pct_phrase(pct)
+
+
+def derive_claim_text(value: float, *, kind: str = "auto", style: str = "auto") -> str:
     """Produce a claim phrase that's safe to feed into the vetter.
 
     - ratio: "doubled"/"tripled"/... when the ratio is inside the vetter's
@@ -167,20 +184,25 @@ def derive_claim_text(value: float, *, kind: str = "auto") -> str:
     - pct:   "doubled"/... when 1 + pct/100 is inside a window, otherwise
              "increased by N%" / "decreased by N%".
     - pp:    "rose N percentage points" / "fell N percentage points".
+    - style: "auto" (default) writes 5.5x or more as "rose 12-fold" and a
+             change under 0.05% as "held steady, a 0% change", matching
+             draft(); "percent" always writes "increased/decreased by N%".
     - auto:  uses the unit tagged by compute_ratio / compute_pct_change. An
              untagged float is ambiguous: it gets a phrase if it falls in a
              ratio window, otherwise it is treated as a percent change. Pass
              kind= explicitly for plain floats.
     """
+    if style not in ("auto", "percent"):
+        raise ValueError(f"style must be 'auto' or 'percent', got {style!r}.")
     unit = _resolve_unit(value, kind)
     if unit == "pp":
         pts = f"{abs(value):.1f}".removesuffix(".0")
         noun = "point" if pts == "1" else "points"
         return f"{'rose' if value >= 0 else 'fell'} {pts} percentage {noun}"
     if unit == "ratio":
-        return ratio_phrase(value) or _pct_phrase((value - 1.0) * 100.0)
+        return _change_phrase((value - 1.0) * 100.0, style, ratio=value)
     if unit == "pct":
-        return ratio_phrase(1.0 + value / 100.0) or _pct_phrase(value)
+        return _change_phrase(value, style)
     return ratio_phrase(value) or _pct_phrase(value)
 
 
@@ -192,6 +214,7 @@ def compute_claim(
     scene: Optional[str] = None,
     kind: str = "auto",
     from_: Optional[dict[str, Any]] = None,
+    style: str = "auto",
 ) -> dict[str, Any]:
     """Build a `Claim` dict ready to drop into `data['claims']`.
 
@@ -216,6 +239,10 @@ def compute_claim(
     from the scene's dataset. The bundler and vetter then recompute it, so
     editing the data without updating the claim fails instead of shipping a
     stale number (#38).
+
+    `style` picks the wording of {phrase}: "auto" writes big multiples as
+    "rose 12-fold" and no change as "held steady"; "percent" keeps
+    "increased by 1100.0%" (#39).
     """
     unit = _resolve_unit(value, kind)
     if unit is None:
@@ -225,7 +252,7 @@ def compute_claim(
             "or pass kind='ratio' / kind='pct'.",
             UserWarning, stacklevel=2,
         )
-    phrase = derive_claim_text(value, kind=unit or "auto")
+    phrase = derive_claim_text(value, kind=unit or "auto", style=style)
     text = text_template.format(phrase=phrase, value=float(value))
     out: dict[str, Any] = {"id": id, "text": text, "value": float(value)}
     if unit is not None:

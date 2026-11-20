@@ -5,6 +5,20 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Changed
+- `compute_claim()` now writes claims the way `dstory draft` does (#39). A
+  change of 5.5x or more reads "rose 12-fold" instead of "increased by
+  1100.0%", and a change that rounds to 0.0% reads "held steady, a 0% change"
+  instead of "increased by 0.0%". Both forms pass the vetter. Pass
+  `style="percent"` (also on `derive_claim_text`) to keep the old wording.
+
+### Fixed
+- The CLI no longer drops text in square brackets. Without Playwright,
+  `dstory vet` and `dstory draft` told you to run `pip install "dstory"`
+  because the console read `[vet]` as styling; it now says
+  `pip install "dstory[vet]"`. Vet issues, notes, bundle warnings and output
+  paths are printed as written.
+
 ## [0.14.4] - 2026-11-20
 
 ### Fixed
