@@ -5,6 +5,17 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Fixed
+- A drafted bar chart of more than 12 rows no longer names the wrong row as
+  lowest (#40). `dstory draft` kept only the 12 largest, then wrote "X ranks
+  last" and "X has the lowest ..." about the 12th, and the vetter passed it.
+  The text now ranks every row, the chart keeps the 11 largest plus the true
+  lowest, and both the step and the alt text tell the reader the chart is a
+  subset. The "lowest" statement is a claim (`c-rank-low`) whose `from`
+  ranking is rechecked by bundle and vet, so an edit to data.json that moves
+  the bottom fails. A gap of 5.5x or more now reads "CA's population is
+  67-fold that of WY" instead of "6624% higher".
+
 ## [0.14.3] - 2026-11-19
 
 ### Fixed
