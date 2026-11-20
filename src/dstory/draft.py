@@ -1060,11 +1060,24 @@ class _Drafter:
 
     def _bar_scene(self, L, M, rows: list[tuple[str, float]], why: str) -> None:
         sid = "scene-rank"
-        rows = sorted(rows, key=lambda lv: -lv[1])[:MAX_BAR_ROWS]
+        rows = sorted(rows, key=lambda lv: -lv[1])
+        # "First" and "last" are over every row (#40). Past MAX_BAR_ROWS the
+        # chart keeps the largest plus the true lowest, and says so.
         (top, vt), (bottom, vb) = rows[0], rows[-1]
+        n_all, shown_note, trimmed = len(rows), "", ""
+        if n_all > MAX_BAR_ROWS:
+            rows = rows[:MAX_BAR_ROWS - 1] + [rows[-1]]
+            things = f"{_humanize(L)} values"
+            shown_note = (f" The chart shows the {MAX_BAR_ROWS - 1} largest of {n_all} "
+                          f"{things}, plus {bottom}; the text compares all {n_all}.")
+            trimmed = (f" (chart keeps the {MAX_BAR_ROWS - 1} largest of {n_all} plus the "
+                       f"lowest, {bottom})")
         mname = _humanize(M)
         p = _pct(vt, vb)
-        lead_note = (self._claim("c-rank", f"{top} is {_pct_str(p)}% higher than {bottom}.",
+        fold = fold_phrase(1.0 + p / 100.0) if p is not None else None
+        compare = (f"{top}'s {mname} is {fold} that of {bottom}." if fold else
+                   f"{top} is {_pct_str(p)}% higher than {bottom}.")
+        lead_note = (self._claim("c-rank", compare,
                                  p, sid, src={"op": "pct",
                                               "after": {"sum": M, "where": {L: top}},
                                               "before": {"sum": M, "where": {L: bottom}}})
@@ -1072,16 +1085,24 @@ class _Drafter:
                      f"{top} has the highest {mname}.")
         steps = [{"headline": _sentence_case(f"{top} ranks first"), "commentary": lead_note, "state": top}]
         if len(rows) > 1:
+            # A plain-number claim, so an edit to data.json that moves the
+            # bottom fails bundle and vet instead of keeping a stale "lowest".
+            low = _sentence_case(f"{bottom} has the lowest {mname}, at {_fmt_value(vb)}.")
+            self.claims.append({"id": "c-rank-low", "text": low, "value": float(vb),
+                                "scene": sid,
+                                "from": {"op": "value", "of": {"sum": M, "where": {L: bottom}},
+                                         "rank": {"by": L, "is": -1}}})
             steps.append({"headline": _sentence_case(f"{bottom} ranks last"),
-                          "commentary": _sentence_case(f"{bottom} has the lowest {mname}."), "state": bottom})
+                          "commentary": low + shown_note, "state": bottom})
         alt = (f"Bar chart of {mname} by {_humanize(L)}: {top} is highest at {_fmt_value(vt)}"
-               + (f", {bottom} lowest at {_fmt_value(vb)}" if len(rows) > 1 else "") + ".")
+               + (f", {bottom} lowest at {_fmt_value(vb)}" if len(rows) > 1 else "") + "."
+               + shown_note)
         self._add_scene("bar-steps", {
             "id": sid, "kind": "scrolly", "headline": _sentence_case(f"{top} leads on {mname}"),
             "alt": alt, "steps": steps,
             "config": {"label": L, "y": M, "format": _d3_format([v for _, v in rows])},
         }, [{L: lab, M: v} for lab, v in rows])
-        self.reasons.append(f"scene-rank: bar-steps of {M} by {L} -- {why}")
+        self.reasons.append(f"scene-rank: bar-steps of {M} by {L}{trimmed} -- {why}")
 
     # ----- rules -----
 
