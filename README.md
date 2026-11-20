@@ -265,7 +265,9 @@ claim = compute_claim(
 ```
 
 `compute_claim()` derives the phrase from the value using the same vocabulary
-and windows the vetter checks ("doubled"…"quintupled", percentages), so a claim
+and windows the vetter checks ("doubled"…"quintupled", "rose 12-fold" from 5.5×,
+"held steady" for no change, percentages otherwise; pass `style="percent"` for
+"increased by N%" throughout), so a claim
 built this way cannot fail data-fidelity vetting — and a hand-written claim that
 drifts from its value blocks the build: `build()` and `dstory bundle` refuse to
 write it (`ClaimDriftError`; opt out with `check_claims=False` /

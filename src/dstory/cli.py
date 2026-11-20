@@ -117,10 +117,10 @@ def bundle(slug: str, no_validate: bool, vendor: bool, no_check_claims: bool,
         console.print(f"[red]{CROSS} Bundle failed:[/red] {escape(str(e))}")
         sys.exit(1)
 
-    console.print(f"[green]{CHECK}[/green] Wrote {result.out} ({result.size_bytes/1024:.1f} KB)")
+    console.print(f"[green]{CHECK}[/green] Wrote {escape(str(result.out))} ({result.size_bytes/1024:.1f} KB)")
     console.print(f"  inlined: {result.inlined_styles} styles, {result.inlined_scripts} scripts, {result.inlined_images} images")
     for w in result.warnings:
-        console.print(f"  [yellow]{WARN}[/yellow] {w}")
+        console.print(f"  [yellow]{WARN}[/yellow] {escape(str(w))}")
     if not result.self_contained:
         console.print(f"[red]{CROSS} The bundle is not self-contained[/red] (see above).")
         sys.exit(1)
@@ -184,17 +184,17 @@ def _print_report(report, name: str) -> bool:
             status = f"[green]{CHECK}[/green]" if d.passed else f"[red]{CROSS}[/red]"
         details: list[str] = []
         for i in d.issues:
-            details.append(f"[red]- {i}[/red]")
+            details.append(f"[red]- {escape(str(i))}[/red]")
         for n in d.notes[:3]:
-            details.append(f"· {n}")
+            details.append(f"· {escape(str(n))}")
         if len(d.notes) > 3:
             details.append(f"· ...and {len(d.notes) - 3} more")
-        table.add_row(d.name, status, "\n".join(details) or "—")
+        table.add_row(escape(d.name), status, "\n".join(details) or "—")
 
     console.print(table)
     if report.passed and report.skipped:
         console.print(f"[yellow bold]OVERALL: PASS (partial)[/yellow bold] — "
-                      f"{', '.join(report.skipped)} not checked.")
+                      + escape(f"{', '.join(report.skipped)} not checked."))
     elif report.passed:
         console.print("[green bold]OVERALL: PASS[/green bold] — safe to deliver.")
     else:
@@ -279,10 +279,10 @@ def draft(data_file: str, out: str | None, title: str | None, theme: str | None,
     except (FileNotFoundError, ValueError) as e:
         console.print(f"[red]{CROSS} Build failed:[/red] {escape(str(e))}")
         sys.exit(1)
-    console.print(f"[green]{CHECK}[/green] Wrote {result.html} ({result.bundle.size_bytes/1024:.1f} KB)")
+    console.print(f"[green]{CHECK}[/green] Wrote {escape(str(result.html))} ({result.bundle.size_bytes/1024:.1f} KB)")
     if result.report is not None and not _print_report(result.report, result.html.name):
         sys.exit(1)
-    console.print(f"  Edit {target / 'data.json'}, then: dstory bundle {target}")
+    console.print(f"  Edit {escape(str(target / 'data.json'))}, then: dstory bundle {escape(str(target))}")
 
 
 @cli.command()
