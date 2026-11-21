@@ -5,6 +5,18 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.14.5] - 2026-11-21
+
+### Fixed
+- One long word no longer squeezes a chart to a sliver (#41). In scrolly and
+  Vizzu scenes, a German compound ("Photovoltaikfreiflächenanlagen...") or a
+  URL in a step or frame headline widened the text column until the chart was
+  54 px wide at 768 px, and the page scrolled sideways. The two columns now
+  keep their halves (`minmax(0, 1fr)`, also in slides mode and on phones), and
+  headings, steps and prose break a word only when it can't fit. When custom
+  CSS still crowds a chart, `dstory vet` names the long word in that scene's
+  text instead of pointing at the data.
+
 ## [0.14.4] - 2026-11-20
 
 ### Fixed
