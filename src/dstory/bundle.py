@@ -95,6 +95,8 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
             )
 
     theme_notes = _sync_theme(project, json.loads(data_json.read_text(encoding="utf-8")))
+    from .schema import unknown_key_hints
+    theme_notes = unknown_key_hints(json.loads(data_json.read_text(encoding="utf-8"))) + theme_notes
     if upgrade:
         from .scaffold import upgrade_runtime
         theme_notes = upgrade_runtime(project, restore_missing=False) + theme_notes

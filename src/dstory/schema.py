@@ -4,6 +4,7 @@ schema drift at author time rather than at vet time.
 
 from __future__ import annotations
 
+import difflib
 from typing import Any, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -267,3 +268,52 @@ def _vizzu_channel_issues(scene: "Scene") -> list[str]:
                         f"({', '.join(sorted(declared))})."
                     )
     return issues
+
+
+# Keys people reach for that aren't the field's name (#34). A scene allows
+# extra keys (renderers may read their own), so a typo would otherwise vanish.
+_SCENE_ALIASES = {"source": "source_line", "sources": "source_line", "source_note": "source_line",
+                  "alt_text": "alt", "alttext": "alt", "description": "alt", "aria_label": "alt",
+                  "title": "headline", "heading": "headline", "subtitle": "commentary",
+                  "text": "commentary", "body": "commentary", "caption": "commentary",
+                  "data": "dataset", "type": "kind", "step": "steps"}
+_STEP_ALIASES = {"text": "commentary", "body": "commentary", "description": "commentary",
+                 "caption": "commentary", "title": "headline", "heading": "headline"}
+
+
+def _did_you_mean(key: str, fields: list[str], aliases: dict[str, str]) -> Optional[str]:
+    if key in aliases and aliases[key] in fields:
+        return aliases[key]
+    close = difflib.get_close_matches(key.lower(), fields, n=1, cutoff=0.75)
+    return close[0] if close else None
+
+
+def unknown_key_hints(raw: dict[str, Any]) -> list[str]:
+    """One warning per unknown scene or step key that looks like a mistyped
+    field ("headine", "alt_text", "source"), with a did-you-mean. Keys that
+    resemble no field are left alone: a custom renderer may read them."""
+    out: list[str] = []
+    scene_fields = sorted(Scene.model_fields)
+    step_fields = sorted(Step.model_fields)
+    for sc in raw.get("scenes") or []:
+        if not isinstance(sc, dict):
+            continue
+        sid = sc.get("id", "?")
+        for key in sc:
+            if key in Scene.model_fields:
+                continue
+            hint = _did_you_mean(key, scene_fields, _SCENE_ALIASES)
+            if hint and not sc.get(hint):
+                out.append(f"Scene {sid!r}: unknown key {key!r} (did you mean {hint!r}?). "
+                           "It is not shown to readers.")
+        for i, st in enumerate(sc.get("steps") or []):
+            if not isinstance(st, dict):
+                continue
+            for key in st:
+                if key in Step.model_fields:
+                    continue
+                hint = _did_you_mean(key, step_fields, _STEP_ALIASES)
+                if hint and not st.get(hint):
+                    out.append(f"Scene {sid!r} step {i + 1}: unknown key {key!r} (did you mean "
+                               f"{hint!r}?). It is not shown to readers.")
+    return out

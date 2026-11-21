@@ -123,6 +123,11 @@ def build(
     bundle_result = bundle_project(project, validate=True, vendor=vendor,
                                    check_claims=check_claims, a11y_extras=a11y_extras)
 
+    # Mistyped scene/step keys ("headine", "alt_text") never reach the page (#34).
+    for hint in bundle_result.warnings:
+        if "(did you mean " in hint:
+            warnings.warn(hint, UserWarning, stacklevel=2)
+
     report: Optional[Report] = None
     if vet:
         report = vet_html(bundle_result.out, data=project / "data.json", browser=browser)

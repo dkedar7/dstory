@@ -397,6 +397,16 @@ Every kind except `custom` shows the scene `headline` and `commentary` you write
 - `vizzu` — animated data pivots declared as `frames[]`; supports rectangle/circle/line/area geometries × cartesian/polar coordinates × all channel combos. See [`references/vizzu-chart-gallery.md`](src/dstory/references/vizzu-chart-gallery.md) for the 40+ chart types this enables.
 - `custom` — chrome-free; the renderer owns the entire `<section>` mount. Use for kinetic typography, embedded interactives, full-bleed magazine layouts, anything the four-h2-then-mount pattern doesn't fit.
 
+A scene may carry keys of its own for a custom renderer to read, so unknown
+keys are allowed. One that looks like a mistyped field gets a warning from
+`build()` and `dstory bundle`, because it never reaches the page:
+
+```
+⚠ Scene 's1': unknown key 'headine' (did you mean 'headline'?). It is not shown to readers.
+⚠ Scene 's1': unknown key 'source' (did you mean 'source_line'?). It is not shown to readers.
+⚠ Scene 's1' step 1: unknown key 'text' (did you mean 'commentary'?). It is not shown to readers.
+```
+
 ### Per-scene layout overrides
 
 | Field | Values | Effect |
