@@ -5,6 +5,14 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Added
+- A mistyped scene or step key is no longer dropped without a word (#34).
+  `build()` (as a UserWarning) and `dstory bundle` warn once per unknown key
+  that looks like a field, with a did-you-mean: `headine` -> `headline`,
+  `alt_text` -> `alt`, `source` -> `source_line`, a step's `text` ->
+  `commentary`. Keys that resemble no field stay silent, since custom
+  renderers may read their own.
+
 ### Changed
 - `compute_claim()` now writes claims the way `dstory draft` does (#39). A
   change of 5.5x or more reads "rose 12-fold" instead of "increased by
