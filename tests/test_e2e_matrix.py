@@ -206,3 +206,68 @@ def test_vet_flags_a_squeezed_chart(tmp_path):
     rep = vet(res.html, data=tmp_path / "p" / "data.json")
     renders = next(d for d in rep.dimensions if d.name.startswith("Renders"))
     assert any("390x844" in i and "squeezed" in i and "s-scrolly" in i for i in renders.issues), renders.issues
+
+
+LONG_WORD = "Photovoltaikfreiflächenanlagenförderungsverordnung"
+URL_WORD = "https://www.eia.gov/electricity/annual-generation-2024"
+
+
+@pytest.fixture(scope="module")
+def long_words(tmp_path_factory):
+    """#41: one long word in a step or frame headline widened the text column
+    of a 1fr/1fr grid until the chart was 54 px wide."""
+    scrolly = dict(SCENES[1], steps=[{"headline": "Gas: " + LONG_WORD, "text": URL_WORD},
+                                     {"headline": "Coal fell."}])
+    vizzu = dict(SCENES[4], frames=[dict(SCENES[4]["frames"][0],
+                                         headline="Solar: " + LONG_WORD)])
+    simple = dict(SCENES[0], headline="See " + URL_WORD)
+    out = {}
+    for mode in ("scroll", "slides"):
+        story = {"meta": dict(META, mode=mode, lang="de"),
+                 "scenes": [simple, scrolly, vizzu, SCENES[5]],
+                 "datasets": {"bars": BARS, "line": LINE, "long": LONG}}
+        d = tmp_path_factory.mktemp(f"long-{mode}")
+        out[mode] = build(story, d / "p", scenes=JS, vendor=True, check_claims=False).html
+    return out
+
+
+@pytest.mark.parametrize("mode", ["scroll", "slides"])
+@pytest.mark.parametrize("w,h", [(1440, 900), (768, 1024), (390, 844)])
+def test_a_long_word_wraps_and_the_chart_keeps_its_room(pw, long_words, mode, w, h):
+    page, errors = _open(pw, long_words[mode], w, h)
+    if mode == "slides":
+        page.wait_for_selector("[data-slide-controls]:not([hidden])", timeout=15000)
+    for sid in ("s-scrolly", "s-vizzu"):
+        sec = page.locator(f"#{sid}")
+        sec.scroll_into_view_if_needed()
+        g = page.locator(f"#{sid} .scene__graphic").bounding_box()
+        s = sec.bounding_box()
+        assert g and s, (mode, sid)
+        # Two columns: the chart keeps about half; one column (phone): all of it.
+        assert g["width"] >= min(240, 0.4 * s["width"]), (mode, w, sid, g["width"], s["width"])
+    over = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+    assert over <= 1, f"{mode} at {w}px: page is {over}px wider than the screen"
+    assert not errors, errors
+    page.close()
+
+
+def test_vet_names_the_long_word_that_squeezes_a_chart(tmp_path):
+    """#41: when custom CSS stops a long word wrapping, the squeeze failure
+    points at the scene text, not the dataset."""
+    pytest.importorskip("playwright.sync_api")
+    from dstory.vet import browser_available, vet
+    ok, why = browser_available()
+    if not ok:
+        pytest.skip(why)
+    css = ("<style>.scene--scrolly{grid-template-columns:1fr 1fr !important}"
+           ".scene--scrolly *{overflow-wrap:normal !important}</style>")
+    scene = dict(SCENES[1], steps=[{"headline": "Gas: " + LONG_WORD}, {"headline": "Coal fell."}])
+    story = {"meta": dict(META, mode="scroll"), "scenes": [scene], "datasets": {"bars": BARS}}
+    res = build(story, tmp_path / "p", scenes={"s-scrolly": JS["s-scrolly"]}, vendor=True,
+                check_claims=False)
+    html = res.html.read_text(encoding="utf-8").replace("</head>", css + "</head>", 1)
+    res.html.write_text(html, encoding="utf-8")
+    rep = vet(res.html, data=tmp_path / "p" / "data.json")
+    renders = next(d for d in rep.dimensions if d.name.startswith("Renders"))
+    assert any("squeezed" in i and LONG_WORD in i and "'s-scrolly'" in i
+               for i in renders.issues), renders.issues
