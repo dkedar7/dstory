@@ -1033,7 +1033,16 @@ SQUEEZE_AUDIT_JS = r"""
   const vw = window.innerWidth, min = Math.min(240, vw / 2), out = [];
   for (const g of document.querySelectorAll('.scene--scrolly > .scene__graphic[data-mount], .scene__pin[data-mount]')) {
     const r = g.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0 && r.width < min) out.push([g.getAttribute('data-mount'), Math.round(r.width)]);
+    if (!(r.width > 0 && r.height > 0 && r.width < min)) continue;
+    // Name the likeliest culprit: the longest unbroken word in the scene's
+    // text (a URL, a compound noun), since that is what widens the text column.
+    const sec = g.closest('section') || g.parentElement;
+    let word = '';
+    for (const t of sec.querySelectorAll('h1, h2, h3, h4, p, li')) {
+      if (g.contains(t)) continue;
+      for (const w of (t.textContent || '').split(/\s+/)) if (w.length > word.length) word = w;
+    }
+    out.push([g.getAttribute('data-mount'), Math.round(r.width), word.length >= 20 ? word : '']);
   }
   return out;
 })()
@@ -1262,9 +1271,13 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
             except Exception:
                 squeezed = []
             if squeezed:
+                words = [(sid, word) for sid, _, word in squeezed if word]
                 renders.fail(f"viewport {w}x{h}: chart squeezed too narrow to read in scene(s) "
-                             + ", ".join(f"{sid} ({px} px wide)" for sid, px in squeezed)
-                             + " — the layout leaves it no room at this width.")
+                             + ", ".join(f"{sid} ({px} px wide)" for sid, px, _ in squeezed)
+                             + " — the layout leaves it no room at this width."
+                             + "".join(f" Scene {sid!r} text has the long unbroken word "
+                                       f"\"{word[:60]}\"; if custom CSS stops it wrapping, "
+                                       "shorten it or let it break." for sid, word in words))
             if facts["svgCount"] == 0 and facts["canvasCount"] == 0:
                 renders.note(f"viewport {w}x{h}: no SVG or Canvas charts detected.")
 

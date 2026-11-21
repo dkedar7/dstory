@@ -190,11 +190,19 @@ body.story-mode--slides .progress-rail { display: none; }
   width: 100%;
 }
 
+/* One long word (a German compound, a URL) must wrap inside its column, not
+   widen it: the scrolly grid uses minmax(0, 1fr) so the text column can't
+   push the chart off its half, and prose breaks a word only when it doesn't
+   fit (#41). */
+h1, h2, h3, h4, p, li, figcaption, blockquote, .step {
+  overflow-wrap: anywhere;
+}
+
 /* Scrollytelling: sticky graphic + stepping text */
 .scene--scrolly {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 4rem;
   align-items: start;
   max-width: 80rem;
@@ -353,7 +361,7 @@ body.story-mode--slides .progress-rail { display: none; }
 
 /* ---------- responsive ---------- */
 @media (max-width: 720px) {
-  .scene--scrolly { grid-template-columns: 1fr; gap: 0; }
+  .scene--scrolly { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .scene--scrolly .scene__graphic { height: 60vh; top: 18vh; }
   .scene--scrolly .step { min-height: 70vh; padding: 6vh 0; }
   .hero__headline { font-size: var(--step-3); }
@@ -402,7 +410,7 @@ body.story-mode--slides .hero__scrollcue { display: none; }
    the active step's text panel is visible. The chart is no longer sticky. */
 body.story-mode--slides .scene--scrolly {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   gap: 4rem;
   padding: 4rem 3rem 6rem;
