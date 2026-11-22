@@ -499,7 +499,7 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
         if value is not None and unit in ("pct", "ratio") and actual_pct < -100:
             r.fail(f"Claim {cid!r}: a {actual_pct:.0f}% change means the value changed sign; "
                    "a percent change across zero misleads readers. Describe the swing "
-                   "instead (e.g. 'turned negative').")
+                   "instead (e.g. 'turned negative', or 'turned positive' from a negative base).")
 
         m = _PCT_RE.search(text)
         if m and value is not None:
@@ -1184,7 +1184,9 @@ LISTEN_AUDIT_JS = r"""
 })()
 """
 
-_EMPTY_DATASET_WARNING = re.compile(r"^\[[\w-]+\] empty dataset")
+# "[recipe] empty dataset: x", or "[recipe] 6 rows in dataset x, none with ..."
+# when every row was dropped because a column did not parse (#43).
+_EMPTY_DATASET_WARNING = re.compile(r"^\[[\w-]+\] (?:empty dataset|\d+ rows in dataset)")
 
 SLIDES_AUDIT_JS = r"""
 (() => {
@@ -1271,7 +1273,7 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
                              f"{', '.join(unpainted)} — check the dataset columns match the "
                              "renderer (scene.config) and that a renderer is registered.")
             if empty_warnings:
-                renders.fail(f"viewport {w}x{h}: recipe reported an empty dataset — {empty_warnings[:3]}")
+                renders.fail(f"viewport {w}x{h}: recipe drew no rows — {empty_warnings[:3]}")
             try:
                 overflowing = page.evaluate(OVERFLOW_AUDIT_JS)
             except Exception:
