@@ -12,16 +12,27 @@
 STORY.register("__SCENE_ID__", function draw(mount, data, scene) {
   const cfg = scene.config || {};
   const X = cfg.x || "date", L = cfg.label || "label";
-  const parse = d3.utcParse(cfg.parse || "%Y-%m-%d");
+  const FMT = cfg.parse || "%Y-%m-%d";
+  // Fall back to an ISO 8601 timestamp ("2024-01-01T00:00:00", as to_records()
+  // wrote before 0.14.6), read as UTC like the format itself (#43).
+  const isoT = d3.utcParse("%Y-%m-%dT%H:%M:%S");
+  const iso = s => /^\d{4}-\d\d-\d\dT/.test(s) ? (isoT(s) ?? d3.isoParse(s)) : null;
+  const fmtParse = d3.utcParse(FMT);
+  const parse = s => fmtParse(s) ?? iso(s);
   const tickFmt = d3.utcFormat(cfg.tick_format || "%Y");
   const highlight = new Set(cfg.highlight || []);
   const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const rows = (data.datasets?.[scene.dataset] || [])
+  const src = data.datasets?.[scene.dataset] || [];
+  const rows = src
     .map(d => ({ x: typeof d[X] === "string" ? parse(d[X]) : d[X], label: d[L] }))
     .filter(d => d.x != null && d.label != null)
     .sort((a, b) => a.x - b.x);
-  if (!rows.length) { console.warn("[dot-timeline] empty dataset:", scene.dataset); return null; }
+  if (!rows.length) {
+    if (src.length) console.warn(`[dot-timeline] ${src.length} rows in dataset ${scene.dataset}, none with a ${X} that parses as ${FMT} and a ${L}: e.g. ${JSON.stringify(src[0])}`);
+    else console.warn("[dot-timeline] empty dataset:", scene.dataset);
+    return null;
+  }
 
   const W = 760, H = 320;
   const margin = { top: 24, right: 48, bottom: 24, left: 48 };

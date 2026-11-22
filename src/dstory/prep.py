@@ -20,15 +20,37 @@ if TYPE_CHECKING:
     import pandas as pd  # type: ignore
 
 
+def _date_only_columns(df: "pd.DataFrame") -> set:
+    """Datetime columns whose every value is a timezone-free midnight: they are
+    dates, so they serialize as "2024-01-01" (what the date recipes parse by
+    default), not "2024-01-01T00:00:00" (#43)."""
+    cols = set()
+    for col in df.columns:
+        s = df[col]
+        if str(s.dtype).startswith("datetime64") and getattr(s.dt, "tz", None) is None:
+            v = s.dropna()
+            if (v.dt.normalize() == v).all():
+                cols.add(col)
+    return cols
+
+
 def to_records(df: "pd.DataFrame") -> list[dict[str, Any]]:
-    """Convert a pandas DataFrame to a list of dicts, sanitizing NaN/Inf to None."""
+    """Convert a pandas DataFrame to a list of dicts, sanitizing NaN/Inf to None.
+
+    Datetimes become ISO 8601 strings; a column of dates (all midnight, no
+    timezone) becomes "2024-01-01"."""
     out: list[dict[str, Any]] = []
+    dates = _date_only_columns(df)
     for _, row in df.iterrows():
         rec: dict[str, Any] = {}
         for col in df.columns:
             v = row[col]
             if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
                 rec[col] = None
+            elif v is None or (hasattr(v, "isoformat") and v != v):   # NaT
+                rec[col] = None
+            elif col in dates:
+                rec[col] = v.date().isoformat()
             elif hasattr(v, "isoformat"):  # datetime-like
                 rec[col] = v.isoformat()
             elif hasattr(v, "item"):  # numpy scalar
@@ -105,6 +127,16 @@ def ratio_phrase(ratio: float) -> Optional[str]:
     return None
 
 
+def _negative_base_message(what: str, before: float) -> str:
+    # #42: dividing by a negative base flips the sign, so a loss that tripled
+    # (-100 -> -300) would read "tripled" and a loss that shrank would read
+    # "decreased". draft() already refuses a non-positive base (#17).
+    return (f"A {what} from a negative base ({before:g}) is ambiguous: dividing by it "
+            "flips the direction, so a loss that grew would read as a rise. Describe the "
+            "change in units instead (e.g. fmt_compact(after - before)), or use "
+            "compute_point_change for rates.")
+
+
 def compute_ratio(after: float, before: float) -> Ratio:
     """ratio = after / before, with sane error handling.
 
@@ -113,6 +145,8 @@ def compute_ratio(after: float, before: float) -> Ratio:
     """
     if before == 0:
         raise ValueError("Cannot compute ratio with before=0.")
+    if before < 0:
+        raise ValueError(_negative_base_message("ratio", before))
     return Ratio(after / before)
 
 
@@ -124,6 +158,8 @@ def compute_pct_change(after: float, before: float) -> PctChange:
     """
     if before == 0:
         raise ValueError("Cannot compute pct change with before=0.")
+    if before < 0:
+        raise ValueError(_negative_base_message("percent change", before))
     return PctChange((after - before) / before * 100.0)
 
 
@@ -177,6 +213,15 @@ def derive_claim_text(value: float, *, kind: str = "auto") -> str:
         pts = f"{abs(value):.1f}".removesuffix(".0")
         noun = "point" if pts == "1" else "points"
         return f"{'rose' if value >= 0 else 'fell'} {pts} percentage {noun}"
+    if unit in ("ratio", "pct"):
+        pct = (value - 1.0) * 100.0 if unit == "ratio" else value
+        if pct < -100:
+            # The value crossed zero (100 -> -50 is -150%): no percent phrase is
+            # honest, and the vetter blocks one, so don't write it (#42).
+            raise ValueError(
+                f"A {pct:.0f}% change means the value changed sign; a percent change "
+                "across zero misleads readers. Write the text yourself and describe the "
+                "swing (e.g. 'turned negative'), with the change in units.")
     if unit == "ratio":
         return ratio_phrase(value) or _pct_phrase((value - 1.0) * 100.0)
     if unit == "pct":
@@ -365,6 +410,15 @@ def recompute_claim(spec: dict[str, Any], rows: list[dict[str, Any]]
     value = _evaluate(spec, rows)
     if value is None:
         return None, "the rows it was computed from are gone or have no numbers"
+    if spec.get("op") in ("pct", "ratio"):
+        base = _operand_value(spec.get("before"), rows)
+        if base is not None and base < 0:
+            # #42: a change from a negative base reads backwards ("tripled"
+            # for a loss that tripled), so it can't be stated as pct or ratio.
+            after = _operand_value(spec.get("after"), rows)
+            return value, (f"its base (before) is negative ({base:g} -> {after:g}), so a "
+                           f"{'percent change' if spec['op'] == 'pct' else 'ratio'} reads "
+                           "backwards; describe the change in units instead")
     rank = spec.get("rank")
     if not isinstance(rank, dict) or not isinstance(rank.get("by"), str):
         return value, None

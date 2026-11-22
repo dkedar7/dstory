@@ -5,6 +5,25 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.14.6] - 2026-11-22
+
+### Fixed
+- A percent change or ratio from a negative base no longer flips the story
+  (#42). `compute_pct_change(after=-300, before=-100)` returned +200, so
+  `compute_claim()` wrote "Net income tripled" under a loss that tripled, and
+  the vetter passed it. `compute_pct_change()` and `compute_ratio()` now raise
+  `ValueError` for a negative base, as they already did for zero, and as
+  `dstory draft` already refused one. `compute_claim()` raises for a change
+  across zero (100 to -50, "-150%") instead of writing a claim the vetter
+  blocks. The vetter fails a claim whose `from` has a negative base, and its
+  sign-change message now mentions "turned positive" too.
+- `to_records()` and `to_long()` write a date column (every value midnight,
+  no timezone) as "2024-01-01", not "2024-01-01T00:00:00" (#43), and `NaT`
+  as null instead of "NaT". The line-reveal, dot-timeline and small-multiples
+  recipes also read "2024-01-01T00:00:00", so data written by older versions
+  still draws. When a recipe drops every row, it now says how many rows it
+  had, which format it expected and a sample row, instead of "empty dataset".
+
 ## [0.14.5] - 2026-11-21
 
 ### Fixed

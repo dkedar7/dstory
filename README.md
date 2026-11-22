@@ -273,7 +273,11 @@ write it (`ClaimDriftError`; opt out with `check_claims=False` /
 `compute_pct_change()` tag their result with its unit, and the claim records it
 (`"unit": "ratio"` or `"pct"`), so a 3.4× ratio is never printed as "3.4%" and a
 +2% change is never called "doubled". For a plain float, pass
-`kind="ratio"` or `kind="pct"`.
+`kind="ratio"` or `kind="pct"`. Both refuse a negative base (`ValueError`):
+dividing by a loss flips the direction, so a loss that tripled would read
+"tripled". Describe that change in units instead. `compute_claim()` likewise
+refuses a change across zero (100 to -50); write that text yourself ("turned
+negative"). The vetter fails a claim whose `from` has a negative base.
 
 A claim is only as good as the words the reader sees, so the vetter also checks
 the prose around it. Give a claim a `scene` and every change that scene's
