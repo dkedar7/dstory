@@ -17,7 +17,12 @@ STORY.register("__SCENE_ID__", function draw(mount, data, scene) {
   const X = cfg.x || "x", S = cfg.series || "series", Y = cfg.y || "y";
   const highlight = new Set(cfg.highlight || []);
   const fmt = d3.format(cfg.format || ",");
-  const parse = cfg.parse ? d3.utcParse(cfg.parse) : null;
+  // Fall back to an ISO 8601 timestamp ("2024-01-01T00:00:00", as to_records()
+  // wrote before 0.14.6), read as UTC like the format itself (#43).
+  const isoT = d3.utcParse("%Y-%m-%dT%H:%M:%S");
+  const iso = s => /^\d{4}-\d\d-\d\dT/.test(s) ? (isoT(s) ?? d3.isoParse(s)) : null;
+  const fmtParse = cfg.parse ? d3.utcParse(cfg.parse) : null;
+  const parse = fmtParse ? (s => fmtParse(s) ?? iso(s)) : null;
   const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const raw = (data.datasets?.[scene.dataset] || [])

@@ -271,3 +271,42 @@ def test_vet_names_the_long_word_that_squeezes_a_chart(tmp_path):
     renders = next(d for d in rep.dimensions if d.name.startswith("Renders"))
     assert any("squeezed" in i and LONG_WORD in i and "'s-scrolly'" in i
                for i in renders.issues), renders.issues
+
+
+ISO_LINE = [dict(r, date=r["date"] + "T00:00:00") for r in LINE]   # to_records() before 0.14.6
+ISO_EVENTS = [{"date": f"20{y}-06-01T00:00:00", "label": f"Event {y}"} for y in range(18, 24)]
+
+
+@pytest.fixture(scope="module")
+def iso_dates(tmp_path_factory):
+    """#43: line-reveal and dot-timeline parsed x as %Y-%m-%d only, so the
+    "2024-01-01T00:00:00" that to_records() wrote dropped every row."""
+    timeline = {"id": "s-timeline", "kind": "simple", "dataset": "events",
+                "headline": "Six launches", "alt": "One launch a year, 2018 to 2023.",
+                "source_line": "Test data"}
+    js = {"s-simple": JS["s-simple"], "s-timeline": recipe_js("dot-timeline", "s-timeline"),
+          "s-custom": JS["s-custom"]}
+    out = {}
+    for mode in ("scroll", "slides"):
+        story = {"meta": dict(META, mode=mode), "scenes": [SCENES[0], timeline, SCENES[5]],
+                 "datasets": {"line": ISO_LINE, "events": ISO_EVENTS}}
+        d = tmp_path_factory.mktemp(f"iso-{mode}")
+        out[mode] = build(story, d / "p", scenes=js, vendor=True, check_claims=False).html
+    return out
+
+
+@pytest.mark.parametrize("mode", ["scroll", "slides"])
+def test_iso_datetime_strings_still_draw_the_date_recipes(pw, iso_dates, mode):
+    page = pw.new_page(viewport={"width": 1280, "height": 800})
+    warnings, errors = [], []
+    page.on("console", lambda m: m.type == "warning" and warnings.append(m.text))
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.route("**/*", lambda r: r.continue_() if r.request.url.startswith("file:") else r.abort())
+    page.goto(iso_dates[mode].as_uri(), wait_until="load")
+    page.wait_for_selector("#s-custom .matrix-mark", state="attached", timeout=15000)
+    page.wait_for_selector("#s-simple svg path", state="attached", timeout=15000)
+    page.wait_for_selector("#s-timeline svg circle", state="attached", timeout=15000)
+    assert page.locator("#s-timeline svg circle").count() >= 6
+    assert not [w for w in warnings if "dataset" in w], warnings
+    assert not errors, errors
+    page.close()

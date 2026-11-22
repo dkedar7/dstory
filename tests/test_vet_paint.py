@@ -46,7 +46,7 @@ def test_vet_fails_recipe_with_mismatched_columns(chromium, tmp_path: Path):
                         {"month": "2026-04-01", "signups": 3400}])
     renders = next(d for d in res.report.dimensions if d.name == "Renders correctly")
     assert not renders.passed
-    assert any("empty dataset" in i for i in renders.issues)
+    assert any("2 rows in dataset d" in i and "month" in i for i in renders.issues), renders.issues
 
 
 def test_vet_passes_scene_that_paints(chromium, tmp_path: Path):
