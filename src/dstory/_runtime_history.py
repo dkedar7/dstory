@@ -11,6 +11,7 @@ KNOWN = {
         'a725fe8d28295773',
         'ba3115e800c45e8c',
         'df2a9c2481d04496',
+        'f2bfd18ce7f34587',
     }),
     'story.css': frozenset({
         '86ed725ee0dd8e11',

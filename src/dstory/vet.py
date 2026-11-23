@@ -882,6 +882,34 @@ def _strip_vendored(html: str) -> str:
     return _VENDORED_SCRIPT.sub("", html)
 
 
+def _check_injection(r: "Dimension", html: str, data: dict[str, Any]) -> None:
+    """Story data must not become markup or script in the reader's browser
+    (#44): a meta.lang or extra_css that breaks out of its tag, a javascript:
+    source link, or any element smuggled in before <head>."""
+    from .bundle import safe_url
+    meta = data.get("meta") or {}
+    lang = meta.get("lang")
+    if isinstance(lang, str) and re.search(r"[<>\"'&]", lang):
+        r.fail(f"meta.lang {lang[:60]!r} contains markup; a language tag is letters, digits "
+               "and hyphens (e.g. 'en', 'pt-BR'). Fix it in data.json.")
+    css = data.get("extra_css")
+    if isinstance(css, str) and re.search(r"</style", css, re.I):
+        r.fail("extra_css contains \"</style\", which would end its style block and run the "
+               "rest as HTML. Remove it from data.json.")
+    for i, src in enumerate(meta.get("sources") or []):
+        url = src.get("url") if isinstance(src, dict) else None
+        if isinstance(url, str) and url.strip() and not safe_url(url):
+            r.fail(f"meta.sources[{i}].url {url[:60]!r} is not an http(s) or mailto link. "
+                   "Readers must not be sent to a javascript: or data: URL.")
+    m = re.search(r"<html\b[^>]*>", html, re.I)
+    h = re.search(r"<head\b", html, re.I)
+    if m and h and h.start() > m.end():
+        between = re.sub(r"<!--[\s\S]*?-->", "", html[m.end():h.start()]).strip()
+        if between:
+            r.fail(f"Markup before <head>: {between[:80]!r}. Something in the story data "
+                   "broke out of the <html> tag (check meta.lang). Do not deliver this file.")
+
+
 def check_static_a11y(html: str, data: dict[str, Any]) -> Dimension:
     r = Dimension("Accessibility & ethics (static)")
     texts = list(_strings(data))
@@ -899,6 +927,8 @@ def check_static_a11y(html: str, data: dict[str, Any]) -> Dimension:
         r.note("Markup references both axisLeft and axisRight — dual y-axes are usually a mistake.")
     if re.search(r"\b(three\.js|webgl|3d|rotation: ?'\w*z')", author, re.I):
         r.note("3D / WebGL content detected — make sure no chart uses 3D for value encoding.")
+
+    _check_injection(r, html, data)
 
     if not re.search(r"<html\b[^>]*\blang=", html):
         r.note("<html> has no lang attribute — set meta.lang so screen readers pick the right voice.")
