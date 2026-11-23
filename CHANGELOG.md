@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-23
+
 ### Security
 - Story data can no longer run script in the reader's browser (#44).
   `meta.lang` went into `<html lang="...">` unescaped, and `extra_css` could
