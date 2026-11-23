@@ -87,7 +87,11 @@ function renderSources(sources = [], meta = {}) {
   if (!ul) return;
   ul.replaceChildren(...sources.map(s => {
     const li = el("li");
-    if (s.url) {
+    // Only http(s), mailto or a relative link: never javascript: or data: (#44).
+    // Browsers drop tabs/newlines anywhere and leading controls, as here.
+    const bare = String(s.url || "").replace(/[\t\n\r]/g, "").replace(/^[\x00-\x20]+/, "");
+    const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(bare);
+    if (s.url && (!scheme || /^(https?|mailto)$/i.test(scheme[1]))) {
       li.append(el("a", { href: s.url, target: "_blank", rel: "noopener" }, s.name));
       if (s.accessed) li.append(el("span", { class: "outro__accessed" }, ` · accessed ${s.accessed}`));
     } else {

@@ -213,7 +213,10 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
     # to ship custom layout overrides without touching theme/brand CSS.
     extra_css = raw_data.get("extra_css")
     if isinstance(extra_css, str) and extra_css.strip():
-        extra_inject = f'<style data-src="story.extra_css">\n{extra_css}\n</style>'
+        if re.search(r"</style", extra_css, re.IGNORECASE):
+            warnings.append('extra_css contains "</style"; it was neutralised so it cannot '
+                            "end the style block. Remove it from data.json.")
+        extra_inject = f'<style data-src="story.extra_css">\n{_safe_css(extra_css)}\n</style>'
         if "</head>" in html:
             html = html.replace("</head>", f"{extra_inject}\n</head>", 1)
         else:
@@ -248,7 +251,16 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
         )
 
     # 6. Patch <html lang dir> from meta (template defaults to lang="en").
-    html = _patch_lang_dir(html, lang=meta.get("lang"), dir_=meta.get("dir"))
+    lang = meta.get("lang")
+    if isinstance(lang, str) and lang.strip() and not LANG_TAG_RE.fullmatch(lang.strip()):
+        warnings.append(f"meta.lang {lang.strip()[:40]!r} is not a language tag (e.g. 'en', "
+                        "'pt-BR'), so screen readers can't use it. It was escaped as written.")
+    for i, src in enumerate(meta.get("sources") or []):
+        url = src.get("url") if isinstance(src, dict) else None
+        if isinstance(url, str) and url.strip() and not safe_url(url):
+            warnings.append(f"meta.sources[{i}].url {url[:40]!r} is not an http(s) or mailto "
+                            "link, so the source is shown without a link.")
+    html = _patch_lang_dir(html, lang=lang, dir_=meta.get("dir"))
 
     # 7. Inject <meta name="description"> + Open Graph / Twitter card tags so
     # shared links unfurl with the story's title and dek instead of nothing.
@@ -351,9 +363,10 @@ def _patch_lang_dir(html: str, *, lang: Optional[str], dir_: Optional[str]) -> s
     def repl(m: re.Match) -> str:
         tag = m.group(0)
         if isinstance(lang, str) and lang.strip():
-            safe = lang.strip()
+            from html import escape as _escape
+            safe = _escape(lang.strip(), quote=True)   # #44: never raw into the tag
             if re.search(r'\blang="[^"]*"', tag):
-                tag = re.sub(r'\blang="[^"]*"', f'lang="{safe}"', tag)
+                tag = re.sub(r'\blang="[^"]*"', lambda _m: f'lang="{safe}"', tag)
             else:
                 tag = tag[:-1] + f' lang="{safe}">'
         if dir_ in ("rtl", "auto"):
@@ -403,8 +416,30 @@ def _social_meta_tags(meta: dict) -> str:
     return "\n".join(tags)
 
 
+# A language tag, loosely BCP 47: "en", "pt-BR", "zh-Hant-TW", "en_US".
+LANG_TAG_RE = re.compile(r"[A-Za-z]{1,8}(?:[-_][A-Za-z0-9]{1,8})*")
+# A sources link a reader can safely follow (#44): http(s), mailto, or a
+# relative link. Anything else with a scheme (javascript:, data:) is not.
+_URL_SCHEME_RE = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*):")
+
+
+def safe_url(url: str) -> bool:
+    # As a browser reads it: tabs/newlines dropped anywhere, leading controls
+    # and spaces stripped ("java\tscript:" is javascript:).
+    bare = re.sub(r"[\t\n\r]", "", url).lstrip("".join(map(chr, range(0x21))))
+    m = _URL_SCHEME_RE.match(bare)
+    return m is None or m.group(1).lower() in ("http", "https", "mailto")
+
+
+def _safe_css(css: str) -> str:
+    """CSS can never close its own <style> element (#44): "</style" in a
+    comment or string would end the block and let the rest run as HTML.
+    Inside a CSS string or comment, "<\\/style" means the same."""
+    return re.sub(r"</(style)", r"<\\/\1", css, flags=re.IGNORECASE)
+
+
 def _inline_style(p: Path) -> str:
-    return f'<style data-src="{p.name}">\n{p.read_text(encoding="utf-8")}\n</style>'
+    return f'<style data-src="{p.name}">\n{_safe_css(p.read_text(encoding="utf-8"))}\n</style>'
 
 
 def _inline_script(p: Path, *, is_module: bool) -> str:

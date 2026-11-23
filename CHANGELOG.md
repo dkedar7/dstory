@@ -5,6 +5,18 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Security
+- Story data can no longer run script in the reader's browser (#44).
+  `meta.lang` went into `<html lang="...">` unescaped, and `extra_css` could
+  close its own `<style>` block, so a data.json written by someone else (a
+  teammate, an AI agent, a scraped config) could inject a `<script>`, and
+  `dstory vet` still said "safe to deliver". `meta.lang` is now
+  attribute-escaped, with a warning when it is not a language tag. "</style"
+  in any inlined CSS is neutralised, with a warning for `extra_css`. A source
+  `url` that is not http(s), mailto or relative (`javascript:`, `data:`) is
+  shown as plain text. The vetter fails each of these, and any markup between
+  `<html>` and `<head>`.
+
 ### Added
 - A mistyped scene or step key is no longer dropped without a word (#34).
   `build()` (as a UserWarning) and `dstory bundle` warn once per unknown key
