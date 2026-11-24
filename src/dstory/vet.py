@@ -443,6 +443,74 @@ def _strip_html_for_prose(html: str) -> str:
     return re.sub(r"<[^>]+>", " ", out)
 
 
+_EMBED_RE = re.compile(r"<script>\s*window\.__STORY_DATA__\s*=\s*")
+
+
+def embedded_data(html: str) -> Optional[dict[str, Any]]:
+    """The data.json that `dstory bundle` inlined into story.html, or None."""
+    m = _EMBED_RE.search(html)
+    if not m:
+        return None
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(html, m.end())
+    except ValueError:
+        return None
+    return obj if isinstance(obj, dict) else None
+
+
+def _first_row_diff(a: list, b: list) -> str:
+    for i, (x, y) in enumerate(zip(a, b), 1):
+        if x != y:
+            if isinstance(x, dict) and isinstance(y, dict):
+                for k in list(x) + [k for k in y if k not in x]:
+                    if x.get(k) != y.get(k):
+                        return (f"row {i}, {k}: {json.dumps(x.get(k))} in story.html vs "
+                                f"{json.dumps(y.get(k))} in data.json")
+            return f"row {i}: {json.dumps(x)[:60]} vs {json.dumps(y)[:60]}"
+    return f"{len(a)} rows in story.html vs {len(b)} in data.json"
+
+
+def check_bundle_matches_data(r: "Dimension", html: str, data: dict[str, Any]) -> None:
+    """The file that ships must carry the data it is vetted against (#45).
+    Every other check reads data.json; the reader sees the copy inlined in
+    story.html. A stale bundle (data.json edited, `dstory bundle` not re-run)
+    or a --data from another story fails here."""
+    inlined = embedded_data(html)
+    stale = " The bundle is stale or --data names another story: re-run `dstory bundle`."
+    if inlined is None:
+        r.note("No inlined story data found in the HTML, so it could not be compared with "
+               "data.json. Bundle it with `dstory bundle`.")
+        return
+    mine = inlined.get("datasets") or {}
+    theirs = data.get("datasets") or {}
+    if isinstance(mine, dict) and isinstance(theirs, dict):
+        only_html = sorted(set(mine) - set(theirs))
+        only_json = sorted(set(theirs) - set(mine))
+        if only_html or only_json:
+            parts = ([f"only in story.html: {', '.join(map(repr, only_html))}"] if only_html else []) + \
+                    ([f"only in data.json: {', '.join(map(repr, only_json))}"] if only_json else [])
+            r.fail(f"Datasets in story.html differ from data.json ({'; '.join(parts)})." + stale)
+        for name in sorted(set(mine) & set(theirs)):
+            if mine[name] != theirs[name]:
+                a, b = mine[name], theirs[name]
+                where = (_first_row_diff(a, b) if isinstance(a, list) and isinstance(b, list)
+                         else "different contents")
+                r.fail(f"Dataset {name!r} in story.html differs from data.json ({where})." + stale)
+    ids = lambda d: [s.get("id") for s in d.get("scenes") or [] if isinstance(s, dict)]
+    if ids(inlined) != ids(data):
+        r.fail(f"Scenes in story.html ({', '.join(map(str, ids(inlined))) or 'none'}) differ "
+               f"from data.json ({', '.join(map(str, ids(data))) or 'none'})." + stale)
+    else:
+        by_id = {s.get("id"): s for s in data.get("scenes") or [] if isinstance(s, dict)}
+        changed = [s.get("id") for s in inlined.get("scenes") or []
+                   if isinstance(s, dict) and s != by_id.get(s.get("id"))]
+        if changed:
+            r.fail(f"Scene text or settings in story.html differ from data.json "
+                   f"({', '.join(map(repr, changed[:5]))})." + stale)
+    if (inlined.get("claims") or []) != (data.get("claims") or []):
+        r.fail("Claims in story.html differ from data.json." + stale)
+
+
 def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
     r = Dimension("Data fidelity")
     claims = data.get("claims", [])
@@ -1501,6 +1569,7 @@ def vet(
     data_obj  = json.loads(data_path.read_text(encoding="utf-8"))
 
     fidelity  = check_data_fidelity(html_text, data_obj)
+    check_bundle_matches_data(fidelity, html_text, data_obj)
     for issue in check_vizzu_overdraw(data_obj):
         fidelity.fail(issue)
     editorial = check_editorial(html_text, data_obj)

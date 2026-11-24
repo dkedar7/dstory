@@ -39,15 +39,22 @@ def to_records(df: "pd.DataFrame") -> list[dict[str, Any]]:
 
     Datetimes become ISO 8601 strings; a column of dates (all midnight, no
     timezone) becomes "2024-01-01"."""
+    import pandas as pd  # type: ignore   # a DataFrame came in, so pandas is here
+
     out: list[dict[str, Any]] = []
     dates = _date_only_columns(df)
     for _, row in df.iterrows():
         rec: dict[str, Any] = {}
         for col in df.columns:
             v = row[col]
+            if hasattr(v, "item") and not hasattr(v, "isoformat"):   # numpy scalar
+                v = v.item()
             if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
                 rec[col] = None
-            elif v is None or (hasattr(v, "isoformat") and v != v):   # NaT
+            elif v is None or (pd.api.types.is_scalar(v) and pd.isna(v)):
+                # NaT, and pd.NA from nullable dtypes (Int64, Float64, string),
+                # which JSON can't hold (#46).
+                rec[col] = None
                 rec[col] = None
             elif col in dates:
                 rec[col] = v.date().isoformat()

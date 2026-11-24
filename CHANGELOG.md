@@ -5,6 +5,22 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-11-24
+
+### Fixed
+- `dstory vet --data data.json` now checks that the file it vets carries that
+  data (#45). Every check read `data.json`, but readers see the copy inlined
+  in story.html, so a stale bundle (data.json edited, `dstory bundle` not
+  re-run), or `--data` from another story, got "safe to deliver". Data
+  fidelity now compares the inlined datasets, scenes and claims with
+  `data.json` and names the first difference: "Dataset 'rev' in story.html
+  differs from data.json (row 1, value: 100 in story.html vs 900 in
+  data.json). The bundle is stale ...: re-run `dstory bundle`."
+- `to_records()` writes null for `pd.NA` from pandas' nullable dtypes
+  (`Int64`, `Float64`, `string`, `boolean`, as from `convert_dtypes()` or
+  `read_csv(dtype_backend="numpy_nullable")`) and for NaN in numpy float32
+  columns (#46). `build()` crashed with `PydanticSerializationError` before.
+
 ## [0.15.0] - 2026-11-23
 
 ### Security

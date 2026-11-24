@@ -586,7 +586,7 @@ data.json --json` (same exit code as without it).
 `dstory vet` (or `dstory.vet()`) grades the bundled HTML on five dimensions:
 
 1. **Renders correctly** — headless browser at 1440/768/390 (a phone), no console errors, charts paint and stay readable
-2. **Data fidelity** — every numeric claim cross-checked against `data.json` (catches "tripled" vs `value=2.4`)
+2. **Data fidelity** — every numeric claim cross-checked against `data.json` (catches "tripled" vs `value=2.4`), and the datasets, scenes and claims inlined in the HTML compared with `data.json`, so a stale bundle (data.json edited, `dstory bundle` not re-run) is blocked
 3. **Editorial integrity** — no slop phrases, no leftover template text (the "Untitled Story" title, `{{…}}`, `[Insert …]`, "Headline goes here", FIXME, a field that is just "TBD", each failure naming the field; a marker that can be real copy, like "Super Bowl XXX", is only a note, and `meta.vet.allow_text: ["…"]` silences it), sources present, headlines are insights
 4. **Visual quality** — full-page screenshots saved at all viewports for manual review
 5. **Accessibility & ethics** — color contrast, no PII leaks, dual-axis warnings, alt text
