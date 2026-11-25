@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.15.2] - 2026-11-25
+
 ### Security
 
 - `dstory bundle` no longer inlines any file that `meta.hero_image` names
