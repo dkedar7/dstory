@@ -44,7 +44,7 @@ class ClaimDriftError(ValueError):
 
 def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
            check_claims: bool = True, a11y_extras: bool = True,
-           upgrade: bool = True) -> BundleResult:
+           upgrade: bool = True, root: Optional[str | Path] = None) -> BundleResult:
     """Bundle <slug>/index.html → <slug>/dist/story.html.
 
     Args:
@@ -71,6 +71,12 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
                 untouched copies from an older dstory release are refreshed
                 to this version first, so runtime fixes reach old projects.
                 Edited copies are kept, with a warning.
+        root: when set (`dstory mcp --root`), no local file outside it is
+                ever inlined. Without it, a stylesheet, script or <img> in
+                index.html that lives outside the project is still inlined,
+                with a deprecation warning. meta.hero_image (from data.json)
+                is inlined only from inside the project, and only when it is
+                an image.
     """
     project = Path(slug)
     if not project.is_dir():
@@ -132,6 +138,8 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
         if not p.exists():
             warnings.append(f"CSS file not found: {href}")
             return m.group(0)
+        if not _local_asset_ok(p, href, "stylesheet", project, root, warnings):
+            return ""
         counts["styles"] += 1
         return _inline_style(p)
 
@@ -158,6 +166,8 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
             warnings.append(f"Script file not found: {src} — dropped its <script> tag. "
                             "Remove the tag from index.html to silence this.")
             return ""
+        if not _local_asset_ok(p, src, "script", project, root, warnings):
+            return ""
         counts["scripts"] += 1
         is_module = 'type="module"' in full or "type='module'" in full
         return _inline_script(p, is_module=is_module)
@@ -177,11 +187,15 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
     if (isinstance(hero_image, str) and hero_image
             and not _is_remote(hero_image) and not hero_image.startswith("data:")):
         p = (project / hero_image).resolve()
-        if p.exists():
+        if not p.exists():
+            warnings.append(f"Hero image not found: {hero_image}")
+        elif _local_asset_ok(p, hero_image, "hero image", project, None, warnings,
+                             strict=True):
             meta["hero_image"] = _data_uri(p)
             counts["images"] += 1
         else:
-            warnings.append(f"Hero image not found: {hero_image}")
+            # Never ship a path into the reader's page either.
+            del meta["hero_image"]
 
     embed = _json_for_script(raw_data)
     inject = f"<script>window.__STORY_DATA__ = {embed};</script>"
@@ -231,6 +245,8 @@ def bundle(slug: str | Path, *, validate: bool = True, vendor: bool = False,
         if not p.exists():
             warnings.append(f"Image file not found: {src}")
             return m.group(0)
+        if not _local_asset_ok(p, src, "image", project, root, warnings):
+            return f"{pre}{post}"
         counts["images"] += 1
         return f"{pre}{_data_uri(p)}{post}"
 
@@ -445,6 +461,49 @@ def _inline_style(p: Path) -> str:
 def _inline_script(p: Path, *, is_module: bool) -> str:
     type_attr = ' type="module"' if is_module else ""
     return f'<script{type_attr}>\n{p.read_text(encoding="utf-8")}\n</script>'
+
+
+_ASSET_SUFFIXES = {"stylesheet": (".css",), "script": (".js", ".mjs", ".cjs")}
+
+
+def _inside(p: Path, base: Path) -> bool:
+    base = base.resolve()
+    return p == base or base in p.parents
+
+
+def _local_asset_ok(p: Path, ref: str, kind: str, project: Path,
+                    root: Optional[str | Path], warnings: list[str], *,
+                    strict: bool = False) -> bool:
+    """May the local file `p` (named `ref`) be inlined into the story? (#47)
+
+    The bundle is a file people share, so it must never carry a file the
+    author did not mean to ship: the type has to match what references it
+    (an image for <img> and hero_image, .css / .js for the tags), and the
+    file has to sit inside the project. Outside the project, index.html
+    assets are still inlined with a deprecation warning unless `root` is
+    set (the MCP sandbox) or `strict` (data.json's hero_image)."""
+    if kind in _ASSET_SUFFIXES:
+        type_ok = p.suffix.lower() in _ASSET_SUFFIXES[kind]
+    else:
+        mime, _ = mimetypes.guess_type(p.name)
+        type_ok = bool(mime) and mime.startswith("image/")
+    if not type_ok:
+        warnings.append(f"{kind.capitalize()} {ref!r} is not a {kind} file: not inlined. "
+                        "Point it at the file you meant to ship.")
+        return False
+    if _inside(p, project):
+        return True
+    if root is not None and not _inside(p, Path(root)):
+        warnings.append(f"{kind.capitalize()} {ref!r} is outside the allowed root: not inlined.")
+        return False
+    if strict:
+        warnings.append(f"Hero image {ref!r} is outside the project: not inlined. "
+                        "Copy it into the project folder and name it from there.")
+        return False
+    if root is None:
+        warnings.append(f"{kind.capitalize()} {ref!r} is outside the project. It was inlined, "
+                        "but this is deprecated: copy it into the project folder.")
+    return True
 
 
 def _data_uri(p: Path) -> str:

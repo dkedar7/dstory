@@ -969,6 +969,19 @@ def _check_injection(r: "Dimension", html: str, data: dict[str, Any]) -> None:
         if isinstance(url, str) and url.strip() and not safe_url(url):
             r.fail(f"meta.sources[{i}].url {url[:60]!r} is not an http(s) or mailto link. "
                    "Readers must not be sent to a javascript: or data: URL.")
+    # A bundled file that is not a picture (#47): `dstory bundle` before
+    # 0.15.2 inlined whatever local file hero_image or an <img> named.
+    hero = meta.get("hero_image")
+    if (isinstance(hero, str) and re.match(r"\s*data:", hero, re.I)
+            and not re.match(r"\s*data:image/", hero, re.I)):
+        kind = re.split(r"[;,]", hero.strip(), maxsplit=1)[0]
+        r.fail(f"meta.hero_image is a {kind[:40]!r} URI, not an image: the bundle carries a "
+               "file that is not a picture. Check which file hero_image names, then re-bundle.")
+    for kind in re.findall(r"<img\b[^>]*\bsrc=[\"']\s*(data:[^;,\"']*)", html, re.I):
+        if not kind.lower().startswith("data:image/"):
+            r.fail(f"An <img> carries a {kind[:40]!r} URI, not an image. Check which file "
+                   "index.html points it at, then re-bundle.")
+            break
     m = re.search(r"<html\b[^>]*>", html, re.I)
     h = re.search(r"<head\b", html, re.I)
     if m and h and h.start() > m.end():

@@ -427,7 +427,7 @@ keys are allowed. One that looks like a mistyped field gets a warning from
 | `lang` / `dir` | Set `<html lang dir>` — screen-reader voice, hyphenation, RTL layout |
 | `description` | `<meta name="description">` + Open Graph/Twitter description (falls back to `deck`) |
 | `share_image` | og:image / twitter:image for link unfurls (absolute URL) |
-| `hero_image` | Full-bleed hero photo with a theme-aware scrim; local files are inlined at bundle time |
+| `hero_image` | Full-bleed hero photo with a theme-aware scrim; a local image inside the project is inlined at bundle time |
 
 Per scene, set `alt` — one sentence stating what the chart shows *and* the
 takeaway. It becomes `role="img"` + `aria-label` on the chart mount, and the
@@ -577,7 +577,7 @@ make sure every number is right."*
 | `bundle_story(project, vendor?)` | `dstory bundle` | `{bundled, html, bytes, self_contained}`, or `{bundled: false, claim_drift}` |
 
 The assistant can only read and write inside `--root` (default: the directory
-the server starts in). Every tool is a plain function in `dstory.agent`, and
+the server starts in), and no bundle inlines a file from outside it. Every tool is a plain function in `dstory.agent`, and
 the vet JSON is also one flag away for CI: `dstory vet story.html --data
 data.json --json` (same exit code as without it).
 
