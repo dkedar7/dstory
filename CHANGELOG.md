@@ -5,6 +5,20 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Security
+
+- `dstory bundle` no longer inlines any file that `meta.hero_image` names
+  (#47). A `data.json` could point it at `../../.aws/credentials` or an
+  absolute path, and the file shipped base64-encoded inside the story.
+  `hero_image` is now inlined only from inside the project, and only when it
+  is an image; otherwise it is dropped with a warning.
+- Local files that `index.html` inlines must match their tag: `.css` for a
+  stylesheet, `.js` for a script, an image for `<img>`. Under `dstory mcp`,
+  none may come from outside `--root`. From the CLI, an asset outside the
+  project is still inlined, with a deprecation warning.
+- `dstory vet` fails a bundle whose `hero_image` or `<img>` carries a data
+  URI that is not an image, which catches stories bundled by 0.15.1 or older.
+
 ## [0.15.1] - 2026-11-24
 
 ### Fixed

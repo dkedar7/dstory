@@ -115,7 +115,7 @@ def bundle_story(project: str, *, root: str | Path = ".", vendor: bool = False) 
 
     p = _project(project, root)
     try:
-        r = bundle(p, vendor=vendor)
+        r = bundle(p, vendor=vendor, root=Path(root).resolve())
     except ClaimDriftError as e:
         lines = [ln.strip()[2:] for ln in str(e).splitlines() if ln.strip().startswith("- ")]
         return {"bundled": False, "claim_drift": lines, "message": str(e).splitlines()[0]}
