@@ -145,8 +145,12 @@ body.story-mode--slides .progress-rail { display: none; }
 .scene { padding: 0 1.5rem; }
 
 /* Simple scene: a single chart-driven moment, centered column. */
+/* width:100% matters: .story is a column flexbox, and auto side margins
+   make a flex item shrink to fit its content, so without it a scene was only
+   as wide as its headline and a short one got a 300 px chart (#48). */
 .scene--simple {
   max-width: 56rem;
+  width: 100%;
   margin: 0 auto;
 }
 .scene--simple h2 {
@@ -180,8 +184,8 @@ body.story-mode--slides .progress-rail { display: none; }
 /* Per-scene width modifiers (set via Scene.width in data.json).
    Override the default ~56rem max-width of simple scenes (and any other
    width-respecting scene kind). */
-.scene--w-narrow { max-width: 36rem; margin: 0 auto; }
-.scene--w-wide   { max-width: 78rem; margin: 0 auto; }
+.scene--w-narrow { max-width: 36rem; width: 100%; margin: 0 auto; }
+.scene--w-wide   { max-width: 78rem; width: 100%; margin: 0 auto; }
 .scene--w-full {
   max-width: none;
   margin: 0;
@@ -206,6 +210,7 @@ h1, h2, h3, h4, p, li, figcaption, blockquote, .step {
   gap: 4rem;
   align-items: start;
   max-width: 80rem;
+  width: 100%;                /* fill the column, not shrink to the text (#48) */
   margin: 0 auto;
 }
 .scene--scrolly .scene__graphic {
