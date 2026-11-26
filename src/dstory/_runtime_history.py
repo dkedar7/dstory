@@ -16,6 +16,7 @@ KNOWN = {
     'story.css': frozenset({
         '86ed725ee0dd8e11',
         '93d67da336a7930f',
+        'a57550a3a974da87',
         'b2dcd6029a7cf09e',
         'b4a3b5da4f75fad4',
         'b4c0ef458eb86a9a',

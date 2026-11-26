@@ -1173,6 +1173,28 @@ SQUEEZE_AUDIT_JS = r"""
 })()
 """
 
+# A scroll-mode scene must fill its column (#48). Before 0.15.3 a simple scene
+# shrank to fit its text, so "Sales rose" got a 300 px chart with 6 px labels
+# on a 1440 px screen. Flags a chart-bearing scene narrower than 3/4 of the
+# room its max-width allows. Returns [[scene id, width px, room px], ...].
+SHRINK_AUDIT_JS = r"""
+(() => {
+  if (document.body.classList.contains('story-mode--slides')) return [];
+  const out = [];
+  for (const sec of document.querySelectorAll('.story > section.scene')) {
+    if (sec.classList.contains('scene--w-full')) continue;
+    if (!sec.querySelector('[data-mount] svg, [data-mount] canvas')) continue;
+    const parent = sec.parentElement, ps = getComputedStyle(parent);
+    const inner = parent.clientWidth - parseFloat(ps.paddingLeft) - parseFloat(ps.paddingRight);
+    const mw = parseFloat(getComputedStyle(sec).maxWidth);
+    const room = Math.min(inner, isNaN(mw) ? Infinity : mw);
+    const w = sec.getBoundingClientRect().width;
+    if (w > 0 && room > 0 && w < room * 0.75) out.push([sec.id, Math.round(w), Math.round(room)]);
+  }
+  return out;
+})()
+"""
+
 # The data panel (bundle a11y extras): every data scene's table and CSV must
 # match the inlined dataset, so the numbers a reader can inspect are exactly
 # the numbers the author supplied. Returns null when the bundle has no panel
@@ -1405,6 +1427,17 @@ def run_browser_checks(html_abs: Path, out_dir: Path) -> tuple[Dimension, Dimens
                              + "".join(f" Scene {sid!r} text has the long unbroken word "
                                        f"\"{word[:60]}\"; if custom CSS stops it wrapping, "
                                        "shorten it or let it break." for sid, word in words))
+            try:
+                shrunk = page.evaluate(SHRINK_AUDIT_JS)
+            except Exception:
+                shrunk = []
+            if shrunk:
+                renders.fail(f"viewport {w}x{h}: scene(s) "
+                             + ", ".join(f"{sid} ({px} of {room} px)" for sid, px, room in shrunk)
+                             + " shrink to fit their text instead of filling the column, so the "
+                             "chart and its labels render too small. Re-run `dstory bundle` with "
+                             "dstory 0.15.3 or later; if custom CSS sets the scene's width, "
+                             "remove it.")
             if facts["svgCount"] == 0 and facts["canvasCount"] == 0:
                 renders.note(f"viewport {w}x{h}: no SVG or Canvas charts detected.")
 

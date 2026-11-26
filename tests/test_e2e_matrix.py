@@ -310,3 +310,57 @@ def test_iso_datetime_strings_still_draw_the_date_recipes(pw, iso_dates, mode):
     assert not [w for w in warnings if "dataset" in w], warnings
     assert not errors, errors
     page.close()
+
+
+@pytest.fixture(scope="module")
+def short_headlines(tmp_path_factory):
+    """#48: a scene shrank to fit its text, so "Up" got a 300 px chart."""
+    simple = dict(SCENES[0], headline="Up", commentary=None)
+    scrolly = dict(SCENES[1], headline="Down", commentary=None,
+                   steps=[{"headline": "Coal."}, {"headline": "Fell."}])
+    out = {}
+    for extras in (True, False):
+        story = {"meta": dict(META, mode="scroll"), "scenes": [simple, scrolly, SCENES[5]],
+                 "datasets": {"line": LINE, "bars": BARS}}
+        d = tmp_path_factory.mktemp(f"short-{extras}")
+        out[extras] = build(story, d / "p", scenes=JS, vendor=True, a11y_extras=extras,
+                            check_claims=False).html
+    return out
+
+
+@pytest.mark.parametrize("extras", [True, False], ids=["extras", "plain"])
+@pytest.mark.parametrize("w,h", [(1440, 900), (768, 1024)])
+def test_scroll_scenes_fill_their_column_whatever_the_headline(pw, short_headlines, extras, w, h):
+    page, errors = _open(pw, short_headlines[extras], w, h)
+    page.wait_for_selector("#s-simple svg path", state="attached", timeout=15000)
+    sizes = page.evaluate("""['s-simple', 's-scrolly'].map(id => {
+        const s = document.getElementById(id), st = document.querySelector('.story');
+        const room = Math.min(st.clientWidth, parseFloat(getComputedStyle(s).maxWidth));
+        return [id, s.getBoundingClientRect().width, room,
+                s.querySelector('svg').getBoundingClientRect().width]; })""")
+    for sid, width, room, svg in sizes:
+        assert width >= room - 1, (sid, width, room)
+    simple_svg = sizes[0][3]
+    assert simple_svg > min(600, w * 0.6), sizes      # was 300 px at every width
+    assert not errors, errors
+    page.close()
+
+
+def test_vet_flags_a_scene_that_shrinks_to_its_headline(tmp_path):
+    """A bundle with the pre-0.15.3 CSS fails the Renders dimension."""
+    pytest.importorskip("playwright.sync_api")
+    from dstory.vet import browser_available, vet
+    ok, why = browser_available()
+    if not ok:
+        pytest.skip(why)
+    simple = dict(SCENES[0], headline="Up", commentary=None)
+    story = {"meta": dict(META, mode="scroll"), "scenes": [simple], "datasets": {"line": LINE}}
+    res = build(story, tmp_path / "p", scenes={"s-simple": JS["s-simple"]}, vendor=True,
+                check_claims=False)
+    old = "<style>.scene--simple{width:auto !important}</style>"
+    html = res.html.read_text(encoding="utf-8").replace("</head>", old + "</head>", 1)
+    res.html.write_text(html, encoding="utf-8")
+    rep = vet(res.html, data=tmp_path / "p" / "data.json")
+    renders = next(d for d in rep.dimensions if d.name.startswith("Renders"))
+    assert any("1440x900" in i and "s-simple" in i and "shrink to fit" in i
+               for i in renders.issues), renders.issues

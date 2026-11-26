@@ -5,6 +5,16 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- In scroll mode a `simple` scene now fills its column (56rem, or its
+  `width`) whatever its headline (#48). It used to shrink to fit its text, so
+  a short headline like "Sales rose" got a 300 px chart with 6 px labels on a
+  1440 px screen, and charts changed width from scene to scene. Scrolly
+  scenes get the same fix. Re-run `dstory bundle` to pick it up.
+- `dstory vet` fails a scroll-mode scene that is narrower than 3/4 of its
+  column, so bundles made by 0.15.2 or older are caught.
+
 ## [0.15.2] - 2026-11-25
 
 ### Security
