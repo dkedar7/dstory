@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.15.3] - 2026-11-26
+
 ### Fixed
 
 - In scroll mode a `simple` scene now fills its column (56rem, or its
