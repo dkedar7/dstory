@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.15.4] - 2026-11-27
+
 ### Fixed
 
 - The claim drift check now reads the common ways of stating a change that it
