@@ -160,7 +160,8 @@ def _num(s: str) -> float:
     return float(s.replace(",", ""))
 
 
-_PCT_RE = re.compile(rf"(?:\b({_DIRECTION})\w*\s+(?:by\s+)?)?({_NUMBER})\s*%", re.I)
+_PCT_UNIT = r"(?:%|per\s?cent\b|pct\b)"   # "30%", "30 percent", "30 per cent", "30 pct"
+_PCT_RE = re.compile(rf"(?:\b({_DIRECTION})\w*\s+(?:by\s+)?)?({_NUMBER})\s*{_PCT_UNIT}", re.I)
 _POINTS_RE = re.compile(rf"(?:\b({_DIRECTION})\w*\s+(?:by\s+)?)?({_NUMBER})\s*"
                         r"(?:percentage[- ]points?|points?|pp)\b", re.I)
 _FOLD_RE = re.compile(rf"\b({_NUMBER})[- ]?fold\b", re.I)
@@ -584,6 +585,15 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
             r.fail(f"Claim {cid!r}: prose says {f.group(0)}, but the ratio is "
                    f"{as_ratio:.2f}.")
 
+        # The phrases scene prose is held to hold for the claim's own text (#49).
+        if value is not None and unit in ("pct", "ratio"):
+            for said, targets, tol in _stated_ratios(text):
+                if f and said == f.group(0):
+                    continue
+                if not any(abs(as_ratio - n) <= tol for n in targets):
+                    r.fail(f"Claim {cid!r}: prose says \"{said.strip()}\", but the ratio is "
+                           f"{as_ratio:.2f} ({actual_pct:+.1f}%). Either rephrase or fix the data.")
+
     _check_scene_prose_against_claims(r, data, claims)
     _check_claim_provenance(r, data, claims)
     return r
@@ -682,8 +692,8 @@ _VERB = rf"(?:(?P<verb>{'|'.join(_SCENE_UP + _SCENE_DOWN)})\w*|(?<!made )(?<!mak
 _QUAL = r"(?P<qual>about|around|roughly|nearly|almost|over|more than|less than|under)?\s*"
 _NOUN = rf"(?P<noun>{'|'.join(_NOUN_UP + _NOUN_DOWN)})\w*"
 _SCENE_PCT_RE = re.compile(
-    rf"\b{_VERB}\s+(?:by\s+)?{_QUAL}(?P<n>{_NUMBER})\s*(?:%|percent\b)"
-    rf"|\b{_QUAL.replace('qual', 'qual2')}(?P<n2>{_NUMBER})\s*(?:%|percent)\s+{_NOUN}",
+    rf"\b{_VERB}\s+(?:by\s+)?{_QUAL}(?P<n>{_NUMBER})\s*{_PCT_UNIT}"
+    rf"|\b{_QUAL.replace('qual', 'qual2')}(?P<n2>{_NUMBER})\s*{_PCT_UNIT}\s+{_NOUN}",
     re.I)
 _SCENE_POINTS_RE = re.compile(
     rf"\b{_VERB}\s+(?:by\s+)?{_QUAL}(?P<n>{_NUMBER})\s*"
@@ -696,10 +706,52 @@ _NUM_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
 _TIMES_RE = re.compile(
     rf"(?<![\w.])({_NUMBER})\s*[x×](?!\w)"
     rf"|\b({_NUMBER})\s+times\b(\s+more\b)?"
-    rf"|\b({'|'.join(k for k in _NUM_WORDS if k != 'twice')})[- ]fold\b"
+    rf"|\b({'|'.join(k for k in _NUM_WORDS if k != 'twice')})[- ]?fold\b"   # "ten-fold", "tenfold"
     rf"|\b({'|'.join(k for k in _NUM_WORDS if k != 'twice')})\s+times\s+"
-    r"(over|as|larger|bigger|higher|greater|more)\b", re.I)
-_HALF_RE = re.compile(rf"\b({'|'.join(_SCENE_UP + _SCENE_DOWN)})\w*\s+(?:by\s+)?(?:a\s+|one\s+)?half\b", re.I)
+    r"(over|as|larger|bigger|higher|greater|more)\b"
+    r"|\b(twice)\s+as\s+(?:many|much|large|big|high|great|long)\b", re.I)
+_HALF_RE = re.compile(rf"\b({'|'.join(_SCENE_UP + _SCENE_DOWN)})\w*\s+(?:by\s+)?(?:a\s+|one\s+)?half\b"
+                      r"|\b(?:cut|slash|chop|reduc|slic|split)\w*\s+(in)\s+half\b", re.I)
+# "fell by a third", "rose by a quarter", "down two-thirds", "cut by three-quarters"
+_FRACTIONS = {"third": 3, "quarter": 4, "fifth": 5}
+_FRACTION_RE = re.compile(
+    rf"\b{_VERB}\s+(?:by\s+)?{_QUAL}(?P<k>a|one|two|three|four)[- ]"
+    rf"(?P<den>{'|'.join(_FRACTIONS)})s?\b", re.I)
+_FRACTION_COUNT = {"a": 1, "one": 1, "two": 2, "three": 3, "four": 4}
+
+
+def _stated_ratios(text: str) -> list[tuple[str, list[float], float]]:
+    """Every change `text` states as a multiple or a fraction (#49), as
+    (the words, the after/before ratios they can mean, tolerance): "5x",
+    "three times over", "tenfold", "twice as many", "fell by half", "cut in
+    half", "rose by a third", "down two-thirds". One parser for scene prose
+    and claim text, so the two can never disagree about what a phrase says."""
+    out: list[tuple[str, list[float], float]] = []
+    for t in _TIMES_RE.finditer(text):
+        if t.group(1):
+            num, more = _num(t.group(1)), False
+        elif t.group(2):
+            num, more = _num(t.group(2)), bool(t.group(3))
+        elif t.group(7):
+            num, more = 2.0, False
+        else:
+            num = float(_NUM_WORDS[(t.group(4) or t.group(5)).lower()])
+            more = (t.group(6) or "").lower() == "more"
+        # "3 times more" is read both ways (3x, or 4x) to stay fair.
+        out.append((t.group(0), [num, num + 1] if more else [num], 0.5))
+    for h in _HALF_RE.finditer(text):
+        down = bool(h.group(2)) or _scene_sign(h.group(1)) < 0
+        out.append((h.group(0), [0.5 if down else 1.5], 0.05))
+    for f in _FRACTION_RE.finditer(text):
+        k = _FRACTION_COUNT[f.group("k").lower()]
+        frac = k / _FRACTIONS[f.group("den").lower().rstrip("s")]
+        if frac >= 1:
+            continue
+        sign = _scene_sign(f.group("verb") or f.group("updown"))
+        # A fraction is a round figure: "a third" fits 30-36%, a hedge widens it.
+        tol = frac * (0.2 if f.group("qual") else 0.1)
+        out.append((f.group(0), [1 + sign * frac], max(tol, 0.02)))
+    return out
 
 
 def _scene_sign(word: str) -> int:
@@ -778,22 +830,9 @@ def _check_scene_prose_against_claims(r: "Dimension", data: dict[str, Any],
                 if not any(abs(x - _num(f.group(1))) <= 0.5 for x in ratios):
                     drift(f.group(0), mine, have_ratio())
         if unit_ratios or strict:
-            for t in _TIMES_RE.finditer(prose):
-                if t.group(1):
-                    num, more = _num(t.group(1)), False
-                elif t.group(2):
-                    num, more = _num(t.group(2)), bool(t.group(3))
-                else:
-                    num = float(_NUM_WORDS[(t.group(4) or t.group(5)).lower()])
-                    more = (t.group(6) or "").lower() == "more"
-                # "3 times more" is read both ways (3x, or 4x) to stay fair.
-                targets = [num, num + 1] if more else [num]
-                if not any(abs(x - n) <= 0.5 for x in unit_ratios for n in targets):
-                    drift(t.group(0), mine, have_ratio())
-            for h in _HALF_RE.finditer(prose):
-                want = 0.5 if _scene_sign(h.group(1)) < 0 else 1.5
-                if not any(abs(x - want) <= 0.05 for x in unit_ratios):
-                    drift(h.group(0), mine, have_ratio())
+            for said, targets, tol in _stated_ratios(prose):
+                if not any(abs(x - n) <= tol for x in unit_ratios for n in targets):
+                    drift(said, mine, have_ratio())
         if pcts or strict:
             have = ("change by " + ", ".join(f"{p:+.1f}%" for p in pcts) if pcts
                     else "include no percent-change claim")
