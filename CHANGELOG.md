@@ -5,6 +5,18 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- The claim drift check now reads the common ways of stating a change that it
+  used to miss (#49): "cut in half", fractions ("fell by a third", "rose by a
+  quarter", "down two-thirds", "three-quarters"), "per cent" and "pct",
+  one-word "tenfold" / "threefold", and "twice as many". A headline that says
+  "cut in half" over a 20% fall now stops `dstory bundle` and fails
+  `dstory vet`.
+- A claim's own `text` is held to the same phrases as scene prose: one parser
+  reads both, so "fell by half", "three times higher" or "ten-fold" in a
+  claim that contradicts its value now blocks the build too.
+
 ## [0.15.3] - 2026-11-26
 
 ### Fixed
