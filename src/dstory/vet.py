@@ -15,7 +15,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any, Callable, Iterator, Optional
 
 from .prep import RATIO_WINDOWS, recompute_claim
 
@@ -554,16 +554,28 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
             # Legacy, unit-less claim: 0..1 reads as a share, else as percent.
             as_ratio, actual_pct = value, (value * 100 if 0 <= value <= 1 else value)
 
-        for pattern, predicate in PHRASE_RULES:
-            if (pattern, predicate) == MAJORITY_RULE and unit is not None:
+        maj, maj_ok = MAJORITY_RULE
+        if unit is None and maj.search(text):
+            if value is None:
+                r.fail(f"Claim {cid!r} uses '{maj.pattern}' but has no numeric value.")
+            elif not maj_ok(as_ratio):
+                r.fail(f"Claim {cid!r}: prose says \"{text}\" but value={value} fails check "
+                       f"for '{maj.pattern}'. Either rephrase or fix the data.")
+        # Ratio wordings, read by the same parser as scene prose (#49-#51).
+        for said, judge, legacy in _ratio_mentions(text):
+            if not legacy and unit not in ("pct", "ratio"):
                 continue
-            if pattern.search(text):
-                if value is None:
-                    r.fail(f"Claim {cid!r} uses '{pattern.pattern}' but has no numeric value.")
-                elif not predicate(as_ratio):
-                    r.fail(f"Claim {cid!r}: prose says \"{text}\" but value={value}"
-                           f"{f' ({unit})' if unit else ''} fails check for "
-                           f"'{pattern.pattern}'. Either rephrase or fix the data.")
+            if value is None:
+                r.fail(f"Claim {cid!r} says \"{said}\" but has no numeric value.")
+                continue
+            verdict = judge(as_ratio)
+            if verdict == "bad":
+                r.fail(f"Claim {cid!r}: prose says \"{said}\" but value={value}"
+                       f"{f' ({unit})' if unit else ''} is a ratio of {as_ratio:.2f}. "
+                       "Either rephrase or fix the data.")
+            elif verdict == "weak":
+                r.note(f"Claim {cid!r} says \"{said}\"; true, but the ratio is "
+                       f"{as_ratio:.2f}, so it undersells the change.")
 
         if value is not None and unit in ("pct", "ratio") and actual_pct < -100:
             r.fail(f"Claim {cid!r}: a {actual_pct:.0f}% change means the value changed sign; "
@@ -580,19 +592,6 @@ def check_data_fidelity(html: str, data: dict[str, Any]) -> Dimension:
                 r.fail(f"Claim {cid!r}: prose says {m.group(0).strip()}, derived value is "
                        f"{actual_pct:+.2f}% (tolerance {PCT_TOLERANCE_PP}pp).")
 
-        f = _FOLD_RE.search(text)
-        if f and value is not None and abs(as_ratio - _num(f.group(1))) > 0.5:
-            r.fail(f"Claim {cid!r}: prose says {f.group(0)}, but the ratio is "
-                   f"{as_ratio:.2f}.")
-
-        # The phrases scene prose is held to hold for the claim's own text (#49).
-        if value is not None and unit in ("pct", "ratio"):
-            for said, targets, tol in _stated_ratios(text):
-                if f and said == f.group(0):
-                    continue
-                if not any(abs(as_ratio - n) <= tol for n in targets):
-                    r.fail(f"Claim {cid!r}: prose says \"{said.strip()}\", but the ratio is "
-                           f"{as_ratio:.2f} ({actual_pct:+.1f}%). Either rephrase or fix the data.")
 
     _check_scene_prose_against_claims(r, data, claims)
     _check_claim_provenance(r, data, claims)
@@ -702,16 +701,38 @@ _SCENE_POINTS_RE = re.compile(
     rf"(?:percentage[- ]points?|points?|pp)\s+{_NOUN}",
     re.I)
 _NUM_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
-              "eight": 8, "nine": 9, "ten": 10, "twice": 2}
-_TIMES_RE = re.compile(
-    rf"(?<![\w.])({_NUMBER})\s*[x×](?!\w)"
-    rf"|\b({_NUMBER})\s+times\b(\s+more\b)?"
-    rf"|\b({'|'.join(k for k in _NUM_WORDS if k != 'twice')})[- ]?fold\b"   # "ten-fold", "tenfold"
-    rf"|\b({'|'.join(k for k in _NUM_WORDS if k != 'twice')})\s+times\s+"
-    r"(over|as|larger|bigger|higher|greater|more)\b"
-    r"|\b(twice)\s+as\s+(?:many|much|large|big|high|great|long)\b", re.I)
-_HALF_RE = re.compile(rf"\b({'|'.join(_SCENE_UP + _SCENE_DOWN)})\w*\s+(?:by\s+)?(?:a\s+|one\s+)?half\b"
-                      r"|\b(?:cut|slash|chop|reduc|slic|split)\w*\s+(in)\s+half\b", re.I)
+              "eight": 8, "nine": 9, "ten": 10, "twenty": 20, "twice": 2}
+_N_WORDS = "|".join(k for k in _NUM_WORDS if k != "twice")
+_N = rf"(?P<n>{_NUMBER}|{_N_WORDS})"
+# A hedge before a ratio wording (#51): "nearly doubled", "more than 4x".
+_HEDGE = (r"(?:(?P<hedge>nearly|almost|close\s+to|just\s+under|less\s+than|under|"
+          r"about|around|roughly|approximately|some|"
+          r"more\s+than|well\s+over|just\s+over|over|at\s+least)\s+)?")
+_HEDGE_UNDER = ("nearly", "almost", "close to", "just under", "less than", "under")
+_HEDGE_OVER = ("more than", "well over", "just over", "over", "at least")
+_RATIO_VERBS = {"doubled": 2.0, "tripled": 3.0, "quadrupled": 4.0, "quintupled": 5.0,
+                "halved": 0.5}
+_ANY_VERB = "|".join(_SCENE_UP + _SCENE_DOWN)
+# Every wording of "the value is N times what it was" (#49, #50, #51). Each
+# pattern names `n` (or `verb`), and may name `hedge`, `more` and `dir`.
+_RATIO_PATTERNS: list[tuple[re.Pattern, bool]] = [(re.compile(p, re.I), legacy) for p, legacy in [
+    # legacy=True: also checked for a unit-less claim, as before 0.15.5.
+    (rf"\b{_HEDGE}(?P<verb>{'|'.join(_RATIO_VERBS)})\b", True),
+    (rf"\b{_HEDGE}{_N}[- ]?fold\b", True),                       # "12-fold", "tenfold"
+    (rf"(?<![\w.]){_HEDGE}(?P<n>{_NUMBER})\s*[x×](?!\w)", False),  # "5x"
+    (rf"\b{_HEDGE}(?P<n>{_NUMBER})\s+times\b(?P<more>\s+more\b)?", False),
+    (rf"\b{_HEDGE}(?P<n>{_N_WORDS})\s+times\s+(?:(?P<more>more)|over|as|larger|bigger|"
+     r"higher|greater)\b", False),
+    (rf"\b(?:{_ANY_VERB})\w*\s+{_HEDGE}(?P<n>{_N_WORDS})\s+times\b", False),  # "rose two times"
+    (rf"\b{_HEDGE}(?P<n>twice)\s+as\s+(?:many|much|large|big|high|great|long)\b", False),
+    # "rose by a factor of ten", "a factor of 5 increase", "fell by a factor of two"
+    (rf"(?:\b(?P<dir>{_ANY_VERB}|up|down)\w*\s+)?(?:\bby\s+)?{_HEDGE}\b(?:a\s+)?factor\s+of\s+"
+     rf"{_N}\b", False),
+    (rf"\b{_HEDGE}multiplied\s+by\s+{_N}\b", False),
+    # "fell by half", "rose by nearly half", "cut in half"
+    (rf"\b(?P<dir>{_ANY_VERB})\w*\s+(?:by\s+)?{_HEDGE}(?:a\s+|one\s+)?(?P<verb>half)\b", False),
+    (r"\b(?:cut|slash|chop|reduc|slic|split)\w*\s+in\s+(?P<verb>half)\b", False),
+]]
 # "fell by a third", "rose by a quarter", "down two-thirds", "cut by three-quarters"
 _FRACTIONS = {"third": 3, "quarter": 4, "fifth": 5}
 _FRACTION_RE = re.compile(
@@ -720,37 +741,99 @@ _FRACTION_RE = re.compile(
 _FRACTION_COUNT = {"a": 1, "one": 1, "two": 2, "three": 3, "four": 4}
 
 
-def _stated_ratios(text: str) -> list[tuple[str, list[float], float]]:
-    """Every change `text` states as a multiple or a fraction (#49), as
-    (the words, the after/before ratios they can mean, tolerance): "5x",
-    "three times over", "tenfold", "twice as many", "fell by half", "cut in
-    half", "rose by a third", "down two-thirds". One parser for scene prose
-    and claim text, so the two can never disagree about what a phrase says."""
-    out: list[tuple[str, list[float], float]] = []
-    for t in _TIMES_RE.finditer(text):
-        if t.group(1):
-            num, more = _num(t.group(1)), False
-        elif t.group(2):
-            num, more = _num(t.group(2)), bool(t.group(3))
-        elif t.group(7):
-            num, more = 2.0, False
-        else:
-            num = float(_NUM_WORDS[(t.group(4) or t.group(5)).lower()])
-            more = (t.group(6) or "").lower() == "more"
-        # "3 times more" is read both ways (3x, or 4x) to stay fair.
-        out.append((t.group(0), [num, num + 1] if more else [num], 0.5))
-    for h in _HALF_RE.finditer(text):
-        down = bool(h.group(2)) or _scene_sign(h.group(1)) < 0
-        out.append((h.group(0), [0.5 if down else 1.5], 0.05))
+def ratio_window(n: float) -> tuple[float, float]:
+    """The after/before ratios a bare "N times" wording may stand for. 2 to 5
+    share the windows of "doubled".."quintupled" (#50), so "twofold", "2x",
+    "two times" and "by a factor of two" all mean what "doubled" means; from
+    FOLD_MIN_RATIO up, N is what the ratio rounds to (prep writes "12-fold")."""
+    from .prep import FOLD_MIN_RATIO
+    word = {2.0: "doubled", 3.0: "tripled", 4.0: "quadrupled", 5.0: "quintupled",
+            0.5: "halved"}.get(float(n))
+    if word:
+        return RATIO_WINDOWS[word]
+    if n >= FOLD_MIN_RATIO:
+        return (n - 0.5, n + 0.5)
+    return (n * 0.95, n * 1.05)
+
+
+def _judge_ratio(r: float, n: float, hedge: Optional[str]) -> str:
+    """'ok', 'weak' (true but undersold: "more than doubled" at 4.8) or 'bad'
+    for a ratio `r` described as `n` times, after an optional hedge (#51).
+    A hedge works as it does for percents: "nearly" / "almost" accept a
+    ratio up to 10% short of the window, "more than" / "over" one above it
+    (short of the next whole multiple, or it undersells), "about" either."""
+    lo, hi = ratio_window(n)
+    h = re.sub(r"\s+", " ", (hedge or "").lower())
+    up = n >= 1
+    if not up:                      # "nearly halved" at 0.53: mirror the sides
+        lo, hi = 1 / hi, 1 / lo
+        r = 1 / r if r > 0 else float("inf")
+    if not h:
+        return "ok" if lo <= r <= hi else "bad"
+    if h in _HEDGE_UNDER:
+        if 0.9 * lo <= r <= hi:
+            return "ok"
+        return "weak" if h in ("less than", "under") and r < 0.9 * lo else "bad"
+    if h in _HEDGE_OVER:
+        if r < lo:
+            return "bad"
+        nxt = ratio_window((1 / n if not up else n) + 1)[0]
+        return "ok" if r < nxt else "weak"
+    return "ok" if 0.9 * lo <= r <= 1.1 * hi else "bad"
+
+
+def _ratio_mentions(text: str) -> list[tuple[str, Callable[[float], str], bool]]:
+    """Every change `text` states as a multiple or a fraction, as (the words,
+    a judge of a ratio: 'ok' / 'weak' / 'bad', legacy): "doubled", "nearly
+    tripled", "5x", "more than 2x", "three times over", "tenfold", "twice as
+    many", "by a factor of ten", "multiplied by five", "fell by half", "cut
+    in half", "rose by a third". One parser for scene prose and claim text,
+    so the two can never disagree about what a phrase says (#49-#51)."""
+    found: list[tuple[int, int, str, Callable[[float], str], bool]] = []
+    for pattern, legacy in _RATIO_PATTERNS:
+        for m in pattern.finditer(text):
+            g = m.groupdict()
+            hedge = g.get("hedge")
+            if g.get("verb"):
+                v = g["verb"].lower()
+                if v == "half":
+                    n = 1.5 if g.get("dir") and _scene_sign(g["dir"]) > 0 else 0.5
+                else:
+                    n = _RATIO_VERBS[v]
+                ns = [n]
+            else:
+                raw = g["n"].lower()
+                n = float(_NUM_WORDS[raw]) if raw in _NUM_WORDS else _num(raw)
+                if n <= 0:
+                    continue
+                if g.get("dir") and _scene_sign(g["dir"]) < 0 and n > 1:
+                    n = 1 / n           # "fell by a factor of two"
+                # "3 times more" is read both ways (3x, or 4x) to stay fair.
+                ns = [n, n + 1] if g.get("more") else [n]
+
+            def judge(r: float, ns=ns, hedge=hedge) -> str:
+                verdicts = [_judge_ratio(r, x, hedge) for x in ns]
+                return "ok" if "ok" in verdicts else ("weak" if "weak" in verdicts else "bad")
+            found.append((m.start(), m.end(), m.group(0).strip(), judge, legacy))
     for f in _FRACTION_RE.finditer(text):
         k = _FRACTION_COUNT[f.group("k").lower()]
         frac = k / _FRACTIONS[f.group("den").lower().rstrip("s")]
         if frac >= 1:
             continue
-        sign = _scene_sign(f.group("verb") or f.group("updown"))
+        target = 1 + _scene_sign(f.group("verb") or f.group("updown")) * frac
         # A fraction is a round figure: "a third" fits 30-36%, a hedge widens it.
-        tol = frac * (0.2 if f.group("qual") else 0.1)
-        out.append((f.group(0), [1 + sign * frac], max(tol, 0.02)))
+        tol = max(frac * (0.2 if f.group("qual") else 0.1), 0.02)
+
+        def judge(r: float, target=target, tol=tol) -> str:
+            return "ok" if abs(r - target) <= tol else "bad"
+        found.append((f.start(), f.end(), f.group(0).strip(), judge, False))
+    # One mention per stretch of text: the longest match wins.
+    found.sort(key=lambda t: (t[0], -(t[1] - t[0])))
+    out, end = [], -1
+    for start, stop, said, judge, legacy in found:
+        if start >= end:
+            out.append((said, judge, legacy))
+            end = stop
     return out
 
 
@@ -819,20 +902,18 @@ def _check_scene_prose_against_claims(r: "Dimension", data: dict[str, Any],
             return (f"have ratio {', '.join(f'{x:.2f}' for x in ratios)}" if ratios
                     else "include no ratio or percent-change claim")
 
-        if ratios or strict:
-            for pattern, predicate in PHRASE_RULES:
-                if (pattern, predicate) == MAJORITY_RULE:
-                    continue
-                m = pattern.search(prose)
-                if m and not any(predicate(x) for x in ratios):
-                    drift(m.group(0), mine, have_ratio())
-            for f in _FOLD_RE.finditer(prose):
-                if not any(abs(x - _num(f.group(1))) <= 0.5 for x in ratios):
-                    drift(f.group(0), mine, have_ratio())
-        if unit_ratios or strict:
-            for said, targets, tol in _stated_ratios(prose):
-                if not any(abs(x - n) <= tol for x in unit_ratios for n in targets):
-                    drift(said, mine, have_ratio())
+        for said, judge, legacy in _ratio_mentions(prose):
+            against = ratios if legacy else unit_ratios
+            if not (against or strict):
+                continue
+            verdicts = {judge(x) for x in against}
+            if "ok" in verdicts:
+                continue
+            if "weak" in verdicts:
+                r.note(f"Scene {sid!r} says \"{said}\"; true, but its claim(s) "
+                       f"{have_ratio()}, so the wording undersells the change.")
+            else:
+                drift(said, mine, have_ratio())
         if pcts or strict:
             have = ("change by " + ", ".join(f"{p:+.1f}%" for p in pcts) if pcts
                     else "include no percent-change claim")
