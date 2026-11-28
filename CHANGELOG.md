@@ -5,6 +5,8 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.15.5] - 2026-11-28
+
 ### Fixed
 
 - The claim drift check reads "by a factor of N" and "multiplied by N" (#50).
