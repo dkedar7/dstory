@@ -284,9 +284,13 @@ negative"). The vetter fails a claim whose `from` has a negative base.
 A claim is only as good as the words the reader sees, so the vetter also checks
 the prose around it. Give a claim a `scene` and every change that scene's
 headline, commentary, steps or alt text states must fit one of its claims:
-"doubled"…"quintupled", "N-fold", "5x", "three times over", "fell by half", a
-percent change with a direction ("rose 30%", "down 4%", "a 30% drop") and a
-change in points ("up 2 points"). The direction counts, so "Churn fell 30%"
+"doubled"…"quintupled", "N-fold", "5x", "three times over", "by a factor of
+ten", "multiplied by five", "fell by half", "rose by a third", a percent change
+with a direction ("rose 30%", "down 4%", "a 30% drop") and a change in points
+("up 2 points"). Every way of saying "N times" shares one window, so "twofold",
+"2x" and "by a factor of two" mean exactly what "doubled" means. A hedge counts:
+"nearly doubled" fits 1.9, "more than quadrupled" fits 4.8, and "nearly
+doubled" at 2.3 still fails. The direction counts, so "Churn fell 30%"
 against a claim that churn rose 30% stops the build, as does editing the
 headline to "quintupled" and forgetting the claim. A bare figure with no
 direction ("12% of users", "made up 47%") is a level or a share, not a change,

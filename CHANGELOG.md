@@ -5,6 +5,21 @@ All notable changes to `dstory` are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- The claim drift check reads "by a factor of N" and "multiplied by N" (#50).
+  "Sales rose by a factor of ten" over a 1.9x rise used to pass.
+- "N-fold", "Nx" and "N times" for N from 2 to 5 use the windows of
+  "doubled".."quintupled" (#50), so "rose twofold" at 1.6 fails as "doubled"
+  does. From 5.5x up, N is still what the ratio rounds to. A new
+  `vet.ratio_window(n)` is the one table every ratio wording goes through.
+- A hedge before a ratio wording counts (#51), as it already did for percents.
+  "Nearly / almost doubled" fits a ratio up to 10% short of doubled's window,
+  "more than / over" one above it, and "about / roughly" either side. The true
+  "nearly doubled" at 1.9 no longer blocks the build, and "nearly doubled" at
+  2.3 still does. True but weak wording ("more than doubled" at 4.8) is a
+  note. The error quotes the whole phrase, hedge included.
+
 ## [0.15.4] - 2026-11-27
 
 ### Fixed
